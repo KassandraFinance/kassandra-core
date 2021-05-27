@@ -6,13 +6,6 @@ module.exports = {
             network_id: '*', // Any network (default: none)
             gas: 10000000,
         },
-        coverage: {
-            host: 'localhost',
-            network_id: '*',
-            port: 8555,
-            gas: 0xfffffffffff,
-            gasPrice: 0x01,
-        },
     },
     // Configure your compilers
     compilers: {
@@ -27,4 +20,5 @@ module.exports = {
             },
         },
     },
+    plugins: ['solidity-coverage'],
 };

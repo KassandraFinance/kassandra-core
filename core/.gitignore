@@ -1,6 +1,7 @@
 build
 node_modules
 .idea/*
+.coverage*/
 coverage.json
 coverage/
 yarn-error.log
