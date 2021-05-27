@@ -1,9 +1,9 @@
 {
     "private": true,
-    "name": "balancer-core",
-    "version": "0.0.7",
-    "license": "GPL-3.0-only",
-    "description": "Balancer Core Contracts and ABI",
+    "name": "kassandra-core",
+    "version": "0.0.1",
+    "license": "GPL-3.0-or-later",
+    "description": "Kassandra Core Contracts and ABI",
     "scripts": {
         "compile": "truffle compile",
         "testrpc": "ganache-cli --deterministic --gasLimit 10000000",
@@ -15,12 +15,12 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/balancer-labs/balancer-core.git"
+        "url": "git+https://github.com/KassandraFinance/kassandra-core.git"
     },
     "bugs": {
-        "url": "https://github.com/balancer-labs/balancer-core/issues"
+        "url": "https://github.com/KassandraFinance/kassandra-core/issues"
     },
-    "homepage": "https://github.com/balancer-labs/balancer-core#readme",
+    "homepage": "https://github.com/KassandraFinance/kassandra-core#readme",
     "devDependencies": {
         "chai": "^4.2.0",
         "coveralls": "^3.0.8",
