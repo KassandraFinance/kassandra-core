@@ -11,33 +11,77 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * @summary: Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
+ */
 pragma solidity 0.5.12;
-
-// Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
 
 import "./Pool.sol";
 
+/**
+ * @title: Pool Factory
+ */
 contract Factory is Bronze {
+    /**
+     * @notice: Every new pool gets broadcast of its creation
+     *
+     * @param caller: Address that created a pool
+     * @param pool: Address of new Pool
+     */
     event LOG_NEW_POOL(
         address indexed caller,
         address indexed pool
     );
 
-    event LOG_BLABS(
+    /**
+     * @notice: Alert of change of controller 
+     *
+     * @param caller: Address that changed controller
+     * @param controller: Address of the new controller
+     */
+    event LOG_NEW_CONTROLLER(
         address indexed caller,
-        address indexed blabs
+        address indexed controller
     );
 
+    /// map of all pools
     mapping(address=>bool) private _isPool;
+    /// controller/admin address 
+    address private _controller;
 
+    constructor() public {
+        _controller = msg.sender;
+    }
+
+    /**
+     * @dev: Checks if call comes from current controller/admin
+     */
+    modifier onlyController() {
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        _;
+    }
+
+    /**
+     * @notice: Check if address is a Pool
+     *
+     * @param b: Address for checking
+     *
+     * @return: Boolean telling if address is a pool
+     */
     function isPool(address b)
-        external view returns (bool)
+        external view
+        returns (bool)
     {
         return _isPool[b];
     }
 
+    /**
+     * @notice: Create a new Pool
+     *
+     * @return: Address of new Pool contract
+     */
     function newPool()
-        external
+        external onlyController
         returns (Pool)
     {
         Pool pool = new Pool();
@@ -47,33 +91,35 @@ contract Factory is Bronze {
         return pool;
     }
 
-    address private _blabs;
-
-    constructor() public {
-        _blabs = msg.sender;
-    }
-
-    function getBLabs()
+    /**
+     * @notice: Get address of who can create pools from this contract
+     *
+     * @return: Address of the controller wallet or contract
+     */
+    function getController()
         external view
         returns (address)
     {
-        return _blabs;
+        return _controller;
     }
 
-    function setBLabs(address b)
-        external
+    /**
+     * @notice: Change the controller of this contract
+     * 
+     * @param controller: New controller address
+     */
+    function setController(address controller)
+        external onlyController
     {
-        require(msg.sender == _blabs, "ERR_NOT_BLABS");
-        emit LOG_BLABS(msg.sender, b);
-        _blabs = b;
+        emit LOG_NEW_CONTROLLER(msg.sender, controller);
+        _controller = controller;
     }
 
     function collect(Pool pool)
-        external 
+        external onlyController
     {
-        require(msg.sender == _blabs, "ERR_NOT_BLABS");
         uint collected = IERC20(pool).balanceOf(address(this));
-        bool xfer = pool.transfer(_blabs, collected);
+        bool xfer = pool.transfer(_controller, collected);
         require(xfer, "ERR_ERC20_FAILED");
     }
 }
