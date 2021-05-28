@@ -13,9 +13,9 @@
 
 pragma solidity 0.5.12;
 
-import "./BColor.sol";
+import "./Color.sol";
 
-contract BConst is BBronze {
+contract Const is Bronze {
     uint public constant BONE              = 10**18;
 
     uint public constant MIN_BOUND_TOKENS  = 2;

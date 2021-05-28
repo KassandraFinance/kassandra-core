@@ -1,9 +1,9 @@
-import "./BNum.sol";
+import "./Num.sol";
 
-//  This test is similar to TBPoolJoin but with an exit fee
-contract TBPoolJoinExit is BNum {
+//  This test is similar to TPoolJoin but with an exit fee
+contract TPoolJoinExit is Num {
 
-    // joinPool models the BPool.joinPool behavior for one token
+    // joinPool models the Pool.joinPool behavior for one token
     function joinPool(uint poolAmountOut, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {
@@ -16,7 +16,7 @@ contract TBPoolJoinExit is BNum {
         return tokenAmountIn;
     }
 
-    // exitPool models the BPool.exitPool behavior for one token
+    // exitPool models the Pool.exitPool behavior for one token
     function exitPool(uint poolAmountIn, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {

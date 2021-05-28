@@ -1,7 +1,7 @@
-import "./BMathInternal.sol";
+import "./MathInternal.sol";
 
-// This contract used a modified version of BMath where all the public/external functions are internal to speed up Echidna exploration
-contract TestSwapOut is BMath {
+// This contract used a modified version of Math where all the public/external functions are internal to speed up Echidna exploration
+contract TestSwapOut is Math {
 
     bool public echidna_no_bug = true;
 

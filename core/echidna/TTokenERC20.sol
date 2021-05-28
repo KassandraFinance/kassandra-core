@@ -1,4 +1,4 @@
-import "../crytic-export/flattening/BPool.sol";
+import "../crytic-export/flattening/Pool.sol";
 
 contract CryticInterface{
     address internal crytic_owner = address(0x41414141);
@@ -15,7 +15,7 @@ contract CryticInterface{
     uint initialAllowance_attacker_attacker;
 }
 
-contract TBTokenERC20 is CryticInterface, BToken {
+contract TTokenERC20 is CryticInterface, Token {
 
     constructor() public {
         _totalSupply = initialTotalSupply;

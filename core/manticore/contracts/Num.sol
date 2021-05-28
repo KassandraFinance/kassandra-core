@@ -1,9 +1,9 @@
-// This file is a flatenen verison of BNum
+// This file is a flatenen verison of Num
 // where require(cond, string) where replaced by require(cond)
 // To allow SkipRequire to work properly
 // It won't be needed once https://github.com/trailofbits/manticore/issues/1593 is added
 
-contract BConst {
+contract Const {
     uint internal constant BONE              = 10**18;
 
     uint internal constant MAX_BOUND_TOKENS  = 8;
@@ -28,7 +28,7 @@ contract BConst {
     uint internal constant MAX_OUT_RATIO     = (BONE / 3) + 1 wei;
 
 }
-contract BNum is BConst {
+contract Num is Const {
 
 
     function badd(uint a, uint b)

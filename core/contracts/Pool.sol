@@ -13,10 +13,10 @@
 
 pragma solidity 0.5.12;
 
-import "./BToken.sol";
-import "./BMath.sol";
+import "./Token.sol";
+import "./Math.sol";
 
-contract BPool is BBronze, BToken, BMath {
+contract Pool is Bronze, Token, Math {
 
     struct Record {
         bool bound;   // is token bound to pool
@@ -70,7 +70,7 @@ contract BPool is BBronze, BToken, BMath {
 
     bool private _mutex;
 
-    address private _factory;    // BFactory address to push token exitFee to
+    address private _factory;    // Factory address to push token exitFee to
     address private _controller; // has CONTROL role
     bool private _publicSwap; // true if PUBLIC can call SWAP functions
 

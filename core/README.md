@@ -6,7 +6,7 @@ The full documentation can be found at <https://docs.kassandra.finance>
 
 ## Development
 
-Most users will want to consume the ABI definitions for BFactory and BPool.
+Most users will want to consume the ABI definitions for Factory and Pool.
 
 This project follows the standard Truffle project structure. 
 
@@ -23,7 +23,7 @@ $ yarn test:verbose
 ```
 
 ```
-  Contract: BPool
+  Contract: Pool
     With fees
 pAi
 expected: 10.891089108910892)

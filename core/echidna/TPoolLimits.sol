@@ -1,8 +1,8 @@
-import "../crytic-export/flattening/BPool.sol";
+import "../crytic-export/flattening/Pool.sol";
 import "./MyToken.sol";
 import "./CryticInterface.sol";
 
-contract TBPoolLimits is CryticInterface, BPool {
+contract TPoolLimits is CryticInterface, Pool {
 
     uint MAX_BALANCE = BONE * 10**12;
 

@@ -5,7 +5,7 @@ const TMath = artifacts.require('TMath');
 contract('TMath', async () => {
     const MAX = web3.utils.toTwosComplement(-1);
 
-    describe('BMath', () => {
+    describe('Math', () => {
         let tmath;
         before(async () => {
             tmath = await TMath.deployed();

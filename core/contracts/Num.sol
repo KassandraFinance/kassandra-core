@@ -13,9 +13,9 @@
 
 pragma solidity 0.5.12;
 
-import "./BConst.sol";
+import "./Const.sol";
 
-contract BNum is BConst {
+contract Num is Const {
 
     function btoi(uint a)
         internal pure 

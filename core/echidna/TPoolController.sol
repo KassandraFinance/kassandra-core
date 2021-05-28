@@ -1,7 +1,7 @@
-import "../crytic-export/flattening/BPool.sol";
+import "../crytic-export/flattening/Pool.sol";
 import "./CryticInterface.sol";
 
-contract TBPoolControllerPrivileged is CryticInterface, BPool {
+contract TPoolControllerPrivileged is CryticInterface, Pool {
 
     function echidna_controller_should_change() public returns (bool) {
         if (this.getController() == crytic_owner) {
@@ -23,7 +23,7 @@ contract TBPoolControllerPrivileged is CryticInterface, BPool {
     }
 }
 
-contract TBPoolControllerUnprivileged is CryticInterface, BPool {
+contract TPoolControllerUnprivileged is CryticInterface, Pool {
 
     function echidna_no_other_user_can_change_the_controller() public returns (bool) {
         // the controller cannot be changed by other users

@@ -1,8 +1,8 @@
-import "../crytic-export/flattening/BPool.sol";
+import "../crytic-export/flattening/Pool.sol";
 import "./MyToken.sol";
 import "./CryticInterface.sol";
 
-contract TBPoolNoRevert is CryticInterface, BPool {
+contract TPoolNoRevert is CryticInterface, Pool {
 
     constructor() public { // out-of-gas?
         // Create a new token with initial_token_balance as total supply.

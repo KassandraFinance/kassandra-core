@@ -1,12 +1,12 @@
 const truffleAssert = require('truffle-assertions');
 const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../lib/calc_comparisons');
 
-const BPool = artifacts.require('BPool');
-const BFactory = artifacts.require('BFactory');
+const Pool = artifacts.require('Pool');
+const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 const verbose = process.env.VERBOSE;
 
-contract('BPool', async (accounts) => {
+contract('Pool', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
     const user2 = accounts[2];
@@ -19,16 +19,16 @@ contract('BPool', async (accounts) => {
         XXX; // addresses
     let weth; let mkr; let dai; let
         xxx; // TTokens
-    let factory; // BPool factory
+    let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
 
     before(async () => {
-        factory = await BFactory.deployed();
+        factory = await Factory.deployed();
 
-        POOL = await factory.newBPool.call();
-        await factory.newBPool();
-        pool = await BPool.at(POOL);
+        POOL = await factory.newPool.call();
+        await factory.newPool();
+        pool = await Pool.at(POOL);
 
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         mkr = await TToken.new('Maker', 'MKR', 18);
@@ -83,7 +83,7 @@ contract('BPool', async (accounts) => {
         it('Fails binding tokens that are not approved', async () => {
             await truffleAssert.reverts(
                 pool.bind(MKR, toWei('10'), toWei('2.5')),
-                'ERR_BTOKEN_BAD_CALLER',
+                'ERR_TOKEN_BAD_CALLER',
             );
         });
 
@@ -557,7 +557,7 @@ contract('BPool', async (accounts) => {
         });
     });
 
-    describe('BToken interactions', () => {
+    describe('Token interactions', () => {
         it('Token descriptors', async () => {
             const name = await pool.name();
             assert.equal(name, 'Balancer Pool Token');
@@ -590,7 +590,7 @@ contract('BPool', async (accounts) => {
         it('Token transfers', async () => {
             await truffleAssert.reverts(
                 pool.transferFrom(user2, admin, toWei('10')),
-                'ERR_BTOKEN_BAD_CALLER',
+                'ERR_TOKEN_BAD_CALLER',
             );
 
             await pool.transferFrom(admin, user2, toWei('1'));

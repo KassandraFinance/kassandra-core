@@ -1,24 +1,24 @@
 /*
- This file is a flatenen version of BMath where all the public functions have been marked internal.
+ This file is a flatenen version of Math where all the public functions have been marked internal.
  This helps Echidna to focus on some specific properties.
 */
 
 
 
 pragma solidity 0.5.12;
-contract BColor {
+contract Color {
     function getColor()
         internal view
         returns (bytes32);
 }
-contract BBronze is BColor {
+contract Bronze is Color {
     function getColor()
         internal view
         returns (bytes32) {
             return bytes32("BRONZE");
         }
 }
-contract BConst is BBronze {
+contract Const is Bronze {
     uint internal constant BONE              = 10**18;
 
     uint internal constant MAX_BOUND_TOKENS  = 8;
@@ -43,7 +43,7 @@ contract BConst is BBronze {
     uint internal constant MAX_OUT_RATIO     = (BONE / 3) + 1 wei;
 
 }
-contract BNum is BConst {
+contract Num is Const {
 
     function btoi(uint a)
         internal pure 
@@ -189,7 +189,7 @@ contract BNum is BConst {
     }
 
 }
-contract BMath is BBronze, BConst, BNum {
+contract Math is Bronze, Const, Num {
     /**********************************************************************************************
     // calcSpotPrice                                                                             //
     // sP = spotPrice                                                                            //

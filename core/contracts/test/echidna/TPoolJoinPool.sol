@@ -1,12 +1,12 @@
-import "../../BNum.sol";
+import "../../Num.sol";
 
 pragma solidity 0.5.12;
 
-contract TBPoolJoinPool is BNum {
+contract TPoolJoinPool is Num {
 
     bool public echidna_no_bug_found = true;
 
-    // joinPool models the BPool.joinPool behavior for one token
+    // joinPool models the Pool.joinPool behavior for one token
     // A bug is found if poolAmountOut is greater than 0
     // And tokenAmountIn is 0
     function joinPool(uint poolAmountOut, uint poolTotal, uint _records_t_balance)

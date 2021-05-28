@@ -2,8 +2,8 @@ const Decimal = require('decimal.js');
 const truffleAssert = require('truffle-assertions');
 const { calcRelativeDiff } = require('../lib/calc_comparisons');
 
-const BPool = artifacts.require('BPool');
-const BFactory = artifacts.require('BFactory');
+const Pool = artifacts.require('Pool');
+const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 const errorDelta = 10 ** -8;
 const swapFee = 0.001; // 0.001;
@@ -11,7 +11,7 @@ const exitFee = 0;
 const verbose = process.env.VERBOSE;
 
 
-contract('BPool', async (accounts) => {
+contract('Pool', async (accounts) => {
     const admin = accounts[0];
     const { toWei } = web3.utils;
     const { fromWei } = web3.utils;
@@ -19,7 +19,7 @@ contract('BPool', async (accounts) => {
 
     let WETH; let DAI;
     let weth; let dai;
-    let factory; // BPool factory
+    let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
 
@@ -84,11 +84,11 @@ contract('BPool', async (accounts) => {
     }
 
     before(async () => {
-        factory = await BFactory.deployed();
+        factory = await Factory.deployed();
 
-        POOL = await factory.newBPool.call(); // this works fine in clean room
-        await factory.newBPool();
-        pool = await BPool.at(POOL);
+        POOL = await factory.newPool.call(); // this works fine in clean room
+        await factory.newPool();
+        pool = await Pool.at(POOL);
 
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);

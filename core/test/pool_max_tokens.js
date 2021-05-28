@@ -1,10 +1,10 @@
 const truffleAssert = require('truffle-assertions');
 
-const BPool = artifacts.require('BPool');
-const BFactory = artifacts.require('BFactory');
+const Pool = artifacts.require('Pool');
+const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 
-contract('BPool', async (accounts) => {
+contract('Pool', async (accounts) => {
     const admin = accounts[0];
 
     const { toWei } = web3.utils;
@@ -16,18 +16,18 @@ contract('BPool', async (accounts) => {
         ZZZ; // addresses
     let aaa; let bbb; let ccc; let ddd; let eee; let fff; let ggg; let hhh; let
         zzz; // TTokens
-    let factory; // BPool factory
+    let factory; // Pool factory
     let FACTORY; // factory address
     let pool; // first pool w/ defaults
     let POOL; //   pool address
 
     before(async () => {
-        factory = await BFactory.deployed();
+        factory = await Factory.deployed();
         FACTORY = factory.address;
 
-        POOL = await factory.newBPool.call();
-        await factory.newBPool();
-        pool = await BPool.at(POOL);
+        POOL = await factory.newPool.call();
+        await factory.newPool();
+        pool = await Pool.at(POOL);
 
         aaa = await TToken.new('AAA', 'AAA', 18);
         bbb = await TToken.new('BBB', 'BBB', 18);

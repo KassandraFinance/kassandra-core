@@ -1,11 +1,11 @@
-import "./BNum.sol";
+import "./Num.sol";
 
-//  This test is similar to TBPoolJoinExit but with no exit fee
-contract TBPoolJoinExitNoFee is BNum {
+//  This test is similar to TPoolJoinExit but with no exit fee
+contract TPoolJoinExitNoFee is Num {
 
     bool public echidna_no_bug_found = true;
 
-    // joinPool models the BPool.joinPool behavior for one token
+    // joinPool models the Pool.joinPool behavior for one token
     function joinPool(uint poolAmountOut, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {
@@ -18,7 +18,7 @@ contract TBPoolJoinExitNoFee is BNum {
         return tokenAmountIn;
     }
 
-    // exitPool models the BPool.exitPool behavior for one token where no fee is applied
+    // exitPool models the Pool.exitPool behavior for one token where no fee is applied
     function exitPoolNoFee(uint poolAmountIn, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {

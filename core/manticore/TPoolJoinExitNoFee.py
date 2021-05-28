@@ -34,18 +34,18 @@ print(f'controller: {hex(user.address)}')
 skipRequire = SkipRequire()
 m.register_plugin(skipRequire)
 
-TestBpool = m.solidity_create_contract('./manticore/contracts/TBPoolJoinExitNoFee.sol',
-                                       contract_name='TBPoolJoinExitNoFee',
+TestPool = m.solidity_create_contract('./manticore/contracts/TPoolJoinExitNoFee.sol',
+                                       contract_name='TPoolJoinExitNoFee',
                                        owner=user)
 
-print(f'TestJoinExit deployed {hex(TestBpool.address)}')
+print(f'TestJoinExit deployed {hex(TestPool.address)}')
 
 # Call joinAndExitNoFeePool with symbolic values
 poolAmountOut = m.make_symbolic_value()
 poolAmountIn = m.make_symbolic_value()
 poolTotal = m.make_symbolic_value()
 _records_t_balance = m.make_symbolic_value()
-TestBpool.joinAndExitNoFeePool(poolAmountOut, poolAmountIn, poolTotal, _records_t_balance)
+TestPool.joinAndExitNoFeePool(poolAmountOut, poolAmountIn, poolTotal, _records_t_balance)
 
 print(f'joinAndExitNoFeePool Called')
 

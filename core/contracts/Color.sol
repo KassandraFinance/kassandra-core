@@ -13,13 +13,13 @@
 
 pragma solidity 0.5.12;
 
-contract BColor {
+contract Color {
     function getColor()
         external view
         returns (bytes32);
 }
 
-contract BBronze is BColor {
+contract Bronze is Color {
     function getColor()
         external view
         returns (bytes32) {

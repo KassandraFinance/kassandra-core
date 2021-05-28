@@ -13,11 +13,11 @@
 
 pragma solidity 0.5.12;
 
-// Builds new BPools, logging their addresses and providing `isBPool(address) -> (bool)`
+// Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
 
-import "./BPool.sol";
+import "./Pool.sol";
 
-contract BFactory is BBronze {
+contract Factory is Bronze {
     event LOG_NEW_POOL(
         address indexed caller,
         address indexed pool
@@ -28,23 +28,23 @@ contract BFactory is BBronze {
         address indexed blabs
     );
 
-    mapping(address=>bool) private _isBPool;
+    mapping(address=>bool) private _isPool;
 
-    function isBPool(address b)
+    function isPool(address b)
         external view returns (bool)
     {
-        return _isBPool[b];
+        return _isPool[b];
     }
 
-    function newBPool()
+    function newPool()
         external
-        returns (BPool)
+        returns (Pool)
     {
-        BPool bpool = new BPool();
-        _isBPool[address(bpool)] = true;
-        emit LOG_NEW_POOL(msg.sender, address(bpool));
-        bpool.setController(msg.sender);
-        return bpool;
+        Pool pool = new Pool();
+        _isPool[address(pool)] = true;
+        emit LOG_NEW_POOL(msg.sender, address(pool));
+        pool.setController(msg.sender);
+        return pool;
     }
 
     address private _blabs;
@@ -68,7 +68,7 @@ contract BFactory is BBronze {
         _blabs = b;
     }
 
-    function collect(BPool pool)
+    function collect(Pool pool)
         external 
     {
         require(msg.sender == _blabs, "ERR_NOT_BLABS");

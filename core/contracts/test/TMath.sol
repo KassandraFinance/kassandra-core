@@ -13,12 +13,12 @@
 
 pragma solidity 0.5.12;
 
-import "../BMath.sol";
-import "../BNum.sol";
+import "../Math.sol";
+import "../Num.sol";
 
 // Contract to wrap internal functions for testing
 
-contract TMath is BMath {
+contract TMath is Math {
 
     function calc_btoi(uint a) external pure returns (uint) {
         return btoi(a);

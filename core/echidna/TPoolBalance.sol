@@ -1,8 +1,8 @@
-import "../crytic-export/flattening/BPool.sol";
+import "../crytic-export/flattening/Pool.sol";
 import "./MyToken.sol";
 import "./CryticInterface.sol";
 
-contract TBPoolBalance is BPool, CryticInterface {
+contract TPoolBalance is Pool, CryticInterface {
 
     MyToken public token;
     uint internal initial_token_balance = uint(-1);

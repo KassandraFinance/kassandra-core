@@ -1,8 +1,8 @@
-import "../crytic-export/flattening/BPool.sol";
+import "../crytic-export/flattening/Pool.sol";
 import "./MyToken.sol";
 import "./CryticInterface.sol";
 
-contract TBPoolBindPrivileged is CryticInterface, BPool {
+contract TPoolBindPrivileged is CryticInterface, Pool {
 
     constructor() public {
         // Create a new token with initial_token_balance as total supply.
@@ -107,7 +107,7 @@ contract TBPoolBindPrivileged is CryticInterface, BPool {
     }
 }
 
-contract TBPoolBindUnprivileged is CryticInterface, BPool {
+contract TPoolBindUnprivileged is CryticInterface, Pool {
 
     MyToken t1;
     MyToken t2;    
