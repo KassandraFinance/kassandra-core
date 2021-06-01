@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import "../../Num.sol";
 
-pragma solidity 0.5.12;
+pragma solidity ^0.8.0;
 
 //  This test is similar to TPoolJoinExit but with no exit fee
 contract TPoolJoinExitNoFee is Num {
@@ -47,8 +49,8 @@ contract TPoolJoinExitNoFee is Num {
         require(_records_t_balance <= 10 ether);
         require(_records_t_balance >= 10**6);
 
-        poolTotal = badd(poolTotal, poolAmountOut);
-        _records_t_balance = badd(_records_t_balance, tokenAmountIn);
+        poolTotal += poolAmountOut;
+        _records_t_balance += tokenAmountIn;
 
         require(tokenAmountIn > 0); // prevent triggering the free token generation from joinPool 
 

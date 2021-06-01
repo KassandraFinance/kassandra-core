@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import "../../Num.sol";
 
-pragma solidity 0.5.12;
+pragma solidity ^0.8.0;
 
 contract TPoolJoinPool is Num {
 
@@ -29,6 +31,8 @@ contract TPoolJoinPool is Num {
         require(tokenAmountIn == 0);
 
         echidna_no_bug_found = false;
+
+        return tokenAmountIn;
     }
 
 }

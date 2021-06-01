@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -12,21 +14,21 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @summary: Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
+ * @summary Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
  */
-pragma solidity 0.5.12;
+pragma solidity ^0.8.0;
 
 import "./Pool.sol";
 
 /**
- * @title: Pool Factory
+ * @title Pool Factory
  */
 contract Factory is Bronze {
     /**
-     * @notice: Every new pool gets broadcast of its creation
+     * @dev Every new pool gets broadcast of its creation
      *
-     * @param caller: Address that created a pool
-     * @param pool: Address of new Pool
+     * @param caller Address that created a pool
+     * @param pool Address of new Pool
      */
     event LOG_NEW_POOL(
         address indexed caller,
@@ -34,27 +36,27 @@ contract Factory is Bronze {
     );
 
     /**
-     * @notice: Alert of change of controller 
+     * @dev Alert of change of controller 
      *
-     * @param caller: Address that changed controller
-     * @param controller: Address of the new controller
+     * @param caller Address that changed controller
+     * @param controller Address of the new controller
      */
     event LOG_NEW_CONTROLLER(
         address indexed caller,
         address indexed controller
     );
 
-    /// map of all pools
+    // map of all pools
     mapping(address=>bool) private _isPool;
-    /// controller/admin address 
+    // controller/admin address 
     address private _controller;
 
-    constructor() public {
+    constructor() {
         _controller = msg.sender;
     }
 
     /**
-     * @dev: Checks if call comes from current controller/admin
+     * @dev Checks if call comes from current controller/admin
      */
     modifier onlyController() {
         require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
@@ -62,11 +64,11 @@ contract Factory is Bronze {
     }
 
     /**
-     * @notice: Check if address is a Pool
+     * @dev Check if address is a Pool
      *
-     * @param b: Address for checking
+     * @param b Address for checking
      *
-     * @return: Boolean telling if address is a pool
+     * @return Boolean telling if address is a pool
      */
     function isPool(address b)
         external view
@@ -76,9 +78,9 @@ contract Factory is Bronze {
     }
 
     /**
-     * @notice: Create a new Pool
+     * @dev Create a new Pool
      *
-     * @return: Address of new Pool contract
+     * @return Address of new Pool contract
      */
     function newPool()
         external onlyController
@@ -92,9 +94,9 @@ contract Factory is Bronze {
     }
 
     /**
-     * @notice: Get address of who can create pools from this contract
+     * @dev Get address of who can create pools from this contract
      *
-     * @return: Address of the controller wallet or contract
+     * @return Address of the controller wallet or contract
      */
     function getController()
         external view
@@ -104,9 +106,9 @@ contract Factory is Bronze {
     }
 
     /**
-     * @notice: Change the controller of this contract
+     * @dev Change the controller of this contract
      * 
-     * @param controller: New controller address
+     * @param controller New controller address
      */
     function setController(address controller)
         external onlyController

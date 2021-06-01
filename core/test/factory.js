@@ -65,7 +65,7 @@ contract('Factory', async (accounts) => {
         });
 
         it('fails nonAdmin calls collect', async () => {
-            await truffleAssert.reverts(factory.collect(nonAdmin, { from: nonAdmin }), 'ERR_NOT_BLABS');
+            await truffleAssert.reverts(factory.collect(nonAdmin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
         });
 
         it('admin collects fees', async () => {
@@ -84,13 +84,13 @@ contract('Factory', async (accounts) => {
             assert.equal(fromWei(adminBalance), '100');
         });
 
-        it('nonadmin cant set blabs address', async () => {
-            await truffleAssert.reverts(factory.setBLabs(nonAdmin, { from: nonAdmin }), 'ERR_NOT_BLABS');
+        it('nonadmin cant set controller address', async () => {
+            await truffleAssert.reverts(factory.setController(nonAdmin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
         });
 
-        it('admin changes blabs address', async () => {
-            await factory.setBLabs(user2);
-            const blab = await factory.getBLabs();
+        it('admin changes controller address', async () => {
+            await factory.setController(user2);
+            const blab = await factory.getController();
             assert.equal(blab, user2);
         });
     });

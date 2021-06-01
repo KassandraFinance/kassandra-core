@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -11,13 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity ^0.8.0;
 
 import "./Token.sol";
 import "./Math.sol";
 
 contract Pool is Bronze, Token, Math {
-
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private
@@ -83,7 +84,7 @@ contract Pool is Bronze, Token, Math {
     mapping(address=>Record) private  _records;
     uint private _totalWeight;
 
-    constructor() public {
+    constructor() {
         _controller = msg.sender;
         _factory = msg.sender;
         _swapFee = MIN_FEE;
@@ -276,10 +277,10 @@ contract Pool is Bronze, Token, Math {
         // Adjust the denorm and totalWeight
         uint oldWeight = _records[token].denorm;
         if (denorm > oldWeight) {
-            _totalWeight = badd(_totalWeight, bsub(denorm, oldWeight));
+            _totalWeight += denorm - oldWeight;
             require(_totalWeight <= MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
         } else if (denorm < oldWeight) {
-            _totalWeight = bsub(_totalWeight, bsub(oldWeight, denorm));
+            _totalWeight -= oldWeight - denorm;
         }        
         _records[token].denorm = denorm;
 
@@ -287,12 +288,12 @@ contract Pool is Bronze, Token, Math {
         uint oldBalance = _records[token].balance;
         _records[token].balance = balance;
         if (balance > oldBalance) {
-            _pullUnderlying(token, msg.sender, bsub(balance, oldBalance));
+            _pullUnderlying(token, msg.sender, balance - oldBalance);
         } else if (balance < oldBalance) {
             // In this case liquidity is being withdrawn, so charge EXIT_FEE
-            uint tokenBalanceWithdrawn = bsub(oldBalance, balance);
+            uint tokenBalanceWithdrawn = oldBalance - balance;
             uint tokenExitFee = bmul(tokenBalanceWithdrawn, EXIT_FEE);
-            _pushUnderlying(token, msg.sender, bsub(tokenBalanceWithdrawn, tokenExitFee));
+            _pushUnderlying(token, msg.sender, tokenBalanceWithdrawn - tokenExitFee);
             _pushUnderlying(token, _factory, tokenExitFee);
         }
     }
@@ -310,7 +311,7 @@ contract Pool is Bronze, Token, Math {
         uint tokenBalance = _records[token].balance;
         uint tokenExitFee = bmul(tokenBalance, EXIT_FEE);
 
-        _totalWeight = bsub(_totalWeight, _records[token].denorm);
+        _totalWeight -= _records[token].denorm;
 
         // Swap the token-to-unbind with the last token,
         // then delete the last token
@@ -326,7 +327,7 @@ contract Pool is Bronze, Token, Math {
             balance: 0
         });
 
-        _pushUnderlying(token, msg.sender, bsub(tokenBalance, tokenExitFee));
+        _pushUnderlying(token, msg.sender, tokenBalance - tokenExitFee);
         _pushUnderlying(token, _factory, tokenExitFee);
     }
 
@@ -381,7 +382,7 @@ contract Pool is Bronze, Token, Math {
             uint tokenAmountIn = bmul(ratio, bal);
             require(tokenAmountIn != 0, "ERR_MATH_APPROX");
             require(tokenAmountIn <= maxAmountsIn[i], "ERR_LIMIT_IN");
-            _records[t].balance = badd(_records[t].balance, tokenAmountIn);
+            _records[t].balance += tokenAmountIn;
             emit LOG_JOIN(msg.sender, t, tokenAmountIn);
             _pullUnderlying(t, msg.sender, tokenAmountIn);
         }
@@ -398,7 +399,7 @@ contract Pool is Bronze, Token, Math {
 
         uint poolTotal = totalSupply();
         uint exitFee = bmul(poolAmountIn, EXIT_FEE);
-        uint pAiAfterExitFee = bsub(poolAmountIn, exitFee);
+        uint pAiAfterExitFee = poolAmountIn - exitFee;
         uint ratio = bdiv(pAiAfterExitFee, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
@@ -412,7 +413,7 @@ contract Pool is Bronze, Token, Math {
             uint tokenAmountOut = bmul(ratio, bal);
             require(tokenAmountOut != 0, "ERR_MATH_APPROX");
             require(tokenAmountOut >= minAmountsOut[i], "ERR_LIMIT_OUT");
-            _records[t].balance = bsub(_records[t].balance, tokenAmountOut);
+            _records[t].balance -= tokenAmountOut;
             emit LOG_EXIT(msg.sender, t, tokenAmountOut);
             _pushUnderlying(t, msg.sender, tokenAmountOut);
         }
@@ -461,8 +462,8 @@ contract Pool is Bronze, Token, Math {
                         );
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
 
-        inRecord.balance = badd(inRecord.balance, tokenAmountIn);
-        outRecord.balance = bsub(outRecord.balance, tokenAmountOut);
+        inRecord.balance += tokenAmountIn;
+        outRecord.balance -= tokenAmountOut;
 
         spotPriceAfter = calcSpotPrice(
                                 inRecord.balance,
@@ -523,8 +524,8 @@ contract Pool is Bronze, Token, Math {
                         );
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
 
-        inRecord.balance = badd(inRecord.balance, tokenAmountIn);
-        outRecord.balance = bsub(outRecord.balance, tokenAmountOut);
+        inRecord.balance += tokenAmountIn;
+        outRecord.balance -= tokenAmountOut;
 
         spotPriceAfter = calcSpotPrice(
                                 inRecord.balance,
@@ -570,7 +571,7 @@ contract Pool is Bronze, Token, Math {
 
         require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT");
 
-        inRecord.balance = badd(inRecord.balance, tokenAmountIn);
+        inRecord.balance += tokenAmountIn;
 
         emit LOG_JOIN(msg.sender, tokenIn, tokenAmountIn);
 
@@ -606,7 +607,7 @@ contract Pool is Bronze, Token, Math {
         
         require(tokenAmountIn <= bmul(_records[tokenIn].balance, MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
 
-        inRecord.balance = badd(inRecord.balance, tokenAmountIn);
+        inRecord.balance += tokenAmountIn;
 
         emit LOG_JOIN(msg.sender, tokenIn, tokenAmountIn);
 
@@ -641,14 +642,14 @@ contract Pool is Bronze, Token, Math {
         
         require(tokenAmountOut <= bmul(_records[tokenOut].balance, MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO");
 
-        outRecord.balance = bsub(outRecord.balance, tokenAmountOut);
+        outRecord.balance -= tokenAmountOut;
 
         uint exitFee = bmul(poolAmountIn, EXIT_FEE);
 
         emit LOG_EXIT(msg.sender, tokenOut, tokenAmountOut);
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _burnPoolShare(bsub(poolAmountIn, exitFee));
+        _burnPoolShare(poolAmountIn - exitFee);
         _pushPoolShare(_factory, exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
 
@@ -661,6 +662,7 @@ contract Pool is Bronze, Token, Math {
         _lock_
         returns (uint poolAmountIn)
     {
+        // require(false, "ERR_FALSE");
         require(_finalized, "ERR_NOT_FINALIZED");
         require(_records[tokenOut].bound, "ERR_NOT_BOUND");
         require(tokenAmountOut <= bmul(_records[tokenOut].balance, MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO");
@@ -679,14 +681,14 @@ contract Pool is Bronze, Token, Math {
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
         require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
 
-        outRecord.balance = bsub(outRecord.balance, tokenAmountOut);
+        outRecord.balance -= tokenAmountOut;
 
         uint exitFee = bmul(poolAmountIn, EXIT_FEE);
 
         emit LOG_EXIT(msg.sender, tokenOut, tokenAmountOut);
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _burnPoolShare(bsub(poolAmountIn, exitFee));
+        _burnPoolShare(poolAmountIn - exitFee);
         _pushPoolShare(_factory, exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);        
 

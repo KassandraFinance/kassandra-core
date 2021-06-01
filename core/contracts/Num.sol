@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -11,11 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity ^0.8.0;
 
 import "./Const.sol";
 
-contract Num is Const {
+abstract contract Num is Const {
 
     function btoi(uint a)
         internal pure 
@@ -29,24 +31,6 @@ contract Num is Const {
         returns (uint)
     {
         return btoi(a) * BONE;
-    }
-
-    function badd(uint a, uint b)
-        internal pure
-        returns (uint)
-    {
-        uint c = a + b;
-        require(c >= a, "ERR_ADD_OVERFLOW");
-        return c;
-    }
-
-    function bsub(uint a, uint b)
-        internal pure
-        returns (uint)
-    {
-        (uint c, bool flag) = bsubSign(a, b);
-        require(!flag, "ERR_SUB_UNDERFLOW");
-        return c;
     }
 
     function bsubSign(uint a, uint b)
@@ -65,7 +49,6 @@ contract Num is Const {
         returns (uint)
     {
         uint c0 = a * b;
-        require(a == 0 || c0 / a == b, "ERR_MUL_OVERFLOW");
         uint c1 = c0 + (BONE / 2);
         require(c1 >= c0, "ERR_MUL_OVERFLOW");
         uint c2 = c1 / BONE;
@@ -113,7 +96,7 @@ contract Num is Const {
         require(base <= MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
 
         uint whole  = bfloor(exp);   
-        uint remain = bsub(exp, whole);
+        uint remain = exp - whole;
 
         uint wholePow = bpowi(base, btoi(whole));
 
@@ -143,7 +126,7 @@ contract Num is Const {
         // continue until term is less than precision
         for (uint i = 1; term >= precision; i++) {
             uint bigK = i * BONE;
-            (uint c, bool cneg) = bsubSign(a, bsub(bigK, BONE));
+            (uint c, bool cneg) = bsubSign(a, (bigK - BONE));
             term = bmul(term, bmul(c, x));
             term = bdiv(term, bigK);
             if (term == 0) break;
@@ -151,9 +134,9 @@ contract Num is Const {
             if (xneg) negative = !negative;
             if (cneg) negative = !negative;
             if (negative) {
-                sum = bsub(sum, term);
+                sum -= term;
             } else {
-                sum = badd(sum, term);
+                sum += term;
             }
         }
 
