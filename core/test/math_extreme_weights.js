@@ -294,7 +294,7 @@ contract('Pool', async (accounts) => {
             const tokenRatioBeforeSwapFee = poolRatioAfterExitFee ** (1 / daiNorm);
             const tokenAmountOut = currentDaiBalance * (1 - tokenRatioBeforeSwapFee) * (1 - swapFee * (1 - daiNorm));
             await truffleAssert.reverts(
-                pool.exitswapExternAmountOut(DAI, toWei(String(tokenAmountOut)), MAX),
+                pool.exitswapExternAmountOut(DAI, web3.utils.toTwosComplement(toWei(String(tokenAmountOut))), MAX),
                 'ERR_MAX_OUT_RATIO',
             );
         });
