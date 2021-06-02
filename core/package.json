@@ -1,7 +1,7 @@
 {
     "private": true,
-    "name": "kassandra-core",
-    "version": "0.0.1",
+    "name": "@kassandra/core",
+    "version": "1.0.0",
     "license": "GPL-3.0-or-later",
     "description": "Kassandra Core Contracts and ABI",
     "scripts": {
