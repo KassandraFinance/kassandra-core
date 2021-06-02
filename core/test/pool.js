@@ -185,7 +185,6 @@ contract('Pool', async (accounts) => {
         });
     });
 
-
     describe('Finalizing pool', () => {
         it('Fails when other users interact before finalizing', async () => {
             await truffleAssert.reverts(
