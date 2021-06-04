@@ -132,7 +132,7 @@ abstract contract Math is Bronze, Const, Num {
         // That proportion is (1- weightTokenIn)
         // tokenAiAfterFee = tAi * (1 - (1-weightTi) * poolFee);
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
-        uint zaz = bmul((BONE - normalizedWeight), swapFee); 
+        uint zaz = bmul((BONE - normalizedWeight), swapFee);
         uint tokenAmountInAfterFee = bmul(tokenAmountIn, (BONE - zaz));
 
         uint newTokenBalanceIn = tokenBalanceIn + tokenAmountInAfterFee;
@@ -169,13 +169,13 @@ abstract contract Math is Bronze, Const, Num {
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
         uint newPoolSupply = poolSupply + poolAmountOut;
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
-      
+
         //uint newBalTi = poolRatio^(1/weightTi) * balTi;
-        uint boo = bdiv(BONE, normalizedWeight); 
+        uint boo = bdiv(BONE, normalizedWeight);
         uint tokenInRatio = bpow(poolRatio, boo);
         uint newTokenBalanceIn = bmul(tokenInRatio, tokenBalanceIn);
         uint tokenAmountInAfterFee = newTokenBalanceIn - tokenBalanceIn;
-        // Do reverse order of fees charged in joinswap_ExternAmountIn, this way 
+        // Do reverse order of fees charged in joinswap_ExternAmountIn, this way
         //     ``` pAo == joinswap_ExternAmountIn(Ti, joinswap_PoolAmountOut(pAo, Ti)) ```
         //uint tAi = tAiAfterFee / (1 - (1-weightTi) * swapFee) ;
         uint zar = bmul((BONE - normalizedWeight), swapFee);
@@ -211,16 +211,16 @@ abstract contract Math is Bronze, Const, Num {
         uint poolAmountInAfterExitFee = bmul(poolAmountIn, (BONE - EXIT_FEE));
         uint newPoolSupply = poolSupply - poolAmountInAfterExitFee;
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
-     
+
         // newBalTo = poolRatio^(1/weightTo) * balTo;
         uint tokenOutRatio = bpow(poolRatio, bdiv(BONE, normalizedWeight));
         uint newTokenBalanceOut = bmul(tokenOutRatio, tokenBalanceOut);
 
         uint tokenAmountOutBeforeSwapFee = tokenBalanceOut - newTokenBalanceOut;
 
-        // charge swap fee on the output token side 
+        // charge swap fee on the output token side
         //uint tAo = tAoBeforeSwapFee * (1 - (1-weightTo) * swapFee)
-        uint zaz = bmul((BONE - normalizedWeight), swapFee); 
+        uint zaz = bmul((BONE - normalizedWeight), swapFee);
         tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, (BONE - zaz));
         return tokenAmountOut;
     }
@@ -248,11 +248,11 @@ abstract contract Math is Bronze, Const, Num {
         returns (uint poolAmountIn)
     {
 
-        // charge swap fee on the output token side 
+        // charge swap fee on the output token side
         uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
         //uint tAoBeforeSwapFee = tAo / (1 - (1-weightTo) * swapFee) ;
         uint zoo = BONE - normalizedWeight;
-        uint zar = bmul(zoo, swapFee); 
+        uint zar = bmul(zoo, swapFee);
         uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, (BONE - zar));
 
         uint newTokenBalanceOut = tokenBalanceOut - tokenAmountOutBeforeSwapFee;

@@ -34,9 +34,11 @@ print(f'controller: {hex(user.address)}')
 skipRequire = SkipRequire()
 m.register_plugin(skipRequire)
 
-TestPool = m.solidity_create_contract('./manticore/contracts/TPoolJoinExit.sol',
-                                       contract_name='TestJoinExit',
-                                       owner=user)
+TestPool = m.solidity_create_contract(
+    './manticore/contracts/TPoolJoinExit.sol',
+    contract_name='TestJoinExit',
+    owner=user
+)
 
 print(f'TPoolJoinExit deployed {hex(TestPool.address)}')
 

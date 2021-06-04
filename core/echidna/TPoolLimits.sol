@@ -9,7 +9,7 @@ contract TPoolLimits is CryticInterface, Pool {
     constructor() public {
         MyToken t;
         t = new MyToken(uint(-1), address(this));
-        bind(address(t), MIN_BALANCE, MIN_WEIGHT); 
+        bind(address(t), MIN_BALANCE, MIN_WEIGHT);
     }
 
     // initial token balances is the max amount for uint256
@@ -22,12 +22,12 @@ contract TPoolLimits is CryticInterface, Pool {
     function create_and_bind(uint balance, uint denorm) public returns (address) {
         // Create a new token with initial_token_balance as total supply.
         // After the token is created, each user defined in CryticInterface
-        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of 
+        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of
         // the initial balance
         MyToken bt = new MyToken(initial_token_balance, address(this));
-        bt.approve(address(this), initial_token_balance); 
+        bt.approve(address(this), initial_token_balance);
         // Bind the token with the provided parameters
-        bind(address(bt), balance, denorm); 
+        bind(address(bt), balance, denorm);
         // Save the balance and denorm values used. These are used in the rebind checks
         valid_balance_to_bind = balance;
         valid_denorm_to_bind = denorm;
@@ -56,33 +56,33 @@ contract TPoolLimits is CryticInterface, Pool {
     function echidna_min_token_balance() public returns (bool) {
         address[] memory current_tokens = this.getCurrentTokens();
         for (uint i = 0; i < current_tokens.length; i++) {
-             // verify that the balance of each token is more than `MIN_BALACE` 
+            // verify that the balance of each token is more than `MIN_BALACE`
             if (this.getBalance(address(current_tokens[i])) < MIN_BALANCE)
                 return false;
         }
-        // if there are no tokens, return true 
+        // if there are no tokens, return true
         return true;
     }
 
     function echidna_max_weight() public returns (bool) {
         address[] memory current_tokens = this.getCurrentTokens();
         for (uint i = 0; i < current_tokens.length; i++) {
-            // verify that the weight of each token is less than `MAX_WEIGHT`  
+            // verify that the weight of each token is less than `MAX_WEIGHT`
             if (this.getDenormalizedWeight(address(current_tokens[i])) > MAX_WEIGHT)
                 return false;
         }
-        // if there are no tokens, return true 
+        // if there are no tokens, return true
         return true;
     }
 
     function echidna_min_weight() public returns (bool) {
         address[] memory current_tokens = this.getCurrentTokens();
         for (uint i = 0; i < current_tokens.length; i++) {
-            // verify that the weight of each token is more than `MIN_WEIGHT`  
+            // verify that the weight of each token is more than `MIN_WEIGHT`
             if (this.getDenormalizedWeight(address(current_tokens[i])) < MIN_WEIGHT)
                 return false;
         }
-        // if there are no tokens, return true 
+        // if there are no tokens, return true
         return true;
     }
 
@@ -105,7 +105,7 @@ contract TPoolLimits is CryticInterface, Pool {
         // if the pool is not finalized, make sure public swap is enabled
         if (!this.isFinalized())
             setPublicSwap(true);
- 
+
         address[] memory current_tokens = this.getCurrentTokens();
         // if there is not token, revert
         if (current_tokens.length == 0)
@@ -121,15 +121,15 @@ contract TPoolLimits is CryticInterface, Pool {
         swapExactAmountOut(address(current_tokens[0]), uint(-1), address(current_tokens[0]), large_balance, uint(-1));
         return true;
     }
-    
+
     function echidna_revert_max_swapExactAmountIn() public returns (bool) {
         // if the controller was changed, revert
         if (this.getController() != crytic_owner)
-           revert();
+            revert();
 
-        // if the pool is not finalized, make sure public swap is enabled  
+        // if the pool is not finalized, make sure public swap is enabled
         if (!this.isFinalized())
-           setPublicSwap(true);
+            setPublicSwap(true);
 
         address[] memory current_tokens = this.getCurrentTokens();
         // if there is not token, revert

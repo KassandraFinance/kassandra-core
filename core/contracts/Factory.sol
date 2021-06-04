@@ -36,7 +36,7 @@ contract Factory is Bronze {
     );
 
     /**
-     * @dev Alert of change of controller 
+     * @dev Alert of change of controller
      *
      * @param caller Address that changed controller
      * @param controller Address of the new controller
@@ -48,7 +48,7 @@ contract Factory is Bronze {
 
     // map of all pools
     mapping(address=>bool) private _isPool;
-    // controller/admin address 
+    // controller/admin address
     address private _controller;
 
     constructor() {
@@ -107,7 +107,7 @@ contract Factory is Bronze {
 
     /**
      * @dev Change the controller of this contract
-     * 
+     *
      * @param controller New controller address
      */
     function setController(address controller)

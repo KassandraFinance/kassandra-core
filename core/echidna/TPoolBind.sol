@@ -7,11 +7,11 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
     constructor() public {
         // Create a new token with initial_token_balance as total supply.
         // After the token is created, each user defined in CryticInterface
-        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of 
+        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of
         // the initial balance
         MyToken t;
         t = new MyToken(initial_token_balance, address(this));
-        bind(address(t), MIN_BALANCE, MIN_WEIGHT); 
+        bind(address(t), MIN_BALANCE, MIN_WEIGHT);
     }
 
     // initial token balances is the max amount for uint256
@@ -25,12 +25,12 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
     function create_and_bind(uint balance, uint denorm) public returns (address) {
         // Create a new token with initial_token_balance as total supply.
         // After the token is created, each user defined in CryticInterface
-        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of 
+        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of
         // the initial balance
         MyToken bt = new MyToken(initial_token_balance, address(this));
-        bt.approve(address(this), initial_token_balance); 
+        bt.approve(address(this), initial_token_balance);
         // Bind the token with the provided parameters
-        bind(address(bt), balance, denorm); 
+        bind(address(bt), balance, denorm);
         // Save the balance and denorm values used. These are used in the rebind checks
         valid_balance_to_bind = balance;
         valid_denorm_to_bind = denorm;
@@ -38,7 +38,7 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
     }
 
     function echidna_getNumTokens_less_or_equal_MAX_BOUND_TOKENS() public returns (bool) {
-        // it is not possible to bind more than `MAX_BOUND_TOKENS` 
+        // it is not possible to bind more than `MAX_BOUND_TOKENS`
         return this.getNumTokens() <= MAX_BOUND_TOKENS;
     }
 
@@ -90,7 +90,7 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
             // at the end, the list of current tokens should have not change in size
             return current_tokens.length == this.getCurrentTokens().length;
         }
-        // if the controller was changed or if the pool was finalized, just return true 
+        // if the controller was changed or if the pool was finalized, just return true
         return true;
     }
 
@@ -102,7 +102,7 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
             rebind(current_tokens[0], valid_balance_to_bind, valid_denorm_to_bind);
             return true;
         }
-        // if the controller was changed or if the pool was finalized, just return true  
+        // if the controller was changed or if the pool was finalized, just return true
         revert();
     }
 }
@@ -110,10 +110,10 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
 contract TPoolBindUnprivileged is CryticInterface, Pool {
 
     MyToken t1;
-    MyToken t2;    
+    MyToken t2;
     // initial token balances is the max amount for uint256
     uint internal initial_token_balance = uint(-1);
- 
+
     constructor() public {
         // two tokens with minimal balances and weights are created by the controller
         t1 = new MyToken(initial_token_balance, address(this));
@@ -121,7 +121,7 @@ contract TPoolBindUnprivileged is CryticInterface, Pool {
         t2 = new MyToken(initial_token_balance, address(this));
         bind(address(t2), MIN_BALANCE, MIN_WEIGHT);
     }
-   
+
     // these two variables are used to save valid balances and denorm parameters
     uint internal valid_balance_to_bind = MIN_BALANCE;
     uint internal valid_denorm_to_bind = MIN_WEIGHT;
@@ -130,12 +130,12 @@ contract TPoolBindUnprivileged is CryticInterface, Pool {
     function create_and_bind(uint balance, uint denorm) public returns (address) {
         // Create a new token with initial_token_balance as total supply.
         // After the token is created, each user defined in CryticInterface
-        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of 
+        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of
         // the initial balance
         MyToken bt = new MyToken(initial_token_balance, address(this));
-        bt.approve(address(this), initial_token_balance); 
+        bt.approve(address(this), initial_token_balance);
         // Bind the token with the provided parameters
-        bind(address(bt), balance, denorm); 
+        bind(address(bt), balance, denorm);
         // Save the balance and denorm values used. These are used in the rebind checks
         valid_balance_to_bind = balance;
         valid_denorm_to_bind = denorm;
@@ -148,22 +148,22 @@ contract TPoolBindUnprivileged is CryticInterface, Pool {
     }
 
     function echidna_revert_when_bind() public returns (bool) {
-         // calling bind will revert
-         create_and_bind(valid_balance_to_bind, valid_denorm_to_bind); 
-         return true;
-    } 
+        // calling bind will revert
+        create_and_bind(valid_balance_to_bind, valid_denorm_to_bind);
+        return true;
+    }
 
     function echidna_revert_when_rebind() public returns (bool) {
-          // calling rebind on binded tokens will revert
-          rebind(address(t1), valid_balance_to_bind, valid_denorm_to_bind);
-          rebind(address(t2), valid_balance_to_bind, valid_denorm_to_bind);
-          return true;
+        // calling rebind on binded tokens will revert
+        rebind(address(t1), valid_balance_to_bind, valid_denorm_to_bind);
+        rebind(address(t2), valid_balance_to_bind, valid_denorm_to_bind);
+        return true;
     }
 
     function echidna_revert_when_unbind() public returns (bool) {
-          // calling unbind on binded tokens will revert 
-          unbind(address(t1));
-          unbind(address(t2));
-          return true;
-    }  
+        // calling unbind on binded tokens will revert
+        unbind(address(t1));
+        unbind(address(t2));
+        return true;
+    }
 }

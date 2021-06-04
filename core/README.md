@@ -8,7 +8,7 @@ The full documentation can be found at <https://docs.kassandra.finance>
 
 Most users will want to consume the ABI definitions for Factory and Pool.
 
-This project follows the standard Truffle project structure. 
+This project follows the standard Truffle project structure.
 
 ```
 yarn compile   # build artifacts to `build/contracts`

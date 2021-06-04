@@ -46,7 +46,7 @@ To test a property, run `echidna-test echidna/CONTRACT_file.sol CONTRACT_name --
 
 ## General Properties
 
-| Description    | Name           | Contract      | Finding   | Status   | 
+| Description    | Name           | Contract      | Finding   | Status   |
 | :---                                                            |     :---:              |         :---:   |  :---:   | :---:   |
 | An attacker cannot steal assets from a public pool.              | [`attacker_token_balance`](echidna/TPoolBalance.sol#L22-L25)   | [`TPoolBalance`](echidna/TPoolBalance.sol) |FAILED ([#193](https://github.com/balancer-labs/balancer-core/issues/193))| **Fixed** |
 | An attacker cannot force the pool balance to be out-of-sync.  | [`pool_record_balance`](echidna/TPoolBalance.sol#L27-L33)  | [`TPoolBalance`](echidna/TPoolBalance.sol)|PASSED|  |
@@ -104,7 +104,7 @@ The following properties have equivalent Echidna property, but Manticore allows 
 
 To execute the script, run `python3 ./manticore/script_name.py`.
 
-| Description    | Script           | Contract      | Status   |  
+| Description    | Script           | Contract      | Status   |
 | :---                                                            |     :---:              |         :---:   |  :---:   |
 | An attacker cannot generate free pool tokens with `joinPool`.  |   [`TPoolJoinPool.py`](manticore/TPoolJoinPool.py)| [`TPoolJoinPool`](manticore/contracts/TPoolJoinPool.sol) | **FAILED** ([#204](https://github.com/balancer-labs/balancer-core/issues/204)) |
 | Calling `joinPool-exitPool` does not lead to free pool tokens (no fee). | [`TPoolJoinExitNoFee.py`](manticore/TPoolJoinExitNoFee.py) | [`TPoolJoinExitPoolNoFee`](manticore/contracts/TPoolJoinExitPoolNoFee.sol)  |**FAILED** ([#205](https://github.com/balancer-labs/balancer-core/issues/205)) |

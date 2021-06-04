@@ -20,7 +20,7 @@ import "./Const.sol";
 abstract contract Num is Const {
 
     function btoi(uint a)
-        internal pure 
+        internal pure
         returns (uint)
     {
         return a / BONE;
@@ -95,7 +95,7 @@ abstract contract Num is Const {
         require(base >= MIN_BPOW_BASE, "ERR_BPOW_BASE_TOO_LOW");
         require(base <= MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
 
-        uint whole  = bfloor(exp);   
+        uint whole  = bfloor(exp);
         uint remain = exp - whole;
 
         uint wholePow = bpowi(base, btoi(whole));
@@ -120,7 +120,7 @@ abstract contract Num is Const {
         bool negative = false;
 
 
-        // term(k) = numer / denom 
+        // term(k) = numer / denom
         //         = (product(a - i - 1, i=1-->k) * x^k) / (k!)
         // each iteration, multiply previous term by (a-(k-1)) * x / k
         // continue until term is less than precision

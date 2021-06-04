@@ -26,7 +26,7 @@ contract TTokenERC20 is CryticInterface, Token {
         initialBalance_attacker = initialTotalSupply/2;
     }
 
-    
+
     /*
     Type: Code quality
     Return: Success
@@ -37,10 +37,10 @@ contract TTokenERC20 is CryticInterface, Token {
 
     /*
     Type: Code Quality
-    Return: 
+    Return:
     */
     function echidna_approve_overwrites() public returns (bool) {
-        bool approve_return; 
+        bool approve_return;
         approve_return = approve(crytic_user, 10);
         require(approve_return);
         approve_return = approve(crytic_user, 20);
@@ -74,7 +74,7 @@ contract TTokenERC20 is CryticInterface, Token {
     */
     function echidna_revert_transfer_to_zero() public returns (bool) {
         if (this.balanceOf(msg.sender) == 0)
-          revert();
+            revert();
         return transfer(address(0x0), this.balanceOf(msg.sender));
     }
 
@@ -132,11 +132,11 @@ contract TTokenERC20 is CryticInterface, Token {
         uint balance = this.balanceOf(msg.sender);
         address other = crytic_user;
         if (other == msg.sender) {
-           other = crytic_owner;
+            other = crytic_owner;
         }
         if (balance >= 1) {
-           bool transfer_other = transfer(other, 1);
-           return (this.balanceOf(msg.sender) == balance-1) && (this.balanceOf(other) >= 1) && transfer_other;
+            bool transfer_other = transfer(other, 1);
+            return (this.balanceOf(msg.sender) == balance-1) && (this.balanceOf(other) >= 1) && transfer_other;
         }
         return true;
     }
@@ -153,7 +153,7 @@ contract TTokenERC20 is CryticInterface, Token {
         bool transfer_other = transfer(crytic_user, balance+1);
         return true;
     }
-  
+
 
     /*
     Properties: Not Mintable

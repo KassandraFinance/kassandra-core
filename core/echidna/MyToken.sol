@@ -6,7 +6,7 @@ contract MyToken is Token, CryticInterface{
     constructor(uint balance, address allowed) public {
         // balance is the new totalSupply
         _totalSupply = balance;
-        // each user receives 1/3 of the balance and sets 
+        // each user receives 1/3 of the balance and sets
         // the allowance of the allowed address.
         uint initialTotalSupply = balance;
         _balance[crytic_owner] = initialTotalSupply/3;

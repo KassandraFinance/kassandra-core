@@ -14,9 +14,9 @@ contract TPoolControllerPrivileged is CryticInterface, Pool {
 
     function echidna_revert_controller_cannot_be_null() public returns (bool) {
         if (this.getController() == crytic_owner) {
-           // setting the controller to 0x0 should fail
-           setController(address(0x0));
-           return true;
+            // setting the controller to 0x0 should fail
+            setController(address(0x0));
+            return true;
         }
         // if the controller was changed, this should revert anyway
         revert();

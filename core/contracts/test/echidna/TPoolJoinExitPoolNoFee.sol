@@ -38,7 +38,7 @@ contract TPoolJoinExitNoFee is Num {
     // This function model an attacker calling joinPool - exitPool and taking advantage of potential rounding
     // issues to generate free pool token
     function joinAndExitNoFeePool(uint poolAmountOut, uint poolAmountIn, uint poolTotal, uint _records_t_balance)
-        public 
+        public
     {
         uint tokenAmountIn = joinPool(poolAmountOut, poolTotal, _records_t_balance);
 
@@ -52,15 +52,15 @@ contract TPoolJoinExitNoFee is Num {
         poolTotal += poolAmountOut;
         _records_t_balance += tokenAmountIn;
 
-        require(tokenAmountIn > 0); // prevent triggering the free token generation from joinPool 
+        require(tokenAmountIn > 0); // prevent triggering the free token generation from joinPool
 
         require(poolTotal >= poolAmountIn);
         uint tokenAmountOut = exitPoolNoFee(poolAmountIn, poolTotal, _records_t_balance);
         require(_records_t_balance >= tokenAmountOut);
 
-        // We try to generate free pool share 
-        require(poolAmountOut > poolAmountIn); 
-        require(tokenAmountOut == tokenAmountIn); 
+        // We try to generate free pool share
+        require(poolAmountOut > poolAmountIn);
+        require(tokenAmountOut == tokenAmountIn);
         echidna_no_bug_found = false;
     }
 

@@ -10,12 +10,12 @@ contract TPoolBalance is Pool, CryticInterface {
     constructor() public{
         // Create a new token with initial_token_balance as total supply.
         // After the token is created, each user defined in CryticInterface
-        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of 
+        // (crytic_owner, crytic_user and crytic_attacker) receives 1/3 of
         // the initial balance
         token = new MyToken(initial_token_balance, address(this));
         // Bind the token with the minimal balance/weights
         bind(address(token), MIN_BALANCE, MIN_WEIGHT);
-        // Enable public swap 
+        // Enable public swap
         setPublicSwap(true);
     }
 
@@ -27,7 +27,7 @@ contract TPoolBalance is Pool, CryticInterface {
     function echidna_pool_record_balance() public returns (bool) {
         // If the token was unbinded, avoid revert and return true
         if (this.getNumTokens() == 0)
-            return true; 
+            return true;
         // The token balance should not be out-of-sync
         return (token.balanceOf(address(this)) >= this.getBalance(address(token)));
     }

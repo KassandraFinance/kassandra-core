@@ -46,7 +46,7 @@ contract Const is Bronze {
 contract Num is Const {
 
     function btoi(uint a)
-        internal pure 
+        internal pure
         returns (uint)
     {
         return a / BONE;
@@ -140,7 +140,7 @@ contract Num is Const {
         require(base >= MIN_BPOW_BASE, "ERR_BPOW_BASE_TOO_LOW");
         require(base <= MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
 
-        uint whole  = bfloor(exp);   
+        uint whole  = bfloor(exp);
         uint remain = bsub(exp, whole);
 
         uint wholePow = bpowi(base, btoi(whole));
@@ -165,7 +165,7 @@ contract Num is Const {
         bool negative = false;
 
 
-        // term(k) = numer / denom 
+        // term(k) = numer / denom
         //         = (product(a - i - 1, i=1-->k) * x^k) / (k!)
         // each iteration, multiply previous term by (a-(k-1)) * x / k
         // continue until term is less than precision
@@ -304,7 +304,7 @@ contract Math is Bronze, Const, Num {
         // That proportion is (1- weightTokenIn)
         // tokenAiAfterFee = tAi * (1 - (1-weightTi) * poolFee);
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
-        uint zaz = bmul(bsub(BONE, normalizedWeight), swapFee); 
+        uint zaz = bmul(bsub(BONE, normalizedWeight), swapFee);
         uint tokenAmountInAfterFee = bmul(tokenAmountIn, bsub(BONE, zaz));
 
         uint newTokenBalanceIn = badd(tokenBalanceIn, tokenAmountInAfterFee);
@@ -341,13 +341,13 @@ contract Math is Bronze, Const, Num {
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
         uint newPoolSupply = badd(poolSupply, poolAmountOut);
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
-    
+
         //uint newBalTi = poolRatio^(1/weightTi) * balTi;
-        uint boo = bdiv(BONE, normalizedWeight); 
+        uint boo = bdiv(BONE, normalizedWeight);
         uint tokenInRatio = bpow(poolRatio, boo);
         uint newTokenBalanceIn = bmul(tokenInRatio, tokenBalanceIn);
         uint tokenAmountInAfterFee = bsub(newTokenBalanceIn, tokenBalanceIn);
-        // Do reverse order of fees charged in joinswap_ExternAmountIn, this way 
+        // Do reverse order of fees charged in joinswap_ExternAmountIn, this way
         //     ``` pAo == joinswap_ExternAmountIn(Ti, joinswap_PoolAmountOut(pAo, Ti)) ```
         //uint tAi = tAiAfterFee / (1 - (1-weightTi) * swapFee) ;
         uint zar = bmul(bsub(BONE, normalizedWeight), swapFee);
@@ -383,16 +383,16 @@ contract Math is Bronze, Const, Num {
         uint poolAmountInAfterExitFee = bmul(poolAmountIn, bsub(BONE, EXIT_FEE));
         uint newPoolSupply = bsub(poolSupply, poolAmountInAfterExitFee);
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
-    
+
         // newBalTo = poolRatio^(1/weightTo) * balTo;
         uint tokenOutRatio = bpow(poolRatio, bdiv(BONE, normalizedWeight));
         uint newTokenBalanceOut = bmul(tokenOutRatio, tokenBalanceOut);
 
         uint tokenAmountOutBeforeSwapFee = bsub(tokenBalanceOut, newTokenBalanceOut);
 
-        // charge swap fee on the output token side 
+        // charge swap fee on the output token side
         //uint tAo = tAoBeforeSwapFee * (1 - (1-weightTo) * swapFee)
-        uint zaz = bmul(bsub(BONE, normalizedWeight), swapFee); 
+        uint zaz = bmul(bsub(BONE, normalizedWeight), swapFee);
         tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, bsub(BONE, zaz));
         return tokenAmountOut;
     }
@@ -420,11 +420,11 @@ contract Math is Bronze, Const, Num {
         returns (uint poolAmountIn)
     {
 
-        // charge swap fee on the output token side 
+        // charge swap fee on the output token side
         uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
         //uint tAoBeforeSwapFee = tAo / (1 - (1-weightTo) * swapFee) ;
         uint zoo = bsub(BONE, normalizedWeight);
-        uint zar = bmul(zoo, swapFee); 
+        uint zar = bmul(zoo, swapFee);
         uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, bsub(BONE, zar));
 
         uint newTokenBalanceOut = bsub(tokenBalanceOut, tokenAmountOutBeforeSwapFee);
