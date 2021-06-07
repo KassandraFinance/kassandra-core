@@ -17,7 +17,7 @@ interface IBPool {
     function getTotalDenormalizedWeight() external view returns (uint);
     // solhint-disable-next-line func-name-mixedcase
     function EXIT_FEE() external view returns (uint);
- 
+
     function calcPoolOutGivenSingleIn(
         uint tokenBalanceIn,
         uint tokenWeightIn,

@@ -23,7 +23,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
     const errorDelta = 10 ** -8;
     const numPoolTokens = '1000';
 
-    let crpFactory; 
+    let crpFactory;
     let bFactory;
     let crpPool;
     let CRPPOOL;
@@ -129,12 +129,12 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
         await truffleAssert.reverts(
             crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX),
             'ERR_NOT_ON_WHITELIST',
-        );    
+        );
 
         await truffleAssert.reverts(
             crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX, {from: user3}),
             'ERR_NOT_ON_WHITELIST',
-        );    
+        );
     });
 
     describe('BAP0 shirt auction', () => {
@@ -143,7 +143,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
             await crpPool.setSwapFee(minSwapFee);
             const bPoolAddr = await crpPool.bPool();
             const underlyingPool = await BPool.at(bPoolAddr);
-    
+
             const deployedSwapFee = await underlyingPool.getSwapFee();
             assert.equal(minSwapFee, deployedSwapFee);
         });
@@ -176,7 +176,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
             let weightDai;
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);                        
+            console.log(`Block: ${block.number}`);
             while (block.number < startBlock) {
                 // Wait for the start block
                 block = await web3.eth.getBlock('latest');
@@ -193,7 +193,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
             await bap0.approve(underlyingPool.address, MAX, { from: user1 });
             await dai.approve(underlyingPool.address, MAX, { from: user2 });
             await dai.approve(underlyingPool.address, MAX, { from: user3 });
-           
+
             const users = [user1, user2, user3];
             let userIdx = 0;
             let user;
@@ -215,7 +215,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
 
                     // Rotate users
                     user = users[userIdx];
-                    
+
                     const daiBalance = await dai.balanceOf.call(user);
                     const bap0Balance = await bap0.balanceOf.call(user);
                     console.log(`User ${userIdx + 1} has ${Math.round(fromWei(daiBalance))} Dai and ${fromWei(bap0Balance)} shirts.`);
@@ -241,7 +241,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
                         amountOut, // we want one BAP0 token out
                         fromWei(minSwapFee),
                     );
-            
+
                     // user buys a shirt
                     // Static call (no transaction yet), so that I can get the return values
                     const swapResult = await underlyingPool.swapExactAmountOut.call(
@@ -280,7 +280,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
                     const bapInWeight = await underlyingPool.getDenormalizedWeight(BAP0);
                     const daiOutBalance = await dai.balanceOf.call(underlyingPool.address);
                     const daiOutWeight = await underlyingPool.getDenormalizedWeight(DAI);
-                    
+
                     const expectedTotalOut = calcOutGivenIn(
                         fromWei(bapInBalance),
                         fromWei(bapInWeight),
@@ -313,9 +313,9 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
                         { from: user1 },
                     );
                 }
-                
+
                 await crpPool.pokeWeights();
-                
+
                 const finalShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
                 // Can never go below 2
                 shirtsLeft = fromWei(finalShirtBalance) > 2;
@@ -337,11 +337,11 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
                 /* You might expect this to work - just redeem all the pool tokens and get the shirts/dai back
                    Nope - there is no "we're done - everybody out of the pool" call
                    It's designed for people to enter and leave continuously, so prices need to be
-                   well-defined at all times, so ratios need to be maintained, etc. 
+                   well-defined at all times, so ratios need to be maintained, etc.
                    You can only withdraw 1/3 at a time - but you can do so iteratively */
                 crpPool.exitPool.call(toWei(numPoolTokens), [toWei(initialDaiDeposit), toWei('1.99')]),
                 'ERR_MIN_BALANCE',
-            );                
+            );
 
             poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
             console.log(`Final pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
@@ -354,7 +354,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
                 console.log(`\nStep ${cnt + 1}: Dai withdrawal = ${daiWithdrawal}`);
                 shirtWithdrawal = Math.floor(Decimal(fromWei(poolShirtBalance)).div(3.0) * 10000) / 10000;
                 console.log(`Shirt withdrawal = ${shirtWithdrawal}`);
-    
+
                 // Withdraw as much as we can
                 await crpPool.exitswapExternAmountOut(DAI,
                                                         toWei(daiWithdrawal.toString()),
@@ -385,7 +385,7 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
                                 toWei('0'), // minAmountOut
                                 MAX),
                             'ERR_SWAP_NOT_PUBLIC'
-                    );            
+                    );
                 }
             }
             console.log(`Withdrew in ${cnt} steps`);

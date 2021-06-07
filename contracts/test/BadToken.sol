@@ -137,10 +137,10 @@ contract NoZeroXferToken is BadToken {
         string memory name,
         string memory symbol,
         uint8 decimals
-    ) 
-        public 
+    )
+        public
         BadToken(name, symbol, decimals)
-    {    
+    {
     }
 
     function _move(address src, address dst, uint amt) internal override {
@@ -159,10 +159,10 @@ contract NoPriorApprovalToken is BadToken {
         string memory name,
         string memory symbol,
         uint8 decimals
-    ) 
-        public 
+    )
+        public
         BadToken(name, symbol, decimals)
-    {    
+    {
     }
 
     function approve(address dst, uint amt) external override returns (bool) {
@@ -180,10 +180,10 @@ contract FalseReturningToken is BadToken {
         string memory name,
         string memory symbol,
         uint8 decimals
-    ) 
-        public 
+    )
+        public
         BadToken(name, symbol, decimals)
-    {    
+    {
     }
 
     function transfer(address dst, uint amt) external override returns (bool) {
@@ -198,7 +198,7 @@ contract FalseReturningToken is BadToken {
             _allowance[src][msg.sender] = sub(_allowance[src][msg.sender], amt);
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
-        
+
         return false;
     }
 }
@@ -208,10 +208,10 @@ contract TaxingToken is BadToken {
         string memory name,
         string memory symbol,
         uint8 decimals
-    ) 
-        public 
+    )
+        public
         BadToken(name, symbol, decimals)
-    {    
+    {
     }
 
     function transfer(address dst, uint amt) external override returns (bool) {

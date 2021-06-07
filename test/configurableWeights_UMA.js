@@ -66,8 +66,8 @@ contract('configurableWeightsUMA', async (accounts) => {
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
                 swapFee: 10 ** 15,
-               }
-    
+            }
+
             CONTROLLER = await factory.newCrp.call(
                 bfactory.address,
                 poolParams,
@@ -95,7 +95,7 @@ contract('configurableWeightsUMA', async (accounts) => {
             it('Should not allow updateWeights with mismatch', async () => {
                 const endWeights = [toWei('39'), toWei('1'), toWei('10')];
                 const block = await web3.eth.getBlock('latest');
-               
+
                 truffleAssert.reverts(
                     controller.updateWeightsGradually(endWeights, block.number, block.number + 20),
                     'ERR_START_WEIGHTS_MISMATCH');
@@ -150,14 +150,14 @@ contract('configurableWeightsUMA', async (accounts) => {
                 let weightWETH;
 
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);                        
+                console.log(`Block: ${block.number}`);
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
                     console.log(`Still waiting. Block: ${block.number}`);
                     await time.advanceBlock();
                 }
-               
+
                 for (i = 0; i < blockRange + 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
@@ -196,12 +196,12 @@ contract('configurableWeightsUMA', async (accounts) => {
                 const endWeights = [toWei('1'), toWei('29')];
 
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);                        
+                console.log(`Block: ${block.number}`);
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${block.number}`);    
-                    await time.advanceBlock()  
+                    console.log(`Still waiting. Block: ${block.number}`);
+                    await time.advanceBlock()
                 }
 
                 for (i = 0; i < blockRange+10; i++) {
@@ -209,15 +209,16 @@ contract('configurableWeightsUMA', async (accounts) => {
                     const weightWETH = await controller.getDenormalizedWeight(WETH);
                     const block = await web3.eth.getBlock('latest');
                     console.log('Block: ' + block.number + '. Weights -> July: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tAugust: ' + 
+                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tAugust: ' +
                         (weightWETH*2.5/10**18).toFixed(4) + '%');
                     await controller.pokeWeights();
 
                     // Try to adust weights with mismatched tokens
                     if (1 == i) {
                         truffleAssert.reverts(
-                          controller.updateWeightsGradually(endWeights, i, i+50),
-                          'ERR_GRADUAL_UPDATE_TIME_TRAVEL');
+                            controller.updateWeightsGradually(endWeights, i, i+50),
+                            'ERR_GRADUAL_UPDATE_TIME_TRAVEL',
+                        );
                     }
                 }
             });

@@ -81,10 +81,10 @@ contract PCToken is IERC20 {
         /* In addition to the increase/decreaseApproval functions, could
            avoid the "approval race condition" by only allowing calls to approve
            when the current approval amount is 0
-        
+
            require(_allowance[msg.sender][spender] == 0, "ERR_RACE_CONDITION");
 
-           Some token contracts (e.g., KNC), already revert if you call approve 
+           Some token contracts (e.g., KNC), already revert if you call approve
            on a non-zero allocation. To deal with these, we use the SafeApprove library
            and safeApprove function when adding tokens to the pool.
         */

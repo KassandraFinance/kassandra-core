@@ -121,50 +121,50 @@ contract('configurableAddRemoveTokens - join/exit after add', async (accounts) =
             console.log(`Block commitAddToken for ABC: ${block.number}`);
             console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
             await crpPool.commitAddToken(ABC, toWei('10000'), toWei('1.5'));
-    
+
             // original has no ABC
             const bPoolAddr = await crpPool.bPool();
             const bPool = await BPool.at(bPoolAddr);
             const bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
             const adminAbcBalance = await abc.balanceOf.call(admin);
-    
+
             await truffleAssert.reverts(
                 bPool.getDenormalizedWeight.call(abc.address),
                 'ERR_NOT_BOUND',
             );
-    
+
             assert.equal(bPoolAbcBalance, toWei('0'));
             assert.equal(adminAbcBalance, toWei('100000'));
         });
-    
+
         it('Controller should be able to applyAddToken', async () => {
             let block = await web3.eth.getBlock('latest');
             while (block.number <= applyAddTokenValidBlock) {
-                 console.log(`Waiting; block: ${block.number}`);
+                console.log(`Waiting; block: ${block.number}`);
                 await time.advanceBlock();
                 block = await web3.eth.getBlock('latest');
-           }
-    
+            }
+
             const bPoolAddr = await crpPool.bPool();
             const bPool = await BPool.at(bPoolAddr);
-    
+
             let adminBPTBalance = await crpPool.balanceOf.call(admin);
             let adminAbcBalance = await abc.balanceOf.call(admin);
             let bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
-    
+
             assert.equal(adminBPTBalance, toWei('100'));
             assert.equal(adminAbcBalance, toWei('100000'));
             assert.equal(bPoolAbcBalance, toWei('0'));
-    
+
             await crpPool.applyAddToken();
-    
+
             adminBPTBalance = await crpPool.balanceOf.call(admin);
             adminAbcBalance = await abc.balanceOf.call(admin);
             bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
             const bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
             const bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
             const bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
-    
+
             // BPT Balance should go from 100 to 110 since total weight went from 15 to 16.5
             assert.equal(adminBPTBalance, toWei('110'));
             assert.equal(adminAbcBalance, toWei('90000'));
@@ -172,25 +172,25 @@ contract('configurableAddRemoveTokens - join/exit after add', async (accounts) =
             assert.equal(bPoolXYZBalance, toWei('80000'));
             assert.equal(bPoolWethBalance, toWei('40'));
             assert.equal(bPoolDaiBalance, toWei('10000'));
-    
+
             const xyzWeight = await bPool.getDenormalizedWeight.call(xyz.address);
             const wethWeight = await bPool.getDenormalizedWeight.call(weth.address);
             const daiWeight = await bPool.getDenormalizedWeight.call(dai.address);
             const abcWeight = await bPool.getDenormalizedWeight.call(abc.address);
-    
+
             assert.equal(xyzWeight, toWei('12'));
             assert.equal(wethWeight, toWei('1.5'));
             assert.equal(daiWeight, toWei('1.5'));
             assert.equal(abcWeight, toWei('1.5'));
         });
-    
+
         it('Should be able to join/exit pool after addition', async () => {
             const poolAmountOut = '1';
             await crpPool.joinPool(toWei(poolAmountOut), [MAX, MAX, MAX, MAX]);
-        
+
             const poolAmountIn = '99';
             await crpPool.exitPool(toWei(poolAmountIn), [toWei('0'), toWei('0'), toWei('0'), toWei('0')]);
-        });               
+        });
     });
 
     describe('JoinExit after remove', () => {
@@ -211,9 +211,9 @@ contract('configurableAddRemoveTokens - join/exit after add', async (accounts) =
         it('Should be able to join/exit pool after removal', async () => {
             const poolAmountOut = '1';
             await crpPool.joinPool(toWei(poolAmountOut), [MAX, MAX, MAX]);
-        
+
             const poolAmountIn = '10';
             await crpPool.exitPool(toWei(poolAmountIn), [toWei('0'), toWei('0'), toWei('0')]);
-        });               
+        });
     });
 });

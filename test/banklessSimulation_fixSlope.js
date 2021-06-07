@@ -14,13 +14,13 @@ const Decimal = require('decimal.js');
 contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
     const admin = accounts[0];
     const user = accounts[1];
- 
+
     const { toWei, fromWei } = web3.utils;
     const MAX = web3.utils.toTwosComplement(-1);
     const errorDelta = 10 ** -8;
     const numPoolTokens = '1000';
 
-    let crpFactory; 
+    let crpFactory;
     let bFactory;
     let crpPool;
     let CRPPOOL;
@@ -119,7 +119,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             await crpPool.setSwapFee(minSwapFee);
             const bPoolAddr = await crpPool.bPool();
             const underlyingPool = await BPool.at(bPoolAddr);
-    
+
             const deployedSwapFee = await underlyingPool.getSwapFee();
             assert.equal(minSwapFee, deployedSwapFee);
         });
@@ -153,7 +153,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             let weightDai;
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);                        
+            console.log(`Block: ${block.number}`);
             while (block.number < startBlock) {
                 // Wait for the start block
                 block = await web3.eth.getBlock('latest');
@@ -164,9 +164,9 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             const bPoolAddr = await crpPool.bPool();
             const underlyingPool = await BPool.at(bPoolAddr);
             let tokenAmountIn;
- 
+
             await dai.approve(underlyingPool.address, MAX, { from: user });
-           
+
             for (i = 0; i < 5; i++) {
                 weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
                 weightDai = await crpPool.getDenormalizedWeight(DAI);
@@ -180,7 +180,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                 const tokenInWeight = await underlyingPool.getDenormalizedWeight(DAI);
                 const tokenOutBalance = await bap0.balanceOf.call(underlyingPool.address);
                 const tokenOutWeight = await underlyingPool.getDenormalizedWeight(BAP0);
-                
+
                 const daiBalance = await dai.balanceOf.call(user);
                 const bap0Balance = await bap0.balanceOf.call(user);
                 console.log(`User has ${Decimal(fromWei(daiBalance)).toFixed(2)} Dai and ${Decimal(fromWei(bap0Balance)).toFixed(1)} shirts.`);
@@ -197,7 +197,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                     amountOut,
                     fromWei(minSwapFee),
                 );
-        
+
                 // user buys a shirt
                 // Static call (no transaction yet), so that I can get the return values
                 const swapResult = await underlyingPool.swapExactAmountOut.call(
@@ -225,7 +225,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                     MAX, // maxPrice
                     { from: user },
                 );
-            
+
                 await crpPool.pokeWeights();
             }
         });
@@ -247,7 +247,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             await crpPool.updateWeightsGradually(adjustmentEndWeights, startBlock.number, endBlock);
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);                        
+            console.log(`Block: ${block.number}`);
             while (block.number < startBlock.number) {
                 block = await web3.eth.getBlock('latest');
                 console.log(`Still waiting. Block: ${block.number}`);
@@ -302,7 +302,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             await crpPool.updateWeightsGradually(endWeights, startBlock.number, endBlock);
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);                        
+            console.log(`Block: ${block.number}`);
             while (block.number < startBlock.number) {
                 block = await web3.eth.getBlock('latest');
                 console.log(`Still waiting. Block: ${block.number}`);
@@ -322,7 +322,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                 const tokenInWeight = await underlyingPool.getDenormalizedWeight(DAI);
                 const tokenOutBalance = await bap0.balanceOf.call(underlyingPool.address);
                 const tokenOutWeight = await underlyingPool.getDenormalizedWeight(BAP0);
-                
+
                 const daiBalance = await dai.balanceOf.call(user);
                 const bap0Balance = await bap0.balanceOf.call(user);
                 console.log(`User has ${Decimal(fromWei(daiBalance)).toFixed(2)} Dai and ${Decimal(fromWei(bap0Balance)).toFixed(1)} shirts.`);
@@ -338,7 +338,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                     amountOut,
                     fromWei(minSwapFee),
                 );
-        
+
                 // user buys a shirt
                 // Static call (no transaction yet), so that I can get the return values
                 const swapResult = await underlyingPool.swapExactAmountOut.call(
@@ -366,9 +366,9 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                     MAX, // maxPrice
                     { from: user },
                 );
-            
+
                 await crpPool.pokeWeights();
-            }    
+            }
         });
     });
 });

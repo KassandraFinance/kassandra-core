@@ -19,7 +19,7 @@ contract('BSP Cap', async (accounts) => {
     // There should be a better way to do this... (constant in geth corresponding to uint(-1) apparently)
     const MaxBig256 = '115792089237316195423570985008687907853269984665640564039457.584007913129639935';
 
-    let crpFactory; 
+    let crpFactory;
     let bFactory;
     let crpPool;
     let CRPPOOL;
@@ -37,7 +37,7 @@ contract('BSP Cap', async (accounts) => {
     const SYMBOL = 'BSP';
     const NAME = 'Balancer Pool Token';
 
-     const permissions = {
+    const permissions = {
         canPauseSwapping: false,
         canChangeSwapFee: false,
         canChangeWeights: true,
@@ -160,17 +160,17 @@ contract('BSP Cap', async (accounts) => {
         it('Should set the cap above the initial supply', async () => {
             const newCap = toWei('200')
             await crpPool.setCap(newCap);
-    
+
             const currentCap = await crpPool.bspCap();
             assert.equal(currentCap, newCap);
-    
+
             const supply = await crpPool.totalSupply();
             assert.equal(fromWei(supply), 100);
 
             const balance = await crpPool.balanceOf.call(admin);
             assert.equal(fromWei(balance), 100);
         });
-    
+
         it('Should allow LPs to join', async () => {
             // users have to allow the contract to pull dai
             await dai.approve(crpPool.address, MAX, {from: user1});
@@ -193,7 +193,7 @@ contract('BSP Cap', async (accounts) => {
                 user = users[userIdx];
 
                 let amountOut = Math.floor(Math.random() * 20) + 1;
-                
+
                 // Because it's random, might go over - need to adjust so that it ends with exactly 200
                 if (expectedSupply + amountOut > 200) {
                     const newAmountOut = 200 - expectedSupply;
@@ -212,7 +212,7 @@ contract('BSP Cap', async (accounts) => {
                 supply = await crpPool.totalSupply();
                 console.log(`Total supply is now ${fromWei(supply)}`);
                 assert.equal(Decimal(fromWei(supply)), expectedSupply);
-    
+
                 balance = await crpPool.balanceOf.call(user);
                 assert.equal(Decimal(fromWei(balance)), userBalances[userIdx])
 
@@ -221,13 +221,13 @@ contract('BSP Cap', async (accounts) => {
                     userIdx = 0;
                 }
             }
-       });
+        });
 
         it('Should not allow anyone else to join', async () => {
             await truffleAssert.reverts(
                 crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX, {from: user3}),
                 'ERR_CAP_LIMIT_REACHED',
-            );    
+            );
         });
     });
 });

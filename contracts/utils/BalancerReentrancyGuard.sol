@@ -62,8 +62,8 @@ contract BalancerReentrancyGuard {
      * @dev Also add a modifier that doesn't create a lock, but protects functions that
      *      should not be called while a _lock_ function is running
      */
-     modifier viewlock() {
+    modifier viewlock() {
         require(_status != _ENTERED, "ERR_REENTRY_VIEW");
         _;
-     }
+    }
 }

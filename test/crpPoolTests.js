@@ -264,8 +264,10 @@ contract('crpPoolTests', async (accounts) => {
     it('Should get permissions as an array', async () => {
         const flags = await crpPool.rights();
 
-        assert.sameMembers([flags[0],flags[1],flags[2],flags[3],flags[4],flags[5]],
-                           [true,true,true,true,false,false]);
+        assert.sameMembers(
+            [flags[0], flags[1], flags[2], flags[3], flags[4], flags[5]],
+            [    true,     true,     true,     true,    false,    false]
+        );
     });
 
     it('JoinPool should not revert if smart pool is finalized', async () => {
@@ -450,8 +452,8 @@ contract('crpPoolTests', async (accounts) => {
     it('should not allow exitpool without enough tokens', async () => {
         // Testing the new error message (would have been ERR_INSUFFICIENT_BAL)
         await truffleAssert.reverts(
-           crpPool.exitPool(toWei('50'), [toWei('0'), toWei('0'), toWei('0')]),
-           'ERR_SUB_UNDERFLOW',
+            crpPool.exitPool(toWei('50'), [toWei('0'), toWei('0'), toWei('0')]),
+            'ERR_SUB_UNDERFLOW',
         );
     });
 

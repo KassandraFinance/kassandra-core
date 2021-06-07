@@ -34,7 +34,7 @@ contract('crpPoolOverloadTests', async (accounts) => {
     };
 
     let crpFactory;
-    let bFactory; 
+    let bFactory;
     let bPool;
     let crpPool;
     let CRPPOOL;

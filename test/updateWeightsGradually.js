@@ -48,7 +48,7 @@ contract('updateWeightsGradually', async (accounts) => {
 
             WETH = weth.address;
             XYZ = xyz.address;
- 
+
             // admin balances
             await weth.mint(admin, toWei('100000000'));
             await xyz.mint(admin, toWei('100000000'));
@@ -61,7 +61,7 @@ contract('updateWeightsGradually', async (accounts) => {
                 tokenWeights: startWeights,
                 swapFee: swapFee,
                 }
-    
+
             CONTROLLER = await factory.newCrp.call(
                 bfactory.address,
                 poolParams,
@@ -105,14 +105,14 @@ contract('updateWeightsGradually', async (accounts) => {
                 let weightWETH;
 
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);                        
+                console.log(`Block: ${block.number}`);
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
                     console.log(`Still waiting. Block: ${block.number}`);
                     await time.advanceBlock();
                 }
-               
+
                 // Only go half-way
                 for (i = 0; i < blockRange - 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
@@ -160,7 +160,7 @@ contract('updateWeightsGradually', async (accounts) => {
                 console.log('Go back down');
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
 
-                console.log(`Block: ${block.number}`);                        
+                console.log(`Block: ${block.number}`);
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
@@ -190,21 +190,21 @@ contract('updateWeightsGradually', async (accounts) => {
                 it('Should allow calling repeatedly', async () => {
                     startBlock = await web3.eth.getBlock('latest');
                     endBlock = startBlock.number + 20;
-    
+
                     for (i = 0; i < 20; i++) {
                         let currXYZWeight = Math.floor((Math.random() * 20) + 1).toString();
                         let currWETHWeight = Math.floor((Math.random() * 20) + 1).toString();
 
                         startBlock = await web3.eth.getBlock('latest');
                         endBlock = startBlock.number + 20;
-        
+
                         console.log(`XYZ target weight: ${currXYZWeight}`);
                         console.log(`WETH target weight: ${currWETHWeight}`);
-    
+
                         endWeights = [toWei(currXYZWeight), toWei(currWETHWeight)];
-    
+
                         await controller.updateWeightsGradually(endWeights, startBlock.number, endBlock);
-    
+
                         for (j = 0; j < 5; j++) {
                             weightXYZ = await controller.getDenormalizedWeight(XYZ);
                             weightWETH = await controller.getDenormalizedWeight(WETH);
@@ -215,7 +215,7 @@ contract('updateWeightsGradually', async (accounts) => {
                             await controller.pokeWeights();
                         }
                     }
-                }).timeout(0);    
+                }).timeout(0);
             });
         });
     });

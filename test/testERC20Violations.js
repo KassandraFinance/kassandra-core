@@ -55,7 +55,7 @@ contract('testERC20 violations', async (accounts) => {
         canChangeCap: false,
     };
 
-    describe 
+    describe
     before(async () => {
         bFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();

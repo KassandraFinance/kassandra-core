@@ -19,7 +19,7 @@ module.exports = async function (deployer, network, accounts) {
     deployer.link(BalancerSafeMath, CRPFactory);
     deployer.link(RightsManager, CRPFactory);
     deployer.link(SmartPoolManager, CRPFactory);
-    
+
     await deployer.deploy(CRPFactory);
 
     if (network === 'development' || network === 'coverage') {

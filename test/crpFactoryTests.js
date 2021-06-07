@@ -62,11 +62,11 @@ contract('CRPFactory', async (accounts) => {
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
- 
+
         WETH = weth.address;
         DAI = dai.address;
         XYZ = xyz.address;
- 
+
         // admin balances
         await weth.mint(admin, toWei('100'));
         await dai.mint(admin, toWei('15000'));
@@ -249,12 +249,21 @@ contract('CRPFactory', async (accounts) => {
         const poolParams = {
             poolTokenSymbol: SYMBOL,
             poolTokenName: NAME,
-            constituentTokens: [DAI, DAI, DAI, DAI, DAI, DAI, DAI, DAI, DAI],
-            tokenBalances: [toWei('1000'), toWei('1000'), toWei('1000'), toWei('1000'),
-                            toWei('1000'), toWei('1000'), toWei('1000'), toWei('1000'),
-                            toWei('1000')],
-            tokenWeights: [toWei('20'), toWei('20'), toWei('20'), toWei('20'),
-                           toWei('20'), toWei('20'), toWei('20'), toWei('20'), toWei('20')],
+            constituentTokens: [
+                DAI, DAI, DAI,
+                DAI, DAI, DAI,
+                DAI, DAI, DAI,
+            ],
+            tokenBalances: [
+                toWei('1000'), toWei('1000'), toWei('1000'),
+                toWei('1000'), toWei('1000'), toWei('1000'),
+                toWei('1000'), toWei('1000'), toWei('1000'),
+            ],
+            tokenWeights: [
+                toWei('20'), toWei('20'), toWei('20'),
+                toWei('20'), toWei('20'), toWei('20'),
+                toWei('20'), toWei('20'), toWei('20'),
+            ],
             swapFee: swapFee,
         }
 

@@ -47,12 +47,12 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
            We want to start by weighting it heavily toward the project token,
            to minimize the upfront capital required to create liquidity in the
-           project token with low slippage. 
+           project token with low slippage.
 
-           Without this mechanism, a prohibitively large Dai starting balance would be 
-           required to achieve acceptably low levels of price slippage. 
+           Without this mechanism, a prohibitively large Dai starting balance would be
+           required to achieve acceptably low levels of price slippage.
 
-           Here we're starting with an 80/20% split. 
+           Here we're starting with an 80/20% split.
            The project token is at 80%: 32/(32 + 8) denormalized weights
            And Dai is 20%: 8/(32 + 8).
            This allows 4,000 project tokens (at $1), to be bootstrapped for $1,000 in DAI
@@ -74,7 +74,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'Example Project Token', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
- 
+
             XYZ = xyz.address;
             DAI = dai.address;
 
@@ -83,7 +83,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             // Changing weights pushes/pulls tokens as necessary to keep the prices stable
             await dai.mint(admin, toWei('10000'));
             await xyz.mint(admin, toWei('40000'));
- 
+
             const poolParams = {
                 poolTokenSymbol: SYMBOL,
                 poolTokenName: NAME,
@@ -92,7 +92,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 tokenWeights: startWeights,
                 swapFee: swapFee,
             }
-    
+
             CONTROLLER = await crpFactory.newCrp.call(
                 bFactory.address,
                 poolParams,
@@ -139,14 +139,14 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 let weightDAI;
 
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);                        
+                console.log(`Block: ${block.number}`);
                 while (block.number < startBlock) {
                     // Wait for the start block, if necessary
                     block = await web3.eth.getBlock('latest');
                     console.log(`Still waiting. Block: ${block.number}`);
                     await time.advanceBlock();
                 }
-               
+
                 for (i = 0; i < blockRange + 3; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightDAI = await controller.getDenormalizedWeight(DAI);
@@ -161,10 +161,10 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                     await controller.pokeWeights();
                 }
             });
-        });      
+        });
     });
 
-    /* Here we want to implement a non-linear curve, as describe in the paper - 
+    /* Here we want to implement a non-linear curve, as describe in the paper -
        essentially "flipping" the weights faster.
 
        This could be done by calling updateWeightsGradually repeatedly, with short-term
@@ -192,7 +192,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'Example Project Token', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
- 
+
             XYZ = xyz.address;
             DAI = dai.address;
 
@@ -252,14 +252,14 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
                 const bPoolAddr = await controller.bPool();
                 const underlyingPool = await BPool.at(bPoolAddr);
-    
+
                 /* Exponential curve formula (for 80/20%)
                    "b" parameterizes the "steepness" of the curve
                    Higher values of b mean weights converge to the asymptotes faster
-                  
+
                    pctXYZ = 0.2 + 0.6^(bx)
                    pctDAI = 0.8 - 0.6^(bx)
-                 
+
                    To generalize, HP=0.8, LP=0.2
                    pctXYZ = LP + (HP-LP)^(bx)
                    pctDAI = HP - (HP-LP)^(bx) */
@@ -289,7 +289,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
                     console.log(`\nNew weights: XYZ weight: ${normXYZ}; DAI weight: ${normDAI}`);
 
-                    // Changing weghts transfers tokens!         
+                    // Changing weghts transfers tokens!
                     await controller.updateWeight(XYZ, toWei(normXYZ.toFixed(4)));
                     await controller.updateWeight(DAI, toWei(normDAI.toFixed(4)));
 
@@ -317,6 +317,6 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                     await controller.pokeWeights();
                 }
             });
-        });        
+        });
     });
 });

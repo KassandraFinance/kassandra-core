@@ -157,7 +157,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         needsBPool
         override
     {
-       revert("ERR_UNSUPPORTED_OPERATION");
+        revert("ERR_UNSUPPORTED_OPERATION");
     }
 
     /**
@@ -170,10 +170,10 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         needsBPool
         override
     {
-       revert("ERR_UNSUPPORTED_OPERATION");
+        revert("ERR_UNSUPPORTED_OPERATION");
     }
 
-    /** 
+    /**
      * @notice Update the weight of a token without changing the price (or transferring tokens)
      * @param token The address of the token in the underlying BPool to be weight adjusted.
      * @dev Checks if the token's current pool balance has deviated from cached balance,

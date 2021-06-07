@@ -19,12 +19,14 @@ library RightsManager {
 
     // Type declarations
 
-    enum Permissions { PAUSE_SWAPPING,
-                       CHANGE_SWAP_FEE,
-                       CHANGE_WEIGHTS,
-                       ADD_REMOVE_TOKENS,
-                       WHITELIST_LPS,
-                       CHANGE_CAP }
+    enum Permissions {
+        PAUSE_SWAPPING,
+        CHANGE_SWAP_FEE,
+        CHANGE_WEIGHTS,
+        ADD_REMOVE_TOKENS,
+        WHITELIST_LPS,
+        CHANGE_CAP
+    }
 
     struct Rights {
         bool canPauseSwapping;
@@ -50,15 +52,17 @@ library RightsManager {
      * @dev If you pass an empty array, it will construct it using the defaults
      * @param a - array input
      * @return Rights struct
-     */ 
+     */
     function constructRights(bool[] calldata a) external pure returns (Rights memory) {
         if (a.length == 0) {
-            return Rights(DEFAULT_CAN_PAUSE_SWAPPING,
-                          DEFAULT_CAN_CHANGE_SWAP_FEE,
-                          DEFAULT_CAN_CHANGE_WEIGHTS,
-                          DEFAULT_CAN_ADD_REMOVE_TOKENS,
-                          DEFAULT_CAN_WHITELIST_LPS,
-                          DEFAULT_CAN_CHANGE_CAP);
+            return Rights(
+                DEFAULT_CAN_PAUSE_SWAPPING,
+                DEFAULT_CAN_CHANGE_SWAP_FEE,
+                DEFAULT_CAN_CHANGE_WEIGHTS,
+                DEFAULT_CAN_ADD_REMOVE_TOKENS,
+                DEFAULT_CAN_WHITELIST_LPS,
+                DEFAULT_CAN_CHANGE_CAP
+            );
         }
         else {
             return Rights(a[0], a[1], a[2], a[3], a[4], a[5]);

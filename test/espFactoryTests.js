@@ -168,7 +168,7 @@ contract('ESPFactory', async (accounts) => {
             tokenBalances: startBalances,
             tokenWeights: startWeights,
             swapFee: 0,
-       }
+        }
 
         await truffleAssert.reverts(
             espFactory.newEsp(

@@ -63,7 +63,7 @@ contract('elasticSupplyPool', async (accounts) => {
                 tokenWeights: startWeights,
                 swapFee: swapFee,
                 }
-    
+
             CRPPOOL = await crpFactory.newEsp.call(
                 bFactory.address,
                 poolParams,

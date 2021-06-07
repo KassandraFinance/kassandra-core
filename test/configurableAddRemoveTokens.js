@@ -391,10 +391,10 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         console.log(`WETH = ${WETH}`);
         console.log(`ABC = ${ABC}`);
 
-        const poolTokens = await bPool.getCurrentTokens();        
+        const poolTokens = await bPool.getCurrentTokens();
         for (i = 0; i < poolTokens.length; i++) {
-             const tokenWeight = await bPool.getDenormalizedWeight(poolTokens[i]);
-             console.log(`Token[${i}] = ${poolTokens[i]}; weight ${fromWei(tokenWeight)}`);
+            const tokenWeight = await bPool.getDenormalizedWeight(poolTokens[i]);
+            console.log(`Token[${i}] = ${poolTokens[i]}; weight ${fromWei(tokenWeight)}`);
         }
 
         assert.equal(poolTokens.length, 2);
@@ -405,7 +405,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         // function getStartWeights() public returns (uint[] memory) {
         //    return _startWeights;
         // }
-    
+
         /*const startWeights = await crpPool.getStartWeights.call();
         console.log("CRP start weights");
         for (i = 0; i < startWeights.length; i++) {

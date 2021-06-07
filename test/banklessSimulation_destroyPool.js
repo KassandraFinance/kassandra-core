@@ -23,7 +23,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
     const errorDelta = 10 ** -8;
     const numPoolTokens = '1000';
 
-    let crpFactory; 
+    let crpFactory;
     let bFactory;
     let crpPool;
     let CRPPOOL;
@@ -131,12 +131,12 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
         await truffleAssert.reverts(
             crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX),
             'ERR_NOT_ON_WHITELIST',
-        );    
+        );
 
         await truffleAssert.reverts(
             crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX, {from: user3}),
             'ERR_NOT_ON_WHITELIST',
-        );    
+        );
     });
 
     describe('BAP0 shirt auction', () => {
@@ -145,7 +145,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
             await crpPool.setSwapFee(minSwapFee);
             const bPoolAddr = await crpPool.bPool();
             const underlyingPool = await BPool.at(bPoolAddr);
-    
+
             const deployedSwapFee = await underlyingPool.getSwapFee();
             assert.equal(minSwapFee, deployedSwapFee);
         });
@@ -185,7 +185,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
             let weightDai;
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);                        
+            console.log(`Block: ${block.number}`);
             while (block.number < startBlock) {
                 // Wait for the start block
                 block = await web3.eth.getBlock('latest');
@@ -202,7 +202,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
             await bap0.approve(underlyingPool.address, MAX, { from: user1 });
             await dai.approve(underlyingPool.address, MAX, { from: user2 });
             await dai.approve(underlyingPool.address, MAX, { from: user3 });
-           
+
             const users = [user1, user2, user3];
             let userIdx = 0;
             let user;
@@ -224,7 +224,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
 
                     // Rotate users
                     user = users[userIdx];
-                    
+
                     const daiBalance = await dai.balanceOf.call(user);
                     const bap0Balance = await bap0.balanceOf.call(user);
                     console.log(`User ${userIdx + 1} has ${Math.round(fromWei(daiBalance))} Dai and ${fromWei(bap0Balance)} shirts.`);
@@ -250,7 +250,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
                         amountOut, // we want one BAP0 token out
                         fromWei(minSwapFee),
                     );
-            
+
                     // user buys a shirt
                     // Static call (no transaction yet), so that I can get the return values
                     const swapResult = await underlyingPool.swapExactAmountOut.call(
@@ -289,7 +289,7 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
                     const bapInWeight = await underlyingPool.getDenormalizedWeight(BAP0);
                     const daiOutBalance = await dai.balanceOf.call(underlyingPool.address);
                     const daiOutWeight = await underlyingPool.getDenormalizedWeight(DAI);
-                    
+
                     const expectedTotalOut = calcOutGivenIn(
                         fromWei(bapInBalance),
                         fromWei(bapInWeight),
@@ -322,9 +322,9 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
                         { from: user1 },
                     );
                 }
-                
+
                 await crpPool.pokeWeights();
-                
+
                 const finalShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
                 // Can never go below 2
                 shirtsLeft = fromWei(finalShirtBalance) > 2;
@@ -356,8 +356,8 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
                     MAX,
                 ),
                 'ERR_NOT_BOUND',
-            );    
-    
+            );
+
             await crpPool.removeToken(DAI);
 
             const numTokens = await underlyingPool.getNumTokens.call();

@@ -1,6 +1,6 @@
 # Configurable Rights Pool
 
-This is a smart pool factory that allows anyone to deploy smart pools with (in the reference implementation) six 
+This is a smart pool factory that allows anyone to deploy smart pools with (in the reference implementation) six
 different rights that can be individually chosen:
 
 1) canPauseSwapping: pool creator can pause swaps (base pools can turn swapping on, but not off)

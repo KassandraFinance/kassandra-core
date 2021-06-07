@@ -78,7 +78,7 @@ contract('configurableWeights_withTx', async (accounts) => {
                 tokenWeights: startWeights,
                 swapFee: swapFee,
             }
-    
+
             CONTROLLER = await factory.newCrp.call(
                 bfactory.address,
                 poolParams,

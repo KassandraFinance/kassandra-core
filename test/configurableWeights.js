@@ -106,7 +106,7 @@ contract('configurableWeights', async (accounts) => {
                 tokenWeights: startWeights,
                 swapFee: swapFee,
             }
-    
+
             CRPPOOL = await crpFactory.newCrp.call(
                 bFactory.address,
                 poolParams,
@@ -127,9 +127,7 @@ contract('configurableWeights', async (accounts) => {
             await dai.approve(CRPPOOL_ADDRESS, MAX);
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
-            await crpPool.createPool(toWei('100'), 
-                                     minimumWeightChangeBlockPeriod,
-                                     minimumWeightChangeBlockPeriod);
+            await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
         });
 
         it('crpPool should have correct rights set', async () => {
@@ -281,7 +279,7 @@ contract('configurableWeights', async (accounts) => {
                 tokenWeights: startWeights,
                 swapFee: swapFee,
                 }
-    
+
             CRPPOOL = await crpFactory.newCrp.call(
                 bFactory.address,
                 poolParams,
@@ -302,9 +300,7 @@ contract('configurableWeights', async (accounts) => {
             await dai.approve(CRPPOOL_ADDRESS, MAX);
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
-            await crpPool.createPool(toWei('100'), 
-                                     minimumWeightChangeBlockPeriod,
-                                     minimumWeightChangeBlockPeriod);
+            await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
         });
 
         it('Controller should be able to change weights (down) with updateWeight()', async () => {
@@ -590,8 +586,10 @@ contract('configurableWeights', async (accounts) => {
             let wethWeight = await crpPool.getDenormalizedWeight(WETH);
             let daiWeight = await crpPool.getDenormalizedWeight(DAI);
             block = await web3.eth.getBlock('latest');
-            console.log(`${block.number} Weights: ${fromWei(xyzWeight)}
-              ${fromWei(wethWeight)} ${fromWei(daiWeight)}`);
+            console.log(
+                `${block.number} Weights: ${fromWei(xyzWeight)}
+                ${fromWei(wethWeight)} ${fromWei(daiWeight)}`
+            );
 
             // Starting weights
             assert.equal(xyzWeight, toWei(startingXyzWeight));
