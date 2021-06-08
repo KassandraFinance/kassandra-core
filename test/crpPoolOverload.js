@@ -118,7 +118,7 @@ contract('crpPoolOverloadTests', async (accounts) => {
     it('crpPool should not create pool with negative time parameters', async () => {
         await truffleAssert.reverts(
             // 0 > -10, but still shouldn't work
-            crpPool.createPool(toWei('100'), 0, -10), 'ERR_INCONSISTENT_TOKEN_TIME_LOCK',
+            crpPool.createPool(toWei('100'), 0, web3.utils.toTwosComplement(-10)), 'ERR_INCONSISTENT_TOKEN_TIME_LOCK',
         );
     });
 
