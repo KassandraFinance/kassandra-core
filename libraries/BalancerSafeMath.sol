@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity ^0.8.0;
 
 
 // Imports
@@ -9,36 +9,9 @@ import "./BalancerConstants.sol";
 /**
  * @author Balancer Labs
  * @title SafeMath - wrap Solidity operators to prevent underflow/overflow
- * @dev badd and bsub are basically identical to OpenZeppelin SafeMath; mul/div have extra checks
+ * @dev mul/div have extra checks from OpenZeppelin SafeMath
  */
 library BalancerSafeMath {
-    /**
-     * @notice Safe addition
-     * @param a - first operand
-     * @param b - second operand
-     * @dev if we are adding b to a, the resulting sum must be greater than a
-     * @return - sum of operands; throws if overflow
-     */
-    function badd(uint a, uint b) internal pure returns (uint) {
-        uint c = a + b;
-        require(c >= a, "ERR_ADD_OVERFLOW");
-        return c;
-    }
-
-    /**
-     * @notice Safe unsigned subtraction
-     * @param a - first operand
-     * @param b - second operand
-     * @dev Do a signed subtraction, and check that it produces a positive value
-     *      (i.e., a - b is valid if b <= a)
-     * @return - a - b; throws if underflow
-     */
-    function bsub(uint a, uint b) internal pure returns (uint) {
-        (uint c, bool negativeResult) = bsubSign(a, b);
-        require(!negativeResult, "ERR_SUB_UNDERFLOW");
-        return c;
-    }
-
     /**
      * @notice Safe signed subtraction
      * @param a - first operand
@@ -68,10 +41,7 @@ library BalancerSafeMath {
             return 0;
         }
 
-        // Standard overflow check: a/a*b=b
         uint c0 = a * b;
-        require(c0 / a == b, "ERR_MUL_OVERFLOW");
-
         // Round to 0 if x*y < BONE/2?
         uint c1 = c0 + (BalancerConstants.BONE / 2);
         require(c1 >= c0, "ERR_MUL_OVERFLOW");

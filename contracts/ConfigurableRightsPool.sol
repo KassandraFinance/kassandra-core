@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
-
-// Needed to handle structures externally
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
 // Imports
 
@@ -39,7 +36,6 @@ import "../libraries/SafeApprove.sol";
  *   instead of "bPool.function()".
  */
 contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyGuard {
-    using BalancerSafeMath for uint;
     using SafeApprove for IERC20;
 
     // Type declarations
@@ -176,7 +172,6 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         PoolParams memory poolParams,
         RightsManager.Rights memory rightsStruct
     )
-        public
         PCToken(poolParams.poolTokenSymbol, poolParams.poolTokenName)
     {
         // We don't have a pool yet; check now or it will fail later (in order of likelihood to fail)
@@ -326,8 +321,10 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         lock
         virtual
     {
-        require (minimumWeightChangeBlockPeriodParam >= addTokenTimeLockInBlocksParam,
-                "ERR_INCONSISTENT_TOKEN_TIME_LOCK");
+        require(
+            minimumWeightChangeBlockPeriodParam >= addTokenTimeLockInBlocksParam,
+            "ERR_INCONSISTENT_TOKEN_TIME_LOCK"
+        );
 
         minimumWeightChangeBlockPeriod = minimumWeightChangeBlockPeriodParam;
         addTokenTimeLockInBlocks = addTokenTimeLockInBlocksParam;
@@ -731,7 +728,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         );
 
         tokenAmountOut = amountOut;
-        uint pAiAfterExitFee = BalancerSafeMath.bsub(poolAmountIn, exitFee);
+        uint pAiAfterExitFee = poolAmountIn - exitFee;
 
         emit LogExit(msg.sender, tokenOut, tokenAmountOut);
 
@@ -775,7 +772,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         );
 
         poolAmountIn = amountIn;
-        uint pAiAfterExitFee = BalancerSafeMath.bsub(poolAmountIn, exitFee);
+        uint pAiAfterExitFee = poolAmountIn - exitFee;
 
         emit LogExit(msg.sender, tokenOut, tokenAmountOut);
 
@@ -877,15 +874,6 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
     */
     function getRightsManagerVersion() external pure returns (address) {
         return address(RightsManager);
-    }
-
-    /**
-     * @notice Getter for the BalancerSafeMath contract
-     * @dev Convenience function to get the address of the BalancerSafeMath library (so clients can check version)
-     * @return address of the BalancerSafeMath library
-    */
-    function getBalancerSafeMathVersion() external pure returns (address) {
-        return address(BalancerSafeMath);
     }
 
     /**
@@ -1004,7 +992,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
 
         bool xfer = IERC20(erc20).transferFrom(from, address(this), amount);
         require(xfer, "ERR_ERC20_FALSE");
-        bPool.rebind(erc20, BalancerSafeMath.badd(tokenBalance, amount), tokenWeight);
+        bPool.rebind(erc20, tokenBalance + amount, tokenWeight);
     }
 
     // Rebind BPool and push tokens to address
@@ -1013,7 +1001,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         // Gets current Balance of token i, Bi, and weight of token i, Wi, from BPool.
         uint tokenBalance = bPool.getBalance(erc20);
         uint tokenWeight = bPool.getDenormalizedWeight(erc20);
-        bPool.rebind(erc20, BalancerSafeMath.bsub(tokenBalance, amount), tokenWeight);
+        bPool.rebind(erc20, tokenBalance - amount, tokenWeight);
 
         bool xfer = IERC20(erc20).transfer(to, amount);
         require(xfer, "ERR_ERC20_FALSE");

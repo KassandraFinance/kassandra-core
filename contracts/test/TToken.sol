@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 // Core contract; can't be changed. So disable solhint (reminder for v2)
 
@@ -39,13 +39,13 @@ contract TToken {
     }
 
     constructor(
-        string memory name,
-        string memory symbol,
-        uint8 decimals
-    ) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_
+    ) {
+        _name = name_;
+        _symbol = symbol_;
+        _decimals = decimals_;
         _owner = msg.sender;
     }
 
@@ -121,7 +121,7 @@ contract TToken {
     function transferFrom(address src, address dst, uint amt) external returns (bool) {
         require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
         _move(src, dst, amt);
-        if (msg.sender != src && _allowance[src][msg.sender] != uint256(-1)) {
+        if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
             _allowance[src][msg.sender] = sub(_allowance[src][msg.sender], amt);
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }

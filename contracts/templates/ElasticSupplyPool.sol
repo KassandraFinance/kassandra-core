@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
-
-// Needed to handle structures externally
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
 // Imports
 
@@ -54,28 +51,6 @@ import { RightsManager } from "../../libraries/RightsManager.sol";
 contract ElasticSupplyPool is ConfigurableRightsPool {
     using BalancerSafeMath for uint;
 
-    // Event declarations
-
-    // Have to redeclare in the subclass, to be emitted from this contract
-
-    event LogCall(
-        bytes4  indexed sig,
-        address indexed caller,
-        bytes data
-    ) anonymous;
-
-    event LogJoin(
-        address indexed caller,
-        address indexed tokenIn,
-        uint tokenAmountIn
-    );
-
-    event LogExit(
-        address indexed caller,
-        address indexed tokenOut,
-        uint tokenAmountOut
-    );
-
     // Modifiers
 
     // Function declarations
@@ -91,8 +66,6 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         ConfigurableRightsPool.PoolParams memory poolParams,
         RightsManager.Rights memory rightsParams
     )
-        // solhint-disable-next-line visibility-modifier-order
-        public
         ConfigurableRightsPool(factoryAddress, poolParams, rightsParams)
     {
         require(rightsParams.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -113,6 +86,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         uint // addTokenTimeLockInBlocks
     )
         external
+        pure
         override
     {
         revert("ERR_UNSUPPORTED_OPERATION");
@@ -128,9 +102,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         uint // newWeight
     )
         external
-        logs
-        onlyOwner
-        needsBPool
+        pure
         override
     {
         revert("ERR_UNSUPPORTED_OPERATION");
@@ -152,9 +124,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         uint // endBlock
     )
         external
-        logs
-        onlyOwner
-        needsBPool
+        pure
         override
     {
         revert("ERR_UNSUPPORTED_OPERATION");
@@ -166,8 +136,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
     */
     function pokeWeights()
         external
-        logs
-        needsBPool
+        pure
         override
     {
         revert("ERR_UNSUPPORTED_OPERATION");

@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
-
-// Needed to pass in structs
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
 // Imports
 
@@ -77,7 +74,7 @@ library SmartPoolManager {
         if (newWeight < currentWeight) {
             // This means the controller will withdraw tokens to keep price
             // So they need to redeem PCTokens
-            deltaWeight = BalancerSafeMath.bsub(currentWeight, newWeight);
+            deltaWeight = currentWeight - newWeight;
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
             poolShares = BalancerSafeMath.bmul(
@@ -92,7 +89,7 @@ library SmartPoolManager {
             );
 
             // New balance cannot be lower than MIN_BALANCE
-            newBalance = BalancerSafeMath.bsub(currentBalance, deltaBalance);
+            newBalance = currentBalance - deltaBalance;
 
             require(newBalance >= BalancerConstants.MIN_BALANCE, "ERR_MIN_BALANCE");
 
@@ -109,9 +106,9 @@ library SmartPoolManager {
         else {
             // This means the controller will deposit tokens to keep the price.
             // They will be minted and given PCTokens
-            deltaWeight = BalancerSafeMath.bsub(newWeight, currentWeight);
+            deltaWeight = newWeight - currentWeight;
 
-            require(BalancerSafeMath.badd(totalWeight, deltaWeight) <= BalancerConstants.MAX_TOTAL_WEIGHT,
+            require((totalWeight + deltaWeight) <= BalancerConstants.MAX_TOTAL_WEIGHT,
                     "ERR_MAX_TOTAL_WEIGHT");
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
@@ -130,7 +127,7 @@ library SmartPoolManager {
             require(xfer, "ERR_ERC20_FALSE");
 
             // Now with the tokens this contract can bind them to the pool it controls
-            bPool.rebind(token, BalancerSafeMath.badd(currentBalance, deltaBalance), newWeight);
+            bPool.rebind(token, currentBalance + deltaBalance, newWeight);
 
             self.mintPoolShareFromLib(poolShares);
             self.pushPoolShareFromLib(msg.sender, poolShares);
@@ -168,8 +165,8 @@ library SmartPoolManager {
             currentBlock = block.number;
         }
 
-        uint blockPeriod = BalancerSafeMath.bsub(gradualUpdate.endBlock, gradualUpdate.startBlock);
-        uint blocksElapsed = BalancerSafeMath.bsub(currentBlock, gradualUpdate.startBlock);
+        uint blockPeriod = gradualUpdate.endBlock - gradualUpdate.startBlock;
+        uint blocksElapsed = currentBlock - gradualUpdate.startBlock;
         uint weightDelta;
         uint deltaPerBlock;
         uint newWeight;
@@ -187,33 +184,25 @@ library SmartPoolManager {
                     // We are decreasing the weight
 
                     // First get the total weight delta
-                    weightDelta = BalancerSafeMath.bsub(gradualUpdate.startWeights[i],
-                                                        gradualUpdate.endWeights[i]);
+                    weightDelta = gradualUpdate.startWeights[i] - gradualUpdate.endWeights[i];
                     // And the amount it should change per block = total change/number of blocks in the period
                     deltaPerBlock = BalancerSafeMath.bdiv(weightDelta, blockPeriod);
                     //deltaPerBlock = bdivx(weightDelta, blockPeriod);
 
                     // newWeight = startWeight - (blocksElapsed * deltaPerBlock)
-                    newWeight = BalancerSafeMath.bsub(
-                        gradualUpdate.startWeights[i],
-                        BalancerSafeMath.bmul(blocksElapsed, deltaPerBlock)
-                    );
+                    newWeight = gradualUpdate.startWeights[i] - BalancerSafeMath.bmul(blocksElapsed, deltaPerBlock);
                 }
                 else {
                     // We are increasing the weight
 
                     // First get the total weight delta
-                    weightDelta = BalancerSafeMath.bsub(gradualUpdate.endWeights[i],
-                                                        gradualUpdate.startWeights[i]);
+                    weightDelta = gradualUpdate.endWeights[i] - gradualUpdate.startWeights[i];
                     // And the amount it should change per block = total change/number of blocks in the period
                     deltaPerBlock = BalancerSafeMath.bdiv(weightDelta, blockPeriod);
                     //deltaPerBlock = bdivx(weightDelta, blockPeriod);
 
                     // newWeight = startWeight + (blocksElapsed * deltaPerBlock)
-                    newWeight = BalancerSafeMath.badd(
-                        gradualUpdate.startWeights[i],
-                        BalancerSafeMath.bmul(blocksElapsed, deltaPerBlock)
-                    );
+                    newWeight = gradualUpdate.startWeights[i] + BalancerSafeMath.bmul(blocksElapsed, deltaPerBlock);
                 }
 
                 uint bal = bPool.getBalance(tokens[i]);
@@ -253,8 +242,7 @@ library SmartPoolManager {
         require(denormalizedWeight <= BalancerConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
         require(denormalizedWeight >= BalancerConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
         require(
-            BalancerSafeMath.badd(bPool.getTotalDenormalizedWeight(), denormalizedWeight)
-            <= BalancerConstants.MAX_TOTAL_WEIGHT,
+            (bPool.getTotalDenormalizedWeight() + denormalizedWeight) <= BalancerConstants.MAX_TOTAL_WEIGHT,
             "ERR_MAX_TOTAL_WEIGHT"
         );
         require(balance >= BalancerConstants.MIN_BALANCE, "ERR_BALANCE_BELOW_MIN");
@@ -283,7 +271,7 @@ library SmartPoolManager {
     {
         require(newToken.isCommitted, "ERR_NO_TOKEN_COMMIT");
         require(
-            BalancerSafeMath.bsub(block.number, newToken.commitBlock) >= addTokenTimeLockInBlocks,
+            (block.number - newToken.commitBlock) >= addTokenTimeLockInBlocks,
             "ERR_TIMELOCK_STILL_COUNTING"
         );
 
@@ -407,8 +395,10 @@ library SmartPoolManager {
 
         // Enforce a minimum time over which to make the changes
         // The also prevents endBlock <= startBlock
-        require(BalancerSafeMath.bsub(endBlock, gradualUpdate.startBlock) >= minimumWeightChangeBlockPeriod,
-                "ERR_WEIGHT_CHANGE_TIME_BELOW_MIN");
+        require(
+            (endBlock - gradualUpdate.startBlock) >= minimumWeightChangeBlockPeriod,
+            "ERR_WEIGHT_CHANGE_TIME_BELOW_MIN"
+        );
 
         address[] memory tokens = bPool.getCurrentTokens();
 
@@ -426,7 +416,7 @@ library SmartPoolManager {
             require(newWeights[i] <= BalancerConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
             require(newWeights[i] >= BalancerConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
 
-            weightsSum = BalancerSafeMath.badd(weightsSum, newWeights[i]);
+            weightsSum += newWeights[i];
             gradualUpdate.startWeights[i] = bPool.getDenormalizedWeight(tokens[i]);
         }
         require(weightsSum <= BalancerConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
@@ -459,10 +449,7 @@ library SmartPoolManager {
 
         uint poolTotal = self.totalSupply();
         // Subtract  1 to ensure any rounding errors favor the pool
-        uint ratio = BalancerSafeMath.bdiv(
-            poolAmountOut,
-            BalancerSafeMath.bsub(poolTotal, 1)
-        );
+        uint ratio = BalancerSafeMath.bdiv(poolAmountOut, poolTotal - 1);
 
         require(ratio != 0, "ERR_MATH_APPROX");
 
@@ -476,7 +463,7 @@ library SmartPoolManager {
             address t = tokens[i];
             uint bal = bPool.getBalance(t);
             // Add 1 to ensure any rounding errors favor the pool
-            uint tokenAmountIn = BalancerSafeMath.bmul(ratio, BalancerSafeMath.badd(bal, 1));
+            uint tokenAmountIn = BalancerSafeMath.bmul(ratio, bal + 1);
 
             require(tokenAmountIn != 0, "ERR_MATH_APPROX");
             require(tokenAmountIn <= maxAmountsIn[i], "ERR_LIMIT_IN");
@@ -513,9 +500,9 @@ library SmartPoolManager {
 
         // Calculate exit fee and the final amount in
         exitFee = BalancerSafeMath.bmul(poolAmountIn, BalancerConstants.EXIT_FEE);
-        pAiAfterExitFee = BalancerSafeMath.bsub(poolAmountIn, exitFee);
+        pAiAfterExitFee = poolAmountIn - exitFee;
 
-        uint ratio = BalancerSafeMath.bdiv(pAiAfterExitFee, BalancerSafeMath.badd(poolTotal, 1));
+        uint ratio = BalancerSafeMath.bdiv(pAiAfterExitFee, poolTotal + 1);
 
         require(ratio != 0, "ERR_MATH_APPROX");
 
@@ -527,8 +514,7 @@ library SmartPoolManager {
             address t = tokens[i];
             uint bal = bPool.getBalance(t);
             // Subtract 1 to ensure any rounding errors favor the pool
-            uint tokenAmountOut = BalancerSafeMath.bmul(ratio,
-                                                        BalancerSafeMath.bsub(bal, 1));
+            uint tokenAmountOut = BalancerSafeMath.bmul(ratio, bal - 1);
 
             require(tokenAmountOut != 0, "ERR_MATH_APPROX");
             require(tokenAmountOut >= minAmountsOut[i], "ERR_LIMIT_OUT");

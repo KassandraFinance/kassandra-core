@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "./BNum.sol";
 import "../PCToken.sol";
@@ -27,32 +27,29 @@ interface IERC20 {
 
 /* solhint-disable func-order */
 
-contract BTokenBase is BNum {
+abstract contract BTokenBase is BNum, IERC20 {
 
     mapping(address => uint)                   internal _balance;
     mapping(address => mapping(address=>uint)) internal _allowance;
     uint internal _totalSupply;
 
-    event Approval(address indexed src, address indexed dst, uint amt);
-    event Transfer(address indexed src, address indexed dst, uint amt);
-
     function _mint(uint amt) internal {
-        _balance[address(this)] = badd(_balance[address(this)], amt);
-        _totalSupply = badd(_totalSupply, amt);
+        _balance[address(this)] += amt;
+        _totalSupply += amt;
         emit Transfer(address(0), address(this), amt);
     }
 
     function _burn(uint amt) internal {
         require(_balance[address(this)] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[address(this)] = bsub(_balance[address(this)], amt);
-        _totalSupply = bsub(_totalSupply, amt);
+        _balance[address(this)] -= amt;
+        _totalSupply -= amt;
         emit Transfer(address(this), address(0), amt);
     }
 
     function _move(address src, address dst, uint amt) internal {
         require(_balance[src] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[src] = bsub(_balance[src], amt);
-        _balance[dst] = badd(_balance[dst], amt);
+        _balance[src] -= amt;
+        _balance[dst] += amt;
         emit Transfer(src, dst, amt);
     }
 
@@ -65,10 +62,10 @@ contract BTokenBase is BNum {
     }
 }
 
-contract BToken is BTokenBase, IERC20 {
+contract BToken is BTokenBase {
 
-    string  private _name     = "Balancer Pool Token";
-    string  private _symbol   = "BPT";
+    string  private _name     = "Kassandra Pool Token";
+    string  private _symbol   = "KPT";
     uint8   private _decimals = 18;
 
     function name() public view returns (string memory) {
@@ -102,7 +99,7 @@ contract BToken is BTokenBase, IERC20 {
     }
 
     function increaseApproval(address dst, uint amt) external returns (bool) {
-        _allowance[msg.sender][dst] = badd(_allowance[msg.sender][dst], amt);
+        _allowance[msg.sender][dst] += amt;
         emit Approval(msg.sender, dst, _allowance[msg.sender][dst]);
         return true;
     }
@@ -112,7 +109,7 @@ contract BToken is BTokenBase, IERC20 {
         if (amt > oldValue) {
             _allowance[msg.sender][dst] = 0;
         } else {
-            _allowance[msg.sender][dst] = bsub(oldValue, amt);
+            _allowance[msg.sender][dst] = oldValue - amt;
         }
         emit Approval(msg.sender, dst, _allowance[msg.sender][dst]);
         return true;
@@ -126,8 +123,8 @@ contract BToken is BTokenBase, IERC20 {
     function transferFrom(address src, address dst, uint amt) external override returns (bool) {
         require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
         _move(src, dst, amt);
-        if (msg.sender != src && _allowance[src][msg.sender] != uint256(-1)) {
-            _allowance[src][msg.sender] = bsub(_allowance[src][msg.sender], amt);
+        if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
+            _allowance[src][msg.sender] -= amt;
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
         return true;

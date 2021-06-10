@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "./BNum.sol";
 
-contract BMath is BBronze, BConst, BNum {
+abstract contract BMath is BBronze, BConst, BNum {
     /**********************************************************************************************
     // calcSpotPrice                                                                             //
     // sP = spotPrice                                                                            //
@@ -26,7 +26,7 @@ contract BMath is BBronze, BConst, BNum {
         uint numer = bdiv(tokenBalanceIn, tokenWeightIn);
         uint denom = bdiv(tokenBalanceOut, tokenWeightOut);
         uint ratio = bdiv(numer, denom);
-        uint scale = bdiv(BONE, bsub(BONE, swapFee));
+        uint scale = bdiv(BONE, (BONE - swapFee));
         return  (spotPrice = bmul(ratio, scale));
     }
 
@@ -52,11 +52,11 @@ contract BMath is BBronze, BConst, BNum {
         returns (uint tokenAmountOut)
     {
         uint weightRatio = bdiv(tokenWeightIn, tokenWeightOut);
-        uint adjustedIn = bsub(BONE, swapFee);
+        uint adjustedIn = BONE - swapFee;
         adjustedIn = bmul(tokenAmountIn, adjustedIn);
-        uint y = bdiv(tokenBalanceIn, badd(tokenBalanceIn, adjustedIn));
+        uint y = bdiv(tokenBalanceIn, (tokenBalanceIn + adjustedIn));
         uint foo = bpow(y, weightRatio);
-        uint bar = bsub(BONE, foo);
+        uint bar = BONE - foo;
         tokenAmountOut = bmul(tokenBalanceOut, bar);
         return tokenAmountOut;
     }
@@ -83,11 +83,11 @@ contract BMath is BBronze, BConst, BNum {
         returns (uint tokenAmountIn)
     {
         uint weightRatio = bdiv(tokenWeightOut, tokenWeightIn);
-        uint diff = bsub(tokenBalanceOut, tokenAmountOut);
+        uint diff = tokenBalanceOut - tokenAmountOut;
         uint y = bdiv(tokenBalanceOut, diff);
         uint foo = bpow(y, weightRatio);
-        foo = bsub(foo, BONE);
-        tokenAmountIn = bsub(BONE, swapFee);
+        foo = foo - BONE;
+        tokenAmountIn = BONE - swapFee;
         tokenAmountIn = bdiv(bmul(tokenBalanceIn, foo), tokenAmountIn);
         return tokenAmountIn;
     }
@@ -114,20 +114,20 @@ contract BMath is BBronze, BConst, BNum {
         returns (uint poolAmountOut)
     {
         // Charge the trading fee for the proportion of tokenAi
-        ///  which is implicitly traded to the other pool tokens.
+        //   which is implicitly traded to the other pool tokens.
         // That proportion is (1- weightTokenIn)
         // tokenAiAfterFee = tAi * (1 - (1-weightTi) * poolFee);
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
-        uint zaz = bmul(bsub(BONE, normalizedWeight), swapFee);
-        uint tokenAmountInAfterFee = bmul(tokenAmountIn, bsub(BONE, zaz));
+        uint zaz = bmul((BONE - normalizedWeight), swapFee);
+        uint tokenAmountInAfterFee = bmul(tokenAmountIn, (BONE - zaz));
 
-        uint newTokenBalanceIn = badd(tokenBalanceIn, tokenAmountInAfterFee);
+        uint newTokenBalanceIn = tokenBalanceIn + tokenAmountInAfterFee;
         uint tokenInRatio = bdiv(newTokenBalanceIn, tokenBalanceIn);
 
         // uint newPoolSupply = (ratioTi ^ weightTi) * poolSupply;
         uint poolRatio = bpow(tokenInRatio, normalizedWeight);
         uint newPoolSupply = bmul(poolRatio, poolSupply);
-        poolAmountOut = bsub(newPoolSupply, poolSupply);
+        poolAmountOut = newPoolSupply - poolSupply;
         return poolAmountOut;
     }
 
@@ -153,19 +153,19 @@ contract BMath is BBronze, BConst, BNum {
         returns (uint tokenAmountIn)
     {
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
-        uint newPoolSupply = badd(poolSupply, poolAmountOut);
+        uint newPoolSupply = poolSupply + poolAmountOut;
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
 
         //uint newBalTi = poolRatio^(1/weightTi) * balTi;
         uint boo = bdiv(BONE, normalizedWeight);
         uint tokenInRatio = bpow(poolRatio, boo);
         uint newTokenBalanceIn = bmul(tokenInRatio, tokenBalanceIn);
-        uint tokenAmountInAfterFee = bsub(newTokenBalanceIn, tokenBalanceIn);
+        uint tokenAmountInAfterFee = newTokenBalanceIn - tokenBalanceIn;
         // Do reverse order of fees charged in joinswap_ExternAmountIn, this way
         //     ``` pAo == joinswap_ExternAmountIn(Ti, joinswap_PoolAmountOut(pAo, Ti)) ```
         //uint tAi = tAiAfterFee / (1 - (1-weightTi) * swapFee) ;
-        uint zar = bmul(bsub(BONE, normalizedWeight), swapFee);
-        tokenAmountIn = bdiv(tokenAmountInAfterFee, bsub(BONE, zar));
+        uint zar = bmul((BONE - normalizedWeight), swapFee);
+        tokenAmountIn = bdiv(tokenAmountInAfterFee, (BONE - zar));
         return tokenAmountIn;
     }
 
@@ -194,20 +194,20 @@ contract BMath is BBronze, BConst, BNum {
         uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
         // charge exit fee on the pool token side
         // pAiAfterExitFee = pAi*(1-exitFee)
-        uint poolAmountInAfterExitFee = bmul(poolAmountIn, bsub(BONE, EXIT_FEE));
-        uint newPoolSupply = bsub(poolSupply, poolAmountInAfterExitFee);
+        uint poolAmountInAfterExitFee = bmul(poolAmountIn, (BONE - EXIT_FEE));
+        uint newPoolSupply = poolSupply - poolAmountInAfterExitFee;
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
 
         // newBalTo = poolRatio^(1/weightTo) * balTo;
         uint tokenOutRatio = bpow(poolRatio, bdiv(BONE, normalizedWeight));
         uint newTokenBalanceOut = bmul(tokenOutRatio, tokenBalanceOut);
 
-        uint tokenAmountOutBeforeSwapFee = bsub(tokenBalanceOut, newTokenBalanceOut);
+        uint tokenAmountOutBeforeSwapFee = tokenBalanceOut - newTokenBalanceOut;
 
         // charge swap fee on the output token side
         //uint tAo = tAoBeforeSwapFee * (1 - (1-weightTo) * swapFee)
-        uint zaz = bmul(bsub(BONE, normalizedWeight), swapFee);
-        tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, bsub(BONE, zaz));
+        uint zaz = bmul((BONE - normalizedWeight), swapFee);
+        tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, (BONE - zaz));
         return tokenAmountOut;
     }
 
@@ -237,21 +237,21 @@ contract BMath is BBronze, BConst, BNum {
         // charge swap fee on the output token side
         uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
         //uint tAoBeforeSwapFee = tAo / (1 - (1-weightTo) * swapFee) ;
-        uint zoo = bsub(BONE, normalizedWeight);
+        uint zoo = BONE - normalizedWeight;
         uint zar = bmul(zoo, swapFee);
-        uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, bsub(BONE, zar));
+        uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, (BONE - zar));
 
-        uint newTokenBalanceOut = bsub(tokenBalanceOut, tokenAmountOutBeforeSwapFee);
+        uint newTokenBalanceOut = tokenBalanceOut - tokenAmountOutBeforeSwapFee;
         uint tokenOutRatio = bdiv(newTokenBalanceOut, tokenBalanceOut);
 
         //uint newPoolSupply = (ratioTo ^ weightTo) * poolSupply;
         uint poolRatio = bpow(tokenOutRatio, normalizedWeight);
         uint newPoolSupply = bmul(poolRatio, poolSupply);
-        uint poolAmountInAfterExitFee = bsub(poolSupply, newPoolSupply);
+        uint poolAmountInAfterExitFee = poolSupply - newPoolSupply;
 
         // charge exit fee on the pool token side
         // pAi = pAiAfterExitFee/(1-exitFee)
-        poolAmountIn = bdiv(poolAmountInAfterExitFee, bsub(BONE, EXIT_FEE));
+        poolAmountIn = bdiv(poolAmountInAfterExitFee, (BONE - EXIT_FEE));
         return poolAmountIn;
     }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.6.6;
+pragma solidity ^0.8.0;
 
 import "./BConst.sol";
 
@@ -7,7 +7,7 @@ import "./BConst.sol";
 
 /* solhint-disable private-vars-leading-underscore */
 
-contract BNum is BConst {
+abstract contract BNum is BConst {
 
     function btoi(uint a)
         internal pure
@@ -21,24 +21,6 @@ contract BNum is BConst {
         returns (uint)
     {
         return btoi(a) * BONE;
-    }
-
-    function badd(uint a, uint b)
-        internal pure
-        returns (uint)
-    {
-        uint c = a + b;
-        require(c >= a, "ERR_ADD_OVERFLOW");
-        return c;
-    }
-
-    function bsub(uint a, uint b)
-        internal pure
-        returns (uint)
-    {
-        (uint c, bool flag) = bsubSign(a, b);
-        require(!flag, "ERR_SUB_UNDERFLOW");
-        return c;
     }
 
     function bsubSign(uint a, uint b)
@@ -57,7 +39,6 @@ contract BNum is BConst {
         returns (uint)
     {
         uint c0 = a * b;
-        require(a == 0 || c0 / a == b, "ERR_MUL_OVERFLOW");
         uint c1 = c0 + (BONE / 2);
         require(c1 >= c0, "ERR_MUL_OVERFLOW");
         uint c2 = c1 / BONE;
@@ -105,7 +86,7 @@ contract BNum is BConst {
         require(base <= MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
 
         uint whole  = bfloor(exp);
-        uint remain = bsub(exp, whole);
+        uint remain = exp - whole;
 
         uint wholePow = bpowi(base, btoi(whole));
 
@@ -135,7 +116,7 @@ contract BNum is BConst {
         // continue until term is less than precision
         for (uint i = 1; term >= precision; i++) {
             uint bigK = i * BONE;
-            (uint c, bool cneg) = bsubSign(a, bsub(bigK, BONE));
+            (uint c, bool cneg) = bsubSign(a, (bigK - BONE));
             term = bmul(term, bmul(c, x));
             term = bdiv(term, bigK);
             if (term == 0) break;
@@ -143,9 +124,9 @@ contract BNum is BConst {
             if (xneg) negative = !negative;
             if (cneg) negative = !negative;
             if (negative) {
-                sum = bsub(sum, term);
+                sum -= term;
             } else {
-                sum = badd(sum, term);
+                sum += term;
             }
         }
 

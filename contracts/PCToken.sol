@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity ^0.8.0;
 
 // Imports
 
-import "../libraries/BalancerSafeMath.sol";
 import "../interfaces/IERC20.sol";
 
 // Contracts
@@ -14,9 +13,7 @@ import "../interfaces/IERC20.sol";
  * @author Balancer Labs
  * @title Highly opinionated token implementation
 */
-contract PCToken is IERC20 {
-    using BalancerSafeMath for uint;
-
+abstract contract PCToken is IERC20 {
     // State variables
     string public constant NAME = "Balancer Smart Pool";
     uint8 public constant DECIMALS = 18;
@@ -32,19 +29,13 @@ contract PCToken is IERC20 {
     string private _symbol;
     string private _name;
 
-    // Event declarations
-
-    // See definitions above; must be redeclared to be emitted from this contract
-    event Approval(address indexed owner, address indexed spender, uint value);
-    event Transfer(address indexed from, address indexed to, uint value);
-
     // Function declarations
 
     /**
      * @notice Base token constructor
      * @param tokenSymbol - the token symbol
      */
-    constructor (string memory tokenSymbol, string memory tokenName) public {
+    constructor (string memory tokenSymbol, string memory tokenName) {
         _symbol = tokenSymbol;
         _name = tokenName;
     }
@@ -104,7 +95,7 @@ contract PCToken is IERC20 {
      * @return bool - result of the approval (will always be true if it doesn't revert)
      */
     function increaseApproval(address spender, uint amount) external returns (bool) {
-        _allowance[msg.sender][spender] = BalancerSafeMath.badd(_allowance[msg.sender][spender], amount);
+        _allowance[msg.sender][spender] += amount;
 
         emit Approval(msg.sender, spender, _allowance[msg.sender][spender]);
 
@@ -125,7 +116,7 @@ contract PCToken is IERC20 {
         if (amount >= oldValue) {
             _allowance[msg.sender][spender] = 0;
         } else {
-            _allowance[msg.sender][spender] = BalancerSafeMath.bsub(oldValue, amount);
+            _allowance[msg.sender][spender] = oldValue - amount;
         }
 
         emit Approval(msg.sender, spender, _allowance[msg.sender][spender]);
@@ -166,8 +157,8 @@ contract PCToken is IERC20 {
         uint oldAllowance = _allowance[sender][msg.sender];
 
         // If the sender is not the caller, adjust the allowance by the amount transferred
-        if (msg.sender != sender && oldAllowance != uint(-1)) {
-            _allowance[sender][msg.sender] = BalancerSafeMath.bsub(oldAllowance, amount);
+        if (msg.sender != sender && oldAllowance != type(uint).max) {
+            _allowance[sender][msg.sender] = oldAllowance - amount;
 
             emit Approval(msg.sender, recipient, _allowance[sender][msg.sender]);
         }
@@ -229,8 +220,8 @@ contract PCToken is IERC20 {
     // Mint an amount of new tokens, and add them to the balance (and total supply)
     // Emit a transfer amount from the null address to this contract
     function _mint(uint amount) internal virtual {
-        _balance[address(this)] = BalancerSafeMath.badd(_balance[address(this)], amount);
-        varTotalSupply = BalancerSafeMath.badd(varTotalSupply, amount);
+        _balance[address(this)] += amount;
+        varTotalSupply += amount;
 
         emit Transfer(address(0), address(this), amount);
     }
@@ -239,11 +230,11 @@ contract PCToken is IERC20 {
     // Emit a transfer amount from this contract to the null address
     function _burn(uint amount) internal virtual {
         // Can't burn more than we have
-        // Remove require for gas optimization - bsub will revert on underflow
+        // Remove require for gas optimization - will revert on underflow
         // require(_balance[address(this)] >= amount, "ERR_INSUFFICIENT_BAL");
 
-        _balance[address(this)] = BalancerSafeMath.bsub(_balance[address(this)], amount);
-        varTotalSupply = BalancerSafeMath.bsub(varTotalSupply, amount);
+        _balance[address(this)] -= amount;
+        varTotalSupply -= amount;
 
         emit Transfer(address(this), address(0), amount);
     }
@@ -252,11 +243,11 @@ contract PCToken is IERC20 {
     // Adjust balances, and emit a Transfer event
     function _move(address sender, address recipient, uint amount) internal virtual {
         // Can't send more than sender has
-        // Remove require for gas optimization - bsub will revert on underflow
+        // Remove require for gas optimization - will revert on underflow
         // require(_balance[sender] >= amount, "ERR_INSUFFICIENT_BAL");
 
-        _balance[sender] = BalancerSafeMath.bsub(_balance[sender], amount);
-        _balance[recipient] = BalancerSafeMath.badd(_balance[recipient], amount);
+        _balance[sender] -= amount;
+        _balance[recipient] += amount;
 
         emit Transfer(sender, recipient, amount);
     }

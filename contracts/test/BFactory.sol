@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.6.6;
-
-// Builds new BPools, logging their addresses and providing `isBPool(address) -> (bool)`
+pragma solidity ^0.8.0;
 
 import "./BPool.sol";
 
@@ -24,7 +22,8 @@ contract BFactory is BBronze {
     mapping(address=>bool) private _isBPool;
 
     function isBPool(address b)
-        external view returns (bool)
+        external view
+        returns (bool)
     {
         return _isBPool[b];
     }
@@ -42,7 +41,7 @@ contract BFactory is BBronze {
 
     address private _blabs;
 
-    constructor() public {
+    constructor() {
         _blabs = msg.sender;
     }
 

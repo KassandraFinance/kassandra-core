@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity ^0.8.0;
 
 // Imports
 
@@ -18,14 +18,6 @@ contract BalancerSafeMathMock {
 
     function bdiv(uint a, uint b) external pure returns (uint) {
         return BalancerSafeMath.bdiv(a, b);
-    }
-
-    function bsub(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.bsub(a, b);
-    }
-
-    function badd(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.badd(a, b);
     }
 
     function bmod(uint a, uint b) external pure returns (uint) {

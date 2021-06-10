@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity ^0.8.0;
 
 /**
  * @author Balancer Labs (and OpenZeppelin)
@@ -18,7 +18,7 @@ pragma solidity 0.6.12;
  * Also adds a _lockview_ modifier, which doesn't create a lock, but fails
  *   if another _lock_ call is in progress
  */
-contract BalancerReentrancyGuard {
+abstract contract BalancerReentrancyGuard {
     // Booleans are more expensive than uint256 or any type that takes up a full
     // word because each write operation emits an extra SLOAD to first read the
     // slot's contents, replace the bits taken up by the boolean, and then write
@@ -35,7 +35,7 @@ contract BalancerReentrancyGuard {
 
     uint private _status;
 
-    constructor () internal {
+    constructor () {
         _status = _NOT_ENTERED;
     }
 

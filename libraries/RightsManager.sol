@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
-
-// Needed to handle structures externally
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.0;
 
 /**
  * @author Balancer Labs
@@ -116,6 +113,7 @@ library RightsManager {
         else if (Permissions.CHANGE_CAP == permission) {
             return self.canChangeCap;
         }
+        return false;
     }
 
     /* solhint-enable code-complexity */
