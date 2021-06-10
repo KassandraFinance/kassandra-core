@@ -313,13 +313,6 @@ contract('crpPoolTests', async (accounts) => {
         console.log(rightsManager);
     });
 
-    it('Should get the BalancerSafeMath address', async () => {
-        const mathLibrary = await crpPool.getBalancerSafeMathVersion();
-        assert.isTrue(mathLibrary !== 0);
-
-        console.log(mathLibrary);
-    });
-
     it('Should get the SmartPoolManager address', async () => {
         const smartPoolManager = await crpPool.getSmartPoolManagerVersion();
         assert.isTrue(smartPoolManager !== 0);
@@ -450,10 +443,8 @@ contract('crpPoolTests', async (accounts) => {
     });
 
     it('should not allow exitpool without enough tokens', async () => {
-        // Testing the new error message (would have been ERR_INSUFFICIENT_BAL)
         await truffleAssert.reverts(
             crpPool.exitPool(toWei('50'), [toWei('0'), toWei('0'), toWei('0')]),
-            'ERR_SUB_UNDERFLOW',
         );
     });
 
@@ -501,7 +492,6 @@ contract('crpPoolTests', async (accounts) => {
             // Test error message (fall through to math; catch underflow)
             await truffleAssert.reverts(
                 crpPool.transfer(admin, toWei('10000'), { from: user2 }),
-                'ERR_SUB_UNDERFLOW',
             );
         });
     });
