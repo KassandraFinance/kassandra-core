@@ -24,18 +24,6 @@ contract('Test Math', async () => {
     });
 
     describe('Basic Math', () => {
-        it('badd throws on overflow', async () => {
-            await truffleAssert.reverts(bMath.badd(1, MAX), 'ERR_ADD_OVERFLOW');
-        });
-
-        it('bsub throws on underflow', async () => {
-            await truffleAssert.reverts(bMath.bsub(1, 2), 'ERR_SUB_UNDERFLOW');
-        });
-
-        it('bmul throws on overflow', async () => {
-            await truffleAssert.reverts(bMath.bmul(2, MAX), 'ERR_MUL_OVERFLOW');
-        });
-
         it('bdiv throws on div by 0', async () => {
             await truffleAssert.reverts(bMath.bdiv(1, 0), 'ERR_DIV_ZERO');
         });
@@ -103,38 +91,6 @@ contract('Test Math', async () => {
             await expectRevert(fn(rhs, lhs), reason);
         }
 
-        describe('add', async () => {
-            it('adds correctly', async () => {
-                const a = new BN('5678');
-                const b = new BN('1234');
-
-                await testCommutative(bMath.badd, a, b, a.add(b));
-            });
-
-            it('reverts on addition overflow', async () => {
-                const a = MAX_UINT256;
-                const b = new BN('1');
-
-                await testFailsCommutative(bMath.badd, a, b, 'ERR_ADD_OVERFLOW');
-            });
-        });
-
-        describe('sub', async () => {
-            it('subtracts correctly', async () => {
-                const a = new BN('5678');
-                const b = new BN('1234');
-
-                expect(await bMath.bsub(a, b)).to.be.bignumber.equal(a.sub(b));
-            });
-
-            it('reverts if subtraction result would be negative', async () => {
-                const a = new BN('1234');
-                const b = new BN('5678');
-
-                await expectRevert(bMath.bsub(a, b), 'ERR_SUB_UNDERFLOW');
-            });
-        });
-
         describe('mul', async () => {
             // This should return 0, because everything is normalized to 1 = 10**18
             // So 1234 * 5678 is actually 1234*10-18 * 5678*10-18 = 7,006,652 * 10**-36 = 0
@@ -157,13 +113,6 @@ contract('Test Math', async () => {
                 const b = new BN('5678');
 
                 await testCommutative(bMath.bmul, a, b, '0');
-            });
-
-            it('reverts on multiplication overflow', async () => {
-                const a = MAX_UINT256;
-                const b = new BN('2');
-
-                await testFailsCommutative(bMath.bmul, a, b, 'ERR_MUL_OVERFLOW');
             });
         });
 
