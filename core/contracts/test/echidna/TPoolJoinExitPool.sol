@@ -26,7 +26,7 @@ contract TPoolJoinExit is Num {
     function exitPool(uint poolAmountIn, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {
-        uint exitFee = bmul(poolAmountIn, EXIT_FEE);
+        uint exitFee = bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
         uint pAiAfterExitFee = poolAmountIn - exitFee;
         uint ratio = bdiv(pAiAfterExitFee, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");

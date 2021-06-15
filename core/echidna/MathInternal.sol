@@ -21,7 +21,7 @@ contract Bronze is Color {
 contract Const is Bronze {
     uint internal constant BONE              = 10**18;
 
-    uint internal constant MAX_BOUND_TOKENS  = 8;
+    uint internal constant MAX_ASSET_LIMIT   = 8;
     uint internal constant BPOW_PRECISION    = BONE / 10**10;
 
     uint internal constant MIN_FEE           = BONE / 10**6;

@@ -17,7 +17,9 @@ pragma solidity ^0.8.0;
 
 import "./Num.sol";
 
-abstract contract Math is Bronze, Const, Num {
+import "../../libraries/BalancerConstants.sol";
+
+abstract contract Math is Num {
     /**********************************************************************************************
     // calcSpotPrice                                                                             //
     // sP = spotPrice                                                                            //
@@ -40,7 +42,7 @@ abstract contract Math is Bronze, Const, Num {
         uint numer = bdiv(tokenBalanceIn, tokenWeightIn);
         uint denom = bdiv(tokenBalanceOut, tokenWeightOut);
         uint ratio = bdiv(numer, denom);
-        uint scale = bdiv(BONE, (BONE - swapFee));
+        uint scale = bdiv(KassandraConstants.ONE, (KassandraConstants.ONE - swapFee));
         return  (spotPrice = bmul(ratio, scale));
     }
 
@@ -66,11 +68,11 @@ abstract contract Math is Bronze, Const, Num {
         returns (uint tokenAmountOut)
     {
         uint weightRatio = bdiv(tokenWeightIn, tokenWeightOut);
-        uint adjustedIn = BONE - swapFee;
+        uint adjustedIn = KassandraConstants.ONE - swapFee;
         adjustedIn = bmul(tokenAmountIn, adjustedIn);
         uint y = bdiv(tokenBalanceIn, (tokenBalanceIn + adjustedIn));
         uint foo = bpow(y, weightRatio);
-        uint bar = BONE - foo;
+        uint bar = KassandraConstants.ONE - foo;
         tokenAmountOut = bmul(tokenBalanceOut, bar);
         return tokenAmountOut;
     }
@@ -100,8 +102,8 @@ abstract contract Math is Bronze, Const, Num {
         uint diff = tokenBalanceOut - tokenAmountOut;
         uint y = bdiv(tokenBalanceOut, diff);
         uint foo = bpow(y, weightRatio);
-        foo = foo - BONE;
-        tokenAmountIn = BONE - swapFee;
+        foo = foo - KassandraConstants.ONE;
+        tokenAmountIn = KassandraConstants.ONE - swapFee;
         tokenAmountIn = bdiv(bmul(tokenBalanceIn, foo), tokenAmountIn);
         return tokenAmountIn;
     }
@@ -132,8 +134,8 @@ abstract contract Math is Bronze, Const, Num {
         // That proportion is (1- weightTokenIn)
         // tokenAiAfterFee = tAi * (1 - (1-weightTi) * poolFee);
         uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
-        uint zaz = bmul((BONE - normalizedWeight), swapFee);
-        uint tokenAmountInAfterFee = bmul(tokenAmountIn, (BONE - zaz));
+        uint zaz = bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
+        uint tokenAmountInAfterFee = bmul(tokenAmountIn, (KassandraConstants.ONE - zaz));
 
         uint newTokenBalanceIn = tokenBalanceIn + tokenAmountInAfterFee;
         uint tokenInRatio = bdiv(newTokenBalanceIn, tokenBalanceIn);
@@ -171,15 +173,15 @@ abstract contract Math is Bronze, Const, Num {
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
 
         //uint newBalTi = poolRatio^(1/weightTi) * balTi;
-        uint boo = bdiv(BONE, normalizedWeight);
+        uint boo = bdiv(KassandraConstants.ONE, normalizedWeight);
         uint tokenInRatio = bpow(poolRatio, boo);
         uint newTokenBalanceIn = bmul(tokenInRatio, tokenBalanceIn);
         uint tokenAmountInAfterFee = newTokenBalanceIn - tokenBalanceIn;
         // Do reverse order of fees charged in joinswap_ExternAmountIn, this way
         //     ``` pAo == joinswap_ExternAmountIn(Ti, joinswap_PoolAmountOut(pAo, Ti)) ```
         //uint tAi = tAiAfterFee / (1 - (1-weightTi) * swapFee) ;
-        uint zar = bmul((BONE - normalizedWeight), swapFee);
-        tokenAmountIn = bdiv(tokenAmountInAfterFee, (BONE - zar));
+        uint zar = bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
+        tokenAmountIn = bdiv(tokenAmountInAfterFee, (KassandraConstants.ONE - zar));
         return tokenAmountIn;
     }
 
@@ -208,20 +210,20 @@ abstract contract Math is Bronze, Const, Num {
         uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
         // charge exit fee on the pool token side
         // pAiAfterExitFee = pAi*(1-exitFee)
-        uint poolAmountInAfterExitFee = bmul(poolAmountIn, (BONE - EXIT_FEE));
+        uint poolAmountInAfterExitFee = bmul(poolAmountIn, (KassandraConstants.ONE - KassandraConstants.EXIT_FEE));
         uint newPoolSupply = poolSupply - poolAmountInAfterExitFee;
         uint poolRatio = bdiv(newPoolSupply, poolSupply);
 
         // newBalTo = poolRatio^(1/weightTo) * balTo;
-        uint tokenOutRatio = bpow(poolRatio, bdiv(BONE, normalizedWeight));
+        uint tokenOutRatio = bpow(poolRatio, bdiv(KassandraConstants.ONE, normalizedWeight));
         uint newTokenBalanceOut = bmul(tokenOutRatio, tokenBalanceOut);
 
         uint tokenAmountOutBeforeSwapFee = tokenBalanceOut - newTokenBalanceOut;
 
         // charge swap fee on the output token side
         //uint tAo = tAoBeforeSwapFee * (1 - (1-weightTo) * swapFee)
-        uint zaz = bmul((BONE - normalizedWeight), swapFee);
-        tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, (BONE - zaz));
+        uint zaz = bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
+        tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, (KassandraConstants.ONE - zaz));
         return tokenAmountOut;
     }
 
@@ -251,9 +253,9 @@ abstract contract Math is Bronze, Const, Num {
         // charge swap fee on the output token side
         uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
         //uint tAoBeforeSwapFee = tAo / (1 - (1-weightTo) * swapFee) ;
-        uint zoo = BONE - normalizedWeight;
+        uint zoo = KassandraConstants.ONE - normalizedWeight;
         uint zar = bmul(zoo, swapFee);
-        uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, (BONE - zar));
+        uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, (KassandraConstants.ONE - zar));
 
         uint newTokenBalanceOut = tokenBalanceOut - tokenAmountOutBeforeSwapFee;
         uint tokenOutRatio = bdiv(newTokenBalanceOut, tokenBalanceOut);
@@ -265,7 +267,7 @@ abstract contract Math is Bronze, Const, Num {
 
         // charge exit fee on the pool token side
         // pAi = pAiAfterExitFee/(1-exitFee)
-        poolAmountIn = bdiv(poolAmountInAfterExitFee, (BONE - EXIT_FEE));
+        poolAmountIn = bdiv(poolAmountInAfterExitFee, (KassandraConstants.ONE - KassandraConstants.EXIT_FEE));
         return poolAmountIn;
     }
 

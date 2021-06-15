@@ -35,4 +35,13 @@ library KassandraConstants {
     uint public constant MAX_ASSET_LIMIT = 8;
 
     uint public constant MAX_UINT = type(uint).max;
+
+    // Core Pools
+    uint public constant MIN_CORE_BALANCE  = ONE / 10**12;
+    uint public constant INIT_POOL_SUPPLY  = ONE * 100;
+
+    // Core Num
+    uint public constant MIN_BPOW_BASE     = 1 wei;
+    uint public constant MAX_BPOW_BASE     = (2 * ONE) - 1 wei;
+    uint public constant BPOW_PRECISION    = ONE / 10**10;
 }

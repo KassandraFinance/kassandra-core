@@ -37,9 +37,9 @@ contract TPoolBindPrivileged is CryticInterface, Pool {
         return address(bt);
     }
 
-    function echidna_getNumTokens_less_or_equal_MAX_BOUND_TOKENS() public returns (bool) {
-        // it is not possible to bind more than `MAX_BOUND_TOKENS`
-        return this.getNumTokens() <= MAX_BOUND_TOKENS;
+    function echidna_getNumTokens_less_or_equal_MAX_ASSET_LIMIT() public returns (bool) {
+        // it is not possible to bind more than `MAX_ASSET_LIMIT`
+        return this.getNumTokens() <= MAX_ASSET_LIMIT;
     }
 
     function echidna_revert_bind_twice() public returns (bool) {
