@@ -559,10 +559,10 @@ contract('Pool', async (accounts) => {
     describe('Token interactions', () => {
         it('Token descriptors', async () => {
             const name = await pool.name();
-            assert.equal(name, 'Balancer Pool Token');
+            assert.equal(name, 'Kassandra Pool Token');
 
             const symbol = await pool.symbol();
-            assert.equal(symbol, 'BPT');
+            assert.equal(symbol, 'KPT');
 
             const decimals = await pool.decimals();
             assert.equal(decimals, 18);

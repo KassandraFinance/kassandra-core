@@ -17,17 +17,17 @@ import { RightsManager } from "../../libraries/RightsManager.sol";
 // Contracts
 
 /**
- * @author Ampleforth engineering team & Balancer Labs
+ * @author Ampleforth engineering team & Balancer Labs & Kassandra
  *
  * Reference:
  * https://github.com/balancer-labs/configurable-rights-pool/blob/master/contracts/templates/ElasticSupplyPool.sol
  *
  * @title Ampl Elastic Configurable Rights Pool.
  *
- * @dev   Extension of Balancer labs' configurable rights pool (smart-pool).
+ * @dev   Extension of Kassandra configurable rights pool (smart-pool).
  *        Amples are a dynamic supply tokens, supply and individual balances change daily by a Rebase operation.
  *        In constant-function markets, Ampleforth's supply adjustments result in Impermanent Loss (IL)
- *        to liquidity providers. The AmplElasticCRP is an extension of Balancer Lab's
+ *        to liquidity providers. The AmplElasticCRP is an extension of Kassandra
  *        ConfigurableRightsPool which mitigates IL induced by supply adjustments.
  *
  *        It accomplishes this by doing the following mechanism:
@@ -49,7 +49,7 @@ import { RightsManager } from "../../libraries/RightsManager.sol";
  *
  */
 contract ElasticSupplyPool is ConfigurableRightsPool {
-    using BalancerSafeMath for uint;
+    using KassandraSafeMath for uint;
 
     // Modifiers
 
@@ -178,15 +178,15 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         uint tokenWeightBefore = IBPool(address(bPool)).getDenormalizedWeight(token);
 
         // target token weight = RebaseRatio * previous token weight
-        uint tokenWeightTarget = BalancerSafeMath.bdiv(
-            BalancerSafeMath.bmul(tokenWeightBefore, tokenBalanceAfter),
+        uint tokenWeightTarget = KassandraSafeMath.bdiv(
+            KassandraSafeMath.bmul(tokenWeightBefore, tokenBalanceAfter),
             tokenBalanceBefore
         );
 
         // new token weight = sqrt(current token weight * target token weight)
-        uint tokenWeightAfter = BalancerSafeMath.sqrt(
-            BalancerSafeMath.bdiv(
-                BalancerSafeMath.bmul(tokenWeightBefore, tokenWeightTarget), 1
+        uint tokenWeightAfter = KassandraSafeMath.sqrt(
+            KassandraSafeMath.bdiv(
+                KassandraSafeMath.bmul(tokenWeightBefore, tokenWeightTarget), 1
             )
         );
 
@@ -202,8 +202,8 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
                 uint otherBalance = bPool.getBalance(tokens[i]);
 
                 // other token weight = (new token weight * other token weight before) / target token weight
-                uint otherWeightAfter = BalancerSafeMath.bdiv(
-                    BalancerSafeMath.bmul(tokenWeightAfter, otherWeightBefore), tokenWeightTarget
+                uint otherWeightAfter = KassandraSafeMath.bdiv(
+                    KassandraSafeMath.bmul(tokenWeightAfter, otherWeightBefore), tokenWeightTarget
                 );
 
                 // adjust weight

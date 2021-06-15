@@ -27,9 +27,9 @@ contract('CRPFactory', async (accounts) => {
     let xyz;
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
-    const SYMBOL = 'BSP';
+    const SYMBOL = 'KSP';
     const LONG_SYMBOL = '012345678901234567890123456789012'
-    const NAME = 'Balancer Pool Token';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

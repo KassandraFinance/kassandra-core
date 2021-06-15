@@ -18,7 +18,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
     const MAX = web3.utils.toTwosComplement(-1);
     const SYMBOL = 'LBP';
-    const NAME = 'Balancer Pool Token';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

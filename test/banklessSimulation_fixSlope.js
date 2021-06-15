@@ -36,8 +36,8 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
     const startWeights = [toWei('2'), toWei('38')];
     // 38 weight and 38 tokens is a coincidence
     const startBalances = [toWei(initialDaiDeposit), toWei('38')];
-    const SYMBOL = 'BAP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KAP';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: true,

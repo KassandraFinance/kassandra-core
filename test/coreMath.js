@@ -1,6 +1,6 @@
 /* eslint-env es6 */
 
-const BalancerSafeMathMock = artifacts.require('BalancerSafeMathMock');
+const KassandraSafeMathMock = artifacts.require('BalancerSafeMathMock');
 const { BN, constants, expectRevert } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const truffleAssert = require('truffle-assertions');
@@ -20,7 +20,7 @@ contract('Test Math', async () => {
     let bMath;
 
     before(async () => {
-        bMath = await BalancerSafeMathMock.deployed();
+        bMath = await KassandraSafeMathMock.deployed();
     });
 
     describe('Basic Math', () => {

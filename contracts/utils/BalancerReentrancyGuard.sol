@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 /**
- * @author Balancer Labs (and OpenZeppelin)
+ * @author Kassandra (and Balancer Labs and OpenZeppelin)
  * @title Protect against reentrant calls (and also selectively protect view functions)
  * @dev Contract module that helps prevent reentrant calls to a function.
  *
@@ -18,7 +18,7 @@ pragma solidity ^0.8.0;
  * Also adds a _lockview_ modifier, which doesn't create a lock, but fails
  *   if another _lock_ call is in progress
  */
-abstract contract BalancerReentrancyGuard {
+abstract contract ReentrancyGuard {
     // Booleans are more expensive than uint256 or any type that takes up a full
     // word because each write operation emits an extra SLOAD to first read the
     // slot's contents, replace the bits taken up by the boolean, and then write

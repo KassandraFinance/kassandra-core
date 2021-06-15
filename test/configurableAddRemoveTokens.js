@@ -38,8 +38,8 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
     const addTokenTimeLockInBlocks = 10;
-    const SYMBOL = 'BSP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KSP';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

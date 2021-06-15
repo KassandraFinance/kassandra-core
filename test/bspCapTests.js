@@ -34,8 +34,8 @@ contract('BSP Cap', async (accounts) => {
     // 50%/50%  Dai/Weth
     const startWeights = [toWei('20'), toWei('20')];
     const startBalances = [toWei('20000'), toWei('50')];
-    const SYMBOL = 'BSP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KSP';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

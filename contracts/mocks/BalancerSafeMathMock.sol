@@ -11,28 +11,28 @@ import "../../libraries/BalancerSafeMath.sol";
  * @author Balancer Labs
  * @title Wrap BalancerSafeMath for testing
 */
-contract BalancerSafeMathMock {
+contract KassandraSafeMathMock {
     function bmul(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.bmul(a, b);
+        return KassandraSafeMath.bmul(a, b);
     }
 
     function bdiv(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.bdiv(a, b);
+        return KassandraSafeMath.bdiv(a, b);
     }
 
     function bmod(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.bmod(a, b);
+        return KassandraSafeMath.bmod(a, b);
     }
 
     function bmax(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.bmax(a, b);
+        return KassandraSafeMath.bmax(a, b);
     }
 
     function bmin(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.bmin(a, b);
+        return KassandraSafeMath.bmin(a, b);
     }
 
     function baverage(uint a, uint b) external pure returns (uint) {
-        return BalancerSafeMath.baverage(a, b);
+        return KassandraSafeMath.baverage(a, b);
     }
 }

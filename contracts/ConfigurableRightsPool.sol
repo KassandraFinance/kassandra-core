@@ -18,9 +18,9 @@ import "../libraries/SafeApprove.sol";
 // Contracts
 
 /**
- * @author Balancer Labs
+ * @author Kassandra (and Balancer Labs)
  * @title Smart Pool with customizable features
- * @notice PCToken is the "Balancer Smart Pool" token (transferred upon finalization)
+ * @notice PCToken is the "Kassandra Smart Pool" token (transferred upon finalization)
  * @dev Rights are defined as follows (index values into the array)
  *      0: canPauseSwapping - can setPublicSwap back to false after turning it on
  *                            by default, it is off on initialization and can only be turned on
@@ -35,13 +35,13 @@ import "../libraries/SafeApprove.sol";
  * To make this explicit, we could write "IBPool(address(bPool)).function()" everywhere,
  *   instead of "bPool.function()".
  */
-contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyGuard {
+contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     using SafeApprove for IERC20;
 
     // Type declarations
 
     struct PoolParams {
-        // Balancer Pool Token (representing shares of the pool)
+        // Kassandra Pool Token (representing shares of the pool)
         string poolTokenSymbol;
         string poolTokenName;
         // Tokens inside the Pool
@@ -177,8 +177,8 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         // We don't have a pool yet; check now or it will fail later (in order of likelihood to fail)
         // (and be unrecoverable if they don't have permission set to change it)
         // Most likely to fail, so check first
-        require(poolParams.swapFee >= BalancerConstants.MIN_FEE, "ERR_INVALID_SWAP_FEE");
-        require(poolParams.swapFee <= BalancerConstants.MAX_FEE, "ERR_INVALID_SWAP_FEE");
+        require(poolParams.swapFee >= KassandraConstants.MIN_FEE, "ERR_INVALID_SWAP_FEE");
+        require(poolParams.swapFee <= KassandraConstants.MAX_FEE, "ERR_INVALID_SWAP_FEE");
 
         // Arrays must be parallel
         require(poolParams.tokenBalances.length == poolParams.constituentTokens.length, "ERR_START_BALANCES_MISMATCH");
@@ -186,8 +186,8 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         // Cannot have too many or too few - technically redundant, since BPool.bind() would fail later
         // But if we don't check now, we could have a useless contract with no way to create a pool
 
-        require(poolParams.constituentTokens.length >= BalancerConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
-        require(poolParams.constituentTokens.length <= BalancerConstants.MAX_ASSET_LIMIT, "ERR_TOO_MANY_TOKENS");
+        require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
+        require(poolParams.constituentTokens.length <= KassandraConstants.MAX_ASSET_LIMIT, "ERR_TOO_MANY_TOKENS");
         // There are further possible checks (e.g., if they use the same token twice), but
         // we can let bind() catch things like that (i.e., not things that might reasonably work)
 
@@ -207,7 +207,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
         // Initializing (unnecessarily) for documentation - 0 means no gradual weight change has been initiated
         gradualUpdate.startBlock = 0;
         // By default, there is no cap (unlimited pool token minting)
-        bspCap = BalancerConstants.MAX_UINT;
+        bspCap = KassandraConstants.MAX_UINT;
     }
 
     // External functions
@@ -927,8 +927,8 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
      */
     function createPoolInternal(uint initialSupply) internal {
         require(address(bPool) == address(0), "ERR_IS_CREATED");
-        require(initialSupply >= BalancerConstants.MIN_POOL_SUPPLY, "ERR_INIT_SUPPLY_MIN");
-        require(initialSupply <= BalancerConstants.MAX_POOL_SUPPLY, "ERR_INIT_SUPPLY_MAX");
+        require(initialSupply >= KassandraConstants.MIN_POOL_SUPPLY, "ERR_INIT_SUPPLY_MIN");
+        require(initialSupply <= KassandraConstants.MAX_POOL_SUPPLY, "ERR_INIT_SUPPLY_MAX");
 
         // If the controller can change the cap, initialize it to the initial supply
         // Defensive programming, so that there is no gap between creating the pool
@@ -950,7 +950,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
 
         // EXIT_FEE must always be zero, or ConfigurableRightsPool._pushUnderlying will fail
         require(bPool.EXIT_FEE() == 0, "ERR_NONZERO_EXIT_FEE");
-        require(BalancerConstants.EXIT_FEE == 0, "ERR_NONZERO_EXIT_FEE");
+        require(KassandraConstants.EXIT_FEE == 0, "ERR_NONZERO_EXIT_FEE");
 
         for (uint i = 0; i < _initialTokens.length; i++) {
             address t = _initialTokens[i];
@@ -960,7 +960,7 @@ contract ConfigurableRightsPool is PCToken, BalancerOwnable, BalancerReentrancyG
             bool returnValue = IERC20(t).transferFrom(msg.sender, address(this), bal);
             require(returnValue, "ERR_ERC20_FALSE");
 
-            returnValue = IERC20(t).safeApprove(address(bPool), BalancerConstants.MAX_UINT);
+            returnValue = IERC20(t).safeApprove(address(bPool), KassandraConstants.MAX_UINT);
             require(returnValue, "ERR_ERC20_FALSE");
 
             bPool.bind(t, bal, denorm);

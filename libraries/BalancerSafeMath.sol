@@ -7,11 +7,11 @@ pragma solidity ^0.8.0;
 import "./BalancerConstants.sol";
 
 /**
- * @author Balancer Labs
+ * @author Kassandra (and Balancer Labs)
  * @title SafeMath - wrap Solidity operators to prevent underflow/overflow
  * @dev mul/div have extra checks from OpenZeppelin SafeMath
  */
-library BalancerSafeMath {
+library KassandraSafeMath {
     /**
      * @notice Safe signed subtraction
      * @param a - first operand
@@ -42,10 +42,10 @@ library BalancerSafeMath {
         }
 
         uint c0 = a * b;
-        // Round to 0 if x*y < BONE/2?
-        uint c1 = c0 + (BalancerConstants.BONE / 2);
+        // Round to 0 if x*y < ONE/2?
+        uint c1 = c0 + (KassandraConstants.ONE / 2);
         require(c1 >= c0, "ERR_MUL_OVERFLOW");
-        uint c2 = c1 / BalancerConstants.BONE;
+        uint c2 = c1 / KassandraConstants.ONE;
         return c2;
     }
 
@@ -64,8 +64,8 @@ library BalancerSafeMath {
             return 0;
         }
 
-        uint c0 = dividend * BalancerConstants.BONE;
-        require(c0 / dividend == BalancerConstants.BONE, "ERR_DIV_INTERNAL"); // bmul overflow
+        uint c0 = dividend * KassandraConstants.ONE;
+        require(c0 / dividend == KassandraConstants.ONE, "ERR_DIV_INTERNAL"); // bmul overflow
 
         uint c1 = c0 + (divisor / 2);
         require(c1 >= c0, "ERR_DIV_INTERNAL"); //  badd require

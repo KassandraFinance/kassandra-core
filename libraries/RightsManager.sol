@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 /**
- * @author Balancer Labs
+ * @author Kassandra (and Balancer Labs)
  * @title Manage Configurable Rights for the smart pool
  *      canPauseSwapping - can setPublicSwap back to false after turning it on
  *                         by default, it is off on initialization and can only be turned on

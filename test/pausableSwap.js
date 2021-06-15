@@ -30,8 +30,8 @@ contract('pausableSwap', async (accounts) => {
     const startingDaiWeight = '1.5';
     const startWeights = [toWei(startingXyzWeight), toWei(startingWethWeight), toWei(startingDaiWeight)];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
-    const SYMBOL = 'BSP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KSP';
+    const NAME = 'Kassandra Pool Token';
 
     let tokenIn;
     let tokenOut;

@@ -26,7 +26,7 @@ contract('elasticSupplyPool', async (accounts) => {
     // These are the intial settings for newCrp:
     const swapFee = 10 ** 15;
     const SYMBOL = 'BAL-USDC-DAI';
-    const NAME = 'Balancer Pool Token';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

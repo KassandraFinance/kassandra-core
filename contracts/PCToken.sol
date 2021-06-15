@@ -10,13 +10,13 @@ import "../interfaces/IERC20.sol";
 /* solhint-disable func-order */
 
 /**
- * @author Balancer Labs
+ * @author Kassandra (and Balancer Labs)
  * @title Highly opinionated token implementation
 */
 abstract contract PCToken is IERC20 {
     // State variables
-    string public constant NAME = "Balancer Smart Pool";
-    uint8 public constant DECIMALS = 18;
+    string public constant NAME = "Kassandra Smart Pool";
+    uint8 private constant _DECIMALS = 18;
 
     // No leading underscore per naming convention (non-private)
     // Cannot call totalSupply (name conflict)
@@ -212,7 +212,7 @@ abstract contract PCToken is IERC20 {
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
     function decimals() external pure returns (uint8) {
-        return DECIMALS;
+        return _DECIMALS;
     }
 
     // internal functions

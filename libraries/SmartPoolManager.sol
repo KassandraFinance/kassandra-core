@@ -11,7 +11,7 @@ import "./SafeApprove.sol";
 
 
 /**
- * @author Balancer Labs
+ * @author Kassandra (and Balancer Labs)
  * @title Factor out the weight updates
  */
 library SmartPoolManager {
@@ -54,8 +54,8 @@ library SmartPoolManager {
     )
         external
     {
-        require(newWeight >= BalancerConstants.MIN_WEIGHT, "ERR_MIN_WEIGHT");
-        require(newWeight <= BalancerConstants.MAX_WEIGHT, "ERR_MAX_WEIGHT");
+        require(newWeight >= KassandraConstants.MIN_WEIGHT, "ERR_MIN_WEIGHT");
+        require(newWeight <= KassandraConstants.MAX_WEIGHT, "ERR_MAX_WEIGHT");
 
         uint currentWeight = bPool.getDenormalizedWeight(token);
         // Save gas; return immediately on NOOP
@@ -77,21 +77,21 @@ library SmartPoolManager {
             deltaWeight = currentWeight - newWeight;
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
-            poolShares = BalancerSafeMath.bmul(
+            poolShares = KassandraSafeMath.bmul(
                 totalSupply,
-                BalancerSafeMath.bdiv(deltaWeight, totalWeight)
+                KassandraSafeMath.bdiv(deltaWeight, totalWeight)
             );
 
             // deltaBalance = currentBalance * (deltaWeight / currentWeight)
-            deltaBalance = BalancerSafeMath.bmul(
+            deltaBalance = KassandraSafeMath.bmul(
                 currentBalance,
-                BalancerSafeMath.bdiv(deltaWeight, currentWeight)
+                KassandraSafeMath.bdiv(deltaWeight, currentWeight)
             );
 
             // New balance cannot be lower than MIN_BALANCE
             newBalance = currentBalance - deltaBalance;
 
-            require(newBalance >= BalancerConstants.MIN_BALANCE, "ERR_MIN_BALANCE");
+            require(newBalance >= KassandraConstants.MIN_BALANCE, "ERR_MIN_BALANCE");
 
             // First get the tokens from this contract (Pool Controller) to msg.sender
             bPool.rebind(token, newBalance, newWeight);
@@ -108,18 +108,18 @@ library SmartPoolManager {
             // They will be minted and given PCTokens
             deltaWeight = newWeight - currentWeight;
 
-            require((totalWeight + deltaWeight) <= BalancerConstants.MAX_TOTAL_WEIGHT,
+            require((totalWeight + deltaWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
                     "ERR_MAX_TOTAL_WEIGHT");
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
-            poolShares = BalancerSafeMath.bmul(
+            poolShares = KassandraSafeMath.bmul(
                 totalSupply,
-                BalancerSafeMath.bdiv(deltaWeight, totalWeight)
+                KassandraSafeMath.bdiv(deltaWeight, totalWeight)
             );
             // deltaBalance = currentBalance * (deltaWeight / currentWeight)
-            deltaBalance = BalancerSafeMath.bmul(
+            deltaBalance = KassandraSafeMath.bmul(
                 currentBalance,
-                BalancerSafeMath.bdiv(deltaWeight, currentWeight)
+                KassandraSafeMath.bdiv(deltaWeight, currentWeight)
             );
 
             // First gets the tokens from msg.sender to this contract (Pool Controller)
@@ -186,11 +186,11 @@ library SmartPoolManager {
                     // First get the total weight delta
                     weightDelta = gradualUpdate.startWeights[i] - gradualUpdate.endWeights[i];
                     // And the amount it should change per block = total change/number of blocks in the period
-                    deltaPerBlock = BalancerSafeMath.bdiv(weightDelta, blockPeriod);
+                    deltaPerBlock = KassandraSafeMath.bdiv(weightDelta, blockPeriod);
                     //deltaPerBlock = bdivx(weightDelta, blockPeriod);
 
                     // newWeight = startWeight - (blocksElapsed * deltaPerBlock)
-                    newWeight = gradualUpdate.startWeights[i] - BalancerSafeMath.bmul(blocksElapsed, deltaPerBlock);
+                    newWeight = gradualUpdate.startWeights[i] - KassandraSafeMath.bmul(blocksElapsed, deltaPerBlock);
                 }
                 else {
                     // We are increasing the weight
@@ -198,11 +198,11 @@ library SmartPoolManager {
                     // First get the total weight delta
                     weightDelta = gradualUpdate.endWeights[i] - gradualUpdate.startWeights[i];
                     // And the amount it should change per block = total change/number of blocks in the period
-                    deltaPerBlock = BalancerSafeMath.bdiv(weightDelta, blockPeriod);
+                    deltaPerBlock = KassandraSafeMath.bdiv(weightDelta, blockPeriod);
                     //deltaPerBlock = bdivx(weightDelta, blockPeriod);
 
                     // newWeight = startWeight + (blocksElapsed * deltaPerBlock)
-                    newWeight = gradualUpdate.startWeights[i] + BalancerSafeMath.bmul(blocksElapsed, deltaPerBlock);
+                    newWeight = gradualUpdate.startWeights[i] + KassandraSafeMath.bmul(blocksElapsed, deltaPerBlock);
                 }
 
                 uint bal = bPool.getBalance(tokens[i]);
@@ -239,13 +239,13 @@ library SmartPoolManager {
     {
         require(!bPool.isBound(token), "ERR_IS_BOUND");
 
-        require(denormalizedWeight <= BalancerConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
-        require(denormalizedWeight >= BalancerConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
+        require(denormalizedWeight <= KassandraConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
+        require(denormalizedWeight >= KassandraConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
         require(
-            (bPool.getTotalDenormalizedWeight() + denormalizedWeight) <= BalancerConstants.MAX_TOTAL_WEIGHT,
+            (bPool.getTotalDenormalizedWeight() + denormalizedWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
             "ERR_MAX_TOTAL_WEIGHT"
         );
-        require(balance >= BalancerConstants.MIN_BALANCE, "ERR_BALANCE_BELOW_MIN");
+        require(balance >= KassandraConstants.MIN_BALANCE, "ERR_BALANCE_BELOW_MIN");
 
         newToken.addr = token;
         newToken.balance = balance;
@@ -278,7 +278,7 @@ library SmartPoolManager {
         uint totalSupply = self.totalSupply();
 
         // poolShares = totalSupply * newTokenWeight / totalWeight
-        uint poolShares = BalancerSafeMath.bdiv(BalancerSafeMath.bmul(totalSupply, newToken.denorm),
+        uint poolShares = KassandraSafeMath.bdiv(KassandraSafeMath.bmul(totalSupply, newToken.denorm),
                                                 bPool.getTotalDenormalizedWeight());
 
         // Clear this to allow adding more tokens
@@ -291,7 +291,7 @@ library SmartPoolManager {
         // Now with the tokens this contract can bind them to the pool it controls
         // Approves bPool to pull from this controller
         // Approve unlimited, same as when creating the pool, so they can join pools later
-        returnValue = SafeApprove.safeApprove(IERC20(newToken.addr), address(bPool), BalancerConstants.MAX_UINT);
+        returnValue = SafeApprove.safeApprove(IERC20(newToken.addr), address(bPool), KassandraConstants.MAX_UINT);
         require(returnValue, "ERR_ERC20_FALSE");
 
         bPool.bind(newToken.addr, newToken.balance, newToken.denorm);
@@ -321,8 +321,8 @@ library SmartPoolManager {
         uint totalSupply = self.totalSupply();
 
         // poolShares = totalSupply * tokenWeight / totalWeight
-        uint poolShares = BalancerSafeMath.bdiv(
-            BalancerSafeMath.bmul(
+        uint poolShares = KassandraSafeMath.bdiv(
+            KassandraSafeMath.bmul(
                 totalSupply, bPool.getDenormalizedWeight(token)
             ),
             bPool.getTotalDenormalizedWeight()
@@ -332,7 +332,7 @@ library SmartPoolManager {
         // Have to get it before unbinding
         uint balance = bPool.getBalance(token);
 
-        // Unbind and get the tokens out of balancer pool
+        // Unbind and get the tokens out of the pool
         bPool.unbind(token);
 
         // Now with the tokens this contract can send them to msg.sender
@@ -413,13 +413,13 @@ library SmartPoolManager {
         // This loop contains external calls
         // External calls are to math libraries or the underlying pool, so low risk
         for (uint i = 0; i < tokens.length; i++) {
-            require(newWeights[i] <= BalancerConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
-            require(newWeights[i] >= BalancerConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
+            require(newWeights[i] <= KassandraConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
+            require(newWeights[i] >= KassandraConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
 
             weightsSum += newWeights[i];
             gradualUpdate.startWeights[i] = bPool.getDenormalizedWeight(tokens[i]);
         }
-        require(weightsSum <= BalancerConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
+        require(weightsSum <= KassandraConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
 
         gradualUpdate.endBlock = endBlock;
         gradualUpdate.endWeights = newWeights;
@@ -449,7 +449,7 @@ library SmartPoolManager {
 
         uint poolTotal = self.totalSupply();
         // Subtract  1 to ensure any rounding errors favor the pool
-        uint ratio = BalancerSafeMath.bdiv(poolAmountOut, poolTotal - 1);
+        uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal - 1);
 
         require(ratio != 0, "ERR_MATH_APPROX");
 
@@ -463,7 +463,7 @@ library SmartPoolManager {
             address t = tokens[i];
             uint bal = bPool.getBalance(t);
             // Add 1 to ensure any rounding errors favor the pool
-            uint tokenAmountIn = BalancerSafeMath.bmul(ratio, bal + 1);
+            uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal + 1);
 
             require(tokenAmountIn != 0, "ERR_MATH_APPROX");
             require(tokenAmountIn <= maxAmountsIn[i], "ERR_LIMIT_IN");
@@ -499,10 +499,10 @@ library SmartPoolManager {
         uint poolTotal = self.totalSupply();
 
         // Calculate exit fee and the final amount in
-        exitFee = BalancerSafeMath.bmul(poolAmountIn, BalancerConstants.EXIT_FEE);
+        exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
         pAiAfterExitFee = poolAmountIn - exitFee;
 
-        uint ratio = BalancerSafeMath.bdiv(pAiAfterExitFee, poolTotal + 1);
+        uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal + 1);
 
         require(ratio != 0, "ERR_MATH_APPROX");
 
@@ -514,7 +514,7 @@ library SmartPoolManager {
             address t = tokens[i];
             uint bal = bPool.getBalance(t);
             // Subtract 1 to ensure any rounding errors favor the pool
-            uint tokenAmountOut = BalancerSafeMath.bmul(ratio, bal - 1);
+            uint tokenAmountOut = KassandraSafeMath.bmul(ratio, bal - 1);
 
             require(tokenAmountOut != 0, "ERR_MATH_APPROX");
             require(tokenAmountOut >= minAmountsOut[i], "ERR_LIMIT_OUT");
@@ -546,7 +546,7 @@ library SmartPoolManager {
     {
         require(bPool.isBound(tokenIn), "ERR_NOT_BOUND");
         require(
-            tokenAmountIn <= BalancerSafeMath.bmul(bPool.getBalance(tokenIn), BalancerConstants.MAX_IN_RATIO),
+            tokenAmountIn <= KassandraSafeMath.bmul(bPool.getBalance(tokenIn), KassandraConstants.MAX_IN_RATIO),
             "ERR_MAX_IN_RATIO"
         );
 
@@ -598,7 +598,7 @@ library SmartPoolManager {
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
 
         require(
-            tokenAmountIn <= BalancerSafeMath.bmul(bPool.getBalance(tokenIn), BalancerConstants.MAX_IN_RATIO),
+            tokenAmountIn <= KassandraSafeMath.bmul(bPool.getBalance(tokenIn), KassandraConstants.MAX_IN_RATIO),
             "ERR_MAX_IN_RATIO"
         );
     }
@@ -637,11 +637,11 @@ library SmartPoolManager {
                         );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
-        require(tokenAmountOut <= BalancerSafeMath.bmul(bPool.getBalance(tokenOut),
-                                                        BalancerConstants.MAX_OUT_RATIO),
+        require(tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut),
+                                                        KassandraConstants.MAX_OUT_RATIO),
                                                         "ERR_MAX_OUT_RATIO");
 
-        exitFee = BalancerSafeMath.bmul(poolAmountIn, BalancerConstants.EXIT_FEE);
+        exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
     }
 
     /**
@@ -667,8 +667,8 @@ library SmartPoolManager {
         returns (uint exitFee, uint poolAmountIn)
     {
         require(bPool.isBound(tokenOut), "ERR_NOT_BOUND");
-        require(tokenAmountOut <= BalancerSafeMath.bmul(bPool.getBalance(tokenOut),
-                                                        BalancerConstants.MAX_OUT_RATIO),
+        require(tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut),
+                                                        KassandraConstants.MAX_OUT_RATIO),
                                                         "ERR_MAX_OUT_RATIO");
         poolAmountIn = bPool.calcPoolInGivenSingleOut(
                             bPool.getBalance(tokenOut),
@@ -682,7 +682,7 @@ library SmartPoolManager {
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
         require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
 
-        exitFee = BalancerSafeMath.bmul(poolAmountIn, BalancerConstants.EXIT_FEE);
+        exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
     }
 
     // Internal functions

@@ -29,7 +29,7 @@ contract('crpPoolTests', async (accounts) => {
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
     const SYMBOL = (Math.random() + 1).toString(36).substring(7); // 'BSP';
-    const NAME = "Balancer Smart Pool Custom Name";
+    const NAME = "Kassandra Smart Pool Custom Name";
 
     const permissions = {
         canPauseSwapping: true,
@@ -451,7 +451,7 @@ contract('crpPoolTests', async (accounts) => {
     describe('PCToken interactions', () => {
         it('Token descriptors', async () => {
             const name = await crpPool.name();
-            assert.equal(name, NAME); // 'Balancer Smart Pool-' + SYMBOL);
+            assert.equal(name, NAME); // 'Kassandra Smart Pool-' + SYMBOL);
 
             const symbol = await crpPool.symbol();
             assert.equal(symbol, SYMBOL);

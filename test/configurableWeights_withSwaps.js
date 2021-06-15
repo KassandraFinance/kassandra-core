@@ -20,8 +20,8 @@ contract('configurableWeights_withSwaps', async (accounts) => {
     const errorDelta = 10 ** -4;
     const swapFee = 10 ** 15;
 
-    const SYMBOL = 'BSP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KSP';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

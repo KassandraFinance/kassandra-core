@@ -29,7 +29,7 @@ contract('ESPFactory', async (accounts) => {
     const startBalances = [toWei('80000'), toWei('10000')];
     const SYMBOL = 'ESP';
     const LONG_SYMBOL = 'ESP012345678901234567890123456789';
-    const NAME = 'Balancer Pool Token';
+    const NAME = 'Kassandra Pool Token';
 
     const permissions = {
         canPauseSwapping: false,

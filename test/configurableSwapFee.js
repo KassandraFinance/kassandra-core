@@ -31,8 +31,8 @@ contract('configurableSwapFee', async (accounts) => {
     const swapFee = 10 ** 15;
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
-    const SYMBOL = 'BSP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KSP';
+    const NAME = 'Kassandra Pool Token';
 
     // const permissions = [false, true, false, false];
     const permissions = {

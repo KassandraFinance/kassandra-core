@@ -1,4 +1,4 @@
-# Configurable Rights Pool
+# Smart Indexed Pool
 
 This is a smart pool factory that allows anyone to deploy smart pools with (in the reference implementation) six
 different rights that can be individually chosen:
@@ -10,13 +10,13 @@ different rights that can be individually chosen:
 5) canWhitelistLPs: pool creator can specify a list of addresses allowed to add/remove liquidity
 6) canChangeCap: pool creator can change the BSP cap (max # of pool tokens)
 
-### CRPFactory.sol
+### SIPFactory.sol
 
-Creates new ConfigurableRightsPools & stores their addresses in a registry.
+Creates new SmartIndexedPools & stores their addresses in a registry.
 
-#### `newCrp`
+#### `newSIP`
 
-Creates new ConfigurableRightsPools with the caller as the contract controller.
+Creates new SmartIndexedPools with the caller as the contract controller.
 
 ##### Params
 * `address factoryAddress` - BFactory address.
@@ -25,8 +25,8 @@ Creates new ConfigurableRightsPools with the caller as the contract controller.
 
 
 ##### Pool Params structure
-* `string poolTokenSymbol` - Symbol of the Balancer Pool Token representing this pool
-* `string poolTokenName` - Name of the Balancer Pool Token representing this pool
+* `string poolTokenSymbol` - Symbol of the Kassandra Pool Token representing this pool
+* `string poolTokenName` - Name of the Kassandra Pool Token representing this pool
 * `address[] constituentTokens` - Array of 2-8 token addresses. The pool will hold these.
 * `uint256[] tokenBalances` - Array of initial balances for the tokens specified above.
 * `uint256[] tokenWeights` - Array of initial weights for the tokens specified above.
@@ -63,11 +63,7 @@ await crpFactory.newCrp(
 ```
 <hr>
 <strong>Note the following considerations when creating a new Configurable Rights Smart Pool</strong>
-<ul>
-<li>You must apply to list your token on the Balancer Exchange (or it will be shown as a bare address, with a warning)</li>
-<li>If your pool will be eligible for BAL rewards, you must apply to "redirect" the rewards to an account that can receive funds. (Without a redirect, the reward scripts would send the tokens to the CRP contract directly, where they cannot be recovered.)</li>
-<li>On a related note, unlike with core Balancer Pools, you cannot send tokens directly to the smart pool contract - they will be unrecoverable!</li>
-</ul>
+Unlike with core Balancer Pools, you cannot send tokens directly to the smart pool contract - they will be unrecoverable!
 
 See the [docs](https://docs.balancer.finance/protocol/bal-liquidity-mining/exchange-and-reward-listing) for more details on listing and redirects!
 
@@ -158,7 +154,7 @@ There are additional variations for specifying exact amounts (Uniswap-style)
 
 ### PCToken.sol
 
-Balancer Smart Pool token. A standard ERC-20 with some extra math functions. Note that the math is normalized such that "1" is 10^18. These tokens have 18 decimals, and a configurable token symbol. (The token name is composed at run time from
+Kassandra Smart Pool token. A standard ERC-20 with some extra math functions. Note that the math is normalized such that "1" is 10^18. These tokens have 18 decimals, and a configurable token symbol. (The token name is composed at run time from
 a fixed prefix and the symbol.)
 
 ### IBFactory.sol
@@ -187,3 +183,17 @@ Questions about Smart Pools? Join us on [Discord](https://discord.gg/qjFcczk)! W
 `yarn testrpc`
 
 `yarn test`
+
+## License
+
+Kassandra Finance, an open and decentralized investment fund. Copyright (C) 2021  Kassandra Finance <https://kassadra.finance>
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+## Credits
+
+This code was made on the foundations laid by [Balancer](https://balancer.finance/) on their [Configurable Rights Pool contracts](https://github.com/balancer-labs/configurable-rights-pool) at commit [f4ed5d6](https://github.com/balancer-labs/configurable-rights-pool/commit/5bd63657ac71a9e5f8484ea561de572193b3317b) which are also licensed under the GPLv3 license. Thanks to their efforts we could expand DeFi even further.

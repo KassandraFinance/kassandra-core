@@ -12,8 +12,8 @@ contract('updateWeightsGradually', async (accounts) => {
     const { toWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
-    const SYMBOL = 'BSP';
-    const NAME = 'Balancer Pool Token';
+    const SYMBOL = 'KSP';
+    const NAME = 'Kassandra Pool Token';
     const swapFee = 10 ** 15;
 
     const permissions = {

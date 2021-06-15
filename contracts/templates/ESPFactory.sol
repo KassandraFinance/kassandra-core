@@ -8,7 +8,7 @@ import "./ElasticSupplyPool.sol";
 // Contracts
 
 /**
- * @author Balancer Labs
+ * @author Kassandra (and Balancer Labs)
  * @title Configurable Rights Pool Factory - create parameterized smart pools
  * @dev Rights are held in a corresponding struct in ConfigurableRightsPool
  *      Index values are as follows:
@@ -51,7 +51,7 @@ contract ESPFactory {
         external
         returns (ElasticSupplyPool)
     {
-        require(poolParams.constituentTokens.length >= BalancerConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
+        require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
 
         // Arrays must be parallel
         require(poolParams.tokenBalances.length == poolParams.constituentTokens.length, "ERR_START_BALANCES_MISMATCH");

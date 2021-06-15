@@ -71,8 +71,8 @@ abstract contract TokenBase is Num, IERC20 {
 
 contract Token is TokenBase {
 
-    string  private _name     = "Balancer Pool Token";
-    string  private _symbol   = "BPT";
+    string  private _name     = "Kassandra Pool Token";
+    string  private _symbol   = "KPT";
     uint8   private _decimals = 18;
 
     function name() public view returns (string memory) {

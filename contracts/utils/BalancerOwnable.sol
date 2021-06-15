@@ -13,7 +13,7 @@ pragma solidity ^0.8.0;
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-abstract contract BalancerOwnable {
+abstract contract Ownable {
     // State variables
 
     address private _owner;
