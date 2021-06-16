@@ -1,5 +1,5 @@
 const truffleAssert = require('truffle-assertions');
-const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../lib/calc_comparisons');
+const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
 const Pool = artifacts.require('Pool');
 const Factory = artifacts.require('Factory');
@@ -296,7 +296,7 @@ contract('Pool', async (accounts) => {
             const tx = await pool.finalize();
             const adminBal = await pool.balanceOf(admin);
             assert.equal(100, fromWei(adminBal));
-            truffleAssert.eventEmitted(tx, 'Transfer', (event) => event.dst === admin);
+            truffleAssert.eventEmitted(tx, 'Transfer', (event) => event.to === admin);
             const finalized = pool.isFinalized();
             assert(finalized);
         });
