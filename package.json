@@ -1,9 +1,9 @@
 {
     "private": true,
-    "name": "lbp",
-    "version": "0.0.1",
-    "license": "GPL-3.0-only",
-    "description": "Smart pool template for Liquidity Bootstrapping Pools",
+    "name": "@kassandra/core",
+    "version": "1.0.0",
+    "license": "GPL-3.0-or-later",
+    "description": "Kassandra Core Contracts and ABI",
     "scripts": {
         "compile": "truffle compile",
         "testrpc": "ganache-cli --deterministic --defaultBalanceEther 500 --gasLimit 100000000",
@@ -16,12 +16,12 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/balancer-labs/configurable-rights-pool.git"
+        "url": "git+https://github.com/KassandraFinance/kassandra-core.git"
     },
     "bugs": {
-        "url": "https://github.com/balancer-labs/configurable-rights-pool/issues"
+        "url": "https://github.com/KassandraFinance/kassandra-core/issues"
     },
-    "homepage": "https://github.com/balancer-labs/configurable-rights-pool#readme",
+    "homepage": "https://github.com/KassandraFinance/kassandra-core#readme",
     "devDependencies": {
         "@openzeppelin/test-helpers": "^0.5.5",
         "chai": "^4.2.0",
