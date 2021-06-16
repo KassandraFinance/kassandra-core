@@ -2,22 +2,27 @@
 pragma solidity ^0.8.0;
 
 contract Migrations {
-  address public owner;
-  uint public lastCompletedMigration;
+	address public owner;
+	uint public lastCompletedMigration;
 
-  constructor() {
-    owner = msg.sender;
-  }
+	constructor() {
+		owner = msg.sender;
+	}
 
-  modifier restricted() {
-    if (msg.sender == owner) _;
-  }
+	modifier restricted() {
+		if (msg.sender == owner) _;
+	}
 
-  /**
-   * @notice set lastCompletedMigration variable
-   * @param completed - id of the desired migration level
-   */
-  function setCompleted(uint completed) external restricted {
-    lastCompletedMigration = completed;
-  }
+	/**
+	 * @notice set lastCompletedMigration variable
+	 * @param completed - id of the desired migration level
+	 */
+	function setCompleted(uint completed) external restricted {
+		lastCompletedMigration = completed;
+	}
+
+	function upgrade(address newAddress) external restricted {
+		Migrations upgraded = Migrations(newAddress);
+		upgraded.setCompleted(lastCompletedMigration);
+	}
 }
