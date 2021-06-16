@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import "../../Num.sol";
+import "../../../../libraries/BalancerSafeMath.sol";
 
 pragma solidity ^0.8.0;
 
-contract TPoolJoinPool is Num {
+contract TPoolJoinPool {
+    using KassandraSafeMath for uint;
 
     bool public echidna_no_bug_found = true;
 
@@ -21,11 +22,11 @@ contract TPoolJoinPool is Num {
         require(_records_t_balance <= 10 ether);
         require(_records_t_balance >= 10**6);
 
-        uint ratio = bdiv(poolAmountOut, poolTotal);
+        uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         uint bal = _records_t_balance;
-        uint tokenAmountIn = bmul(ratio, bal);
+        uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal);
 
         require(poolAmountOut > 0);
         require(tokenAmountIn == 0);

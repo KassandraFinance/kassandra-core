@@ -149,4 +149,78 @@ library KassandraSafeMath {
             z = 1;
         }
     }
+
+    function btoi(uint a) internal pure returns (uint) {
+        return a / KassandraConstants.ONE;
+    }
+
+    function bfloor(uint a) internal pure returns (uint) {
+        return btoi(a) * KassandraConstants.ONE;
+    }
+
+    // DSMath.wpow
+    function bpowi(uint a, uint n) internal pure returns (uint) {
+        uint z = n % 2 != 0 ? a : KassandraConstants.ONE;
+
+        for (n /= 2; n != 0; n /= 2) {
+            a = bmul(a, a);
+
+            if (n % 2 != 0) {
+                z = bmul(z, a);
+            }
+        }
+        return z;
+    }
+
+    // Compute b^(e.w) by splitting it into (b^e)*(b^0.w).
+    // Use `bpowi` for `b^e` and `bpowK` for k iterations
+    // of approximation of b^0.w
+    function bpow(uint base, uint exp) internal pure returns (uint) {
+        require(base >= KassandraConstants.MIN_BPOW_BASE, "ERR_BPOW_BASE_TOO_LOW");
+        require(base <= KassandraConstants.MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
+
+        uint whole  = bfloor(exp);
+        uint remain = exp - whole;
+
+        uint wholePow = bpowi(base, btoi(whole));
+
+        if (remain == 0) {
+            return wholePow;
+        }
+
+        uint partialResult = bpowApprox(base, remain, KassandraConstants.BPOW_PRECISION);
+        return bmul(wholePow, partialResult);
+    }
+
+    function bpowApprox(uint base, uint exp, uint precision) internal pure returns (uint) {
+        // term 0:
+        uint a     = exp;
+        (uint x, bool xneg)  = bsubSign(base, KassandraConstants.ONE);
+        uint term = KassandraConstants.ONE;
+        uint sum   = term;
+        bool negative = false;
+
+
+        // term(k) = numer / denom
+        //         = (product(a - i - 1, i=1-->k) * x^k) / (k!)
+        // each iteration, multiply previous term by (a-(k-1)) * x / k
+        // continue until term is less than precision
+        for (uint i = 1; term >= precision; i++) {
+            uint bigK = i * KassandraConstants.ONE;
+            (uint c, bool cneg) = bsubSign(a, (bigK - KassandraConstants.ONE));
+            term = bmul(term, bmul(c, x));
+            term = bdiv(term, bigK);
+            if (term == 0) break;
+
+            if (xneg) negative = !negative;
+            if (cneg) negative = !negative;
+            if (negative) {
+                sum -= term;
+            } else {
+                sum += term;
+            }
+        }
+
+        return sum;
+    }
 }

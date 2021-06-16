@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-
-import "../../Num.sol";
-
 pragma solidity ^0.8.0;
 
+import "../../../../libraries/BalancerSafeMath.sol";
+
 //  This test is similar to TPoolJoinExit but with no exit fee
-contract TPoolJoinExitNoFee is Num {
+contract TPoolJoinExitNoFee {
+    using KassandraSafeMath for uint;
 
     bool public echidna_no_bug_found = true;
 
@@ -13,11 +13,11 @@ contract TPoolJoinExitNoFee is Num {
     function joinPool(uint poolAmountOut, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {
-        uint ratio = bdiv(poolAmountOut, poolTotal);
+        uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         uint bal = _records_t_balance;
-        uint tokenAmountIn = bmul(ratio, bal);
+        uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal);
 
         return tokenAmountIn;
     }
@@ -26,11 +26,11 @@ contract TPoolJoinExitNoFee is Num {
     function exitPoolNoFee(uint poolAmountIn, uint poolTotal, uint _records_t_balance)
         internal pure returns(uint)
     {
-        uint ratio = bdiv(poolAmountIn, poolTotal);
+        uint ratio = KassandraSafeMath.bdiv(poolAmountIn, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         uint bal = _records_t_balance;
-        uint tokenAmountOut = bmul(ratio, bal);
+        uint tokenAmountOut = KassandraSafeMath.bmul(ratio, bal);
 
         return tokenAmountOut;
     }

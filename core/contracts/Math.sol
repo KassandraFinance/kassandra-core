@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "./Num.sol";
-
 import "../../libraries/BalancerConstants.sol";
+import "../../libraries/BalancerSafeMath.sol";
 
-abstract contract Math is Num {
+abstract contract Math {
+    using KassandraSafeMath for uint;
+
     /**********************************************************************************************
     // calcSpotPrice                                                                             //
     // sP = spotPrice                                                                            //
@@ -25,11 +26,11 @@ abstract contract Math is Num {
         public pure
         returns (uint spotPrice)
     {
-        uint numer = bdiv(tokenBalanceIn, tokenWeightIn);
-        uint denom = bdiv(tokenBalanceOut, tokenWeightOut);
-        uint ratio = bdiv(numer, denom);
-        uint scale = bdiv(KassandraConstants.ONE, (KassandraConstants.ONE - swapFee));
-        return  (spotPrice = bmul(ratio, scale));
+        uint numer = KassandraSafeMath.bdiv(tokenBalanceIn, tokenWeightIn);
+        uint denom = KassandraSafeMath.bdiv(tokenBalanceOut, tokenWeightOut);
+        uint ratio = KassandraSafeMath.bdiv(numer, denom);
+        uint scale = KassandraSafeMath.bdiv(KassandraConstants.ONE, (KassandraConstants.ONE - swapFee));
+        return (spotPrice = KassandraSafeMath.bmul(ratio, scale));
     }
 
     /**********************************************************************************************
@@ -53,13 +54,13 @@ abstract contract Math is Num {
         public pure
         returns (uint tokenAmountOut)
     {
-        uint weightRatio = bdiv(tokenWeightIn, tokenWeightOut);
+        uint weightRatio = KassandraSafeMath.bdiv(tokenWeightIn, tokenWeightOut);
         uint adjustedIn = KassandraConstants.ONE - swapFee;
-        adjustedIn = bmul(tokenAmountIn, adjustedIn);
-        uint y = bdiv(tokenBalanceIn, (tokenBalanceIn + adjustedIn));
-        uint foo = bpow(y, weightRatio);
+        adjustedIn = KassandraSafeMath.bmul(tokenAmountIn, adjustedIn);
+        uint y = KassandraSafeMath.bdiv(tokenBalanceIn, (tokenBalanceIn + adjustedIn));
+        uint foo = KassandraSafeMath.bpow(y, weightRatio);
         uint bar = KassandraConstants.ONE - foo;
-        tokenAmountOut = bmul(tokenBalanceOut, bar);
+        tokenAmountOut = KassandraSafeMath.bmul(tokenBalanceOut, bar);
         return tokenAmountOut;
     }
 
@@ -84,13 +85,13 @@ abstract contract Math is Num {
         public pure
         returns (uint tokenAmountIn)
     {
-        uint weightRatio = bdiv(tokenWeightOut, tokenWeightIn);
+        uint weightRatio = KassandraSafeMath.bdiv(tokenWeightOut, tokenWeightIn);
         uint diff = tokenBalanceOut - tokenAmountOut;
-        uint y = bdiv(tokenBalanceOut, diff);
-        uint foo = bpow(y, weightRatio);
+        uint y = KassandraSafeMath.bdiv(tokenBalanceOut, diff);
+        uint foo = KassandraSafeMath.bpow(y, weightRatio);
         foo = foo - KassandraConstants.ONE;
         tokenAmountIn = KassandraConstants.ONE - swapFee;
-        tokenAmountIn = bdiv(bmul(tokenBalanceIn, foo), tokenAmountIn);
+        tokenAmountIn = KassandraSafeMath.bdiv(KassandraSafeMath.bmul(tokenBalanceIn, foo), tokenAmountIn);
         return tokenAmountIn;
     }
 
@@ -119,16 +120,16 @@ abstract contract Math is Num {
         //   which is implicitly traded to the other pool tokens.
         // That proportion is (1- weightTokenIn)
         // tokenAiAfterFee = tAi * (1 - (1-weightTi) * poolFee);
-        uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
-        uint zaz = bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
-        uint tokenAmountInAfterFee = bmul(tokenAmountIn, (KassandraConstants.ONE - zaz));
+        uint normalizedWeight = KassandraSafeMath.bdiv(tokenWeightIn, totalWeight);
+        uint zaz = KassandraSafeMath.bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
+        uint tokenAmountInAfterFee = KassandraSafeMath.bmul(tokenAmountIn, (KassandraConstants.ONE - zaz));
 
         uint newTokenBalanceIn = tokenBalanceIn + tokenAmountInAfterFee;
-        uint tokenInRatio = bdiv(newTokenBalanceIn, tokenBalanceIn);
+        uint tokenInRatio = KassandraSafeMath.bdiv(newTokenBalanceIn, tokenBalanceIn);
 
         // uint newPoolSupply = (ratioTi ^ weightTi) * poolSupply;
-        uint poolRatio = bpow(tokenInRatio, normalizedWeight);
-        uint newPoolSupply = bmul(poolRatio, poolSupply);
+        uint poolRatio = KassandraSafeMath.bpow(tokenInRatio, normalizedWeight);
+        uint newPoolSupply = KassandraSafeMath.bmul(poolRatio, poolSupply);
         poolAmountOut = newPoolSupply - poolSupply;
         return poolAmountOut;
     }
@@ -154,20 +155,20 @@ abstract contract Math is Num {
         public pure
         returns (uint tokenAmountIn)
     {
-        uint normalizedWeight = bdiv(tokenWeightIn, totalWeight);
+        uint normalizedWeight = KassandraSafeMath.bdiv(tokenWeightIn, totalWeight);
         uint newPoolSupply = poolSupply + poolAmountOut;
-        uint poolRatio = bdiv(newPoolSupply, poolSupply);
+        uint poolRatio = KassandraSafeMath.bdiv(newPoolSupply, poolSupply);
 
         //uint newBalTi = poolRatio^(1/weightTi) * balTi;
-        uint boo = bdiv(KassandraConstants.ONE, normalizedWeight);
-        uint tokenInRatio = bpow(poolRatio, boo);
-        uint newTokenBalanceIn = bmul(tokenInRatio, tokenBalanceIn);
+        uint boo = KassandraSafeMath.bdiv(KassandraConstants.ONE, normalizedWeight);
+        uint tokenInRatio = KassandraSafeMath.bpow(poolRatio, boo);
+        uint newTokenBalanceIn = KassandraSafeMath.bmul(tokenInRatio, tokenBalanceIn);
         uint tokenAmountInAfterFee = newTokenBalanceIn - tokenBalanceIn;
         // Do reverse order of fees charged in joinswap_ExternAmountIn, this way
         //     ``` pAo == joinswap_ExternAmountIn(Ti, joinswap_PoolAmountOut(pAo, Ti)) ```
         //uint tAi = tAiAfterFee / (1 - (1-weightTi) * swapFee) ;
-        uint zar = bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
-        tokenAmountIn = bdiv(tokenAmountInAfterFee, (KassandraConstants.ONE - zar));
+        uint zar = KassandraSafeMath.bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
+        tokenAmountIn = KassandraSafeMath.bdiv(tokenAmountInAfterFee, (KassandraConstants.ONE - zar));
         return tokenAmountIn;
     }
 
@@ -193,23 +194,23 @@ abstract contract Math is Num {
         public pure
         returns (uint tokenAmountOut)
     {
-        uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
+        uint normalizedWeight = KassandraSafeMath.bdiv(tokenWeightOut, totalWeight);
         // charge exit fee on the pool token side
         // pAiAfterExitFee = pAi*(1-exitFee)
-        uint poolAmountInAfterExitFee = bmul(poolAmountIn, (KassandraConstants.ONE - KassandraConstants.EXIT_FEE));
+        uint poolAmountInAfterExitFee = KassandraSafeMath.bmul(poolAmountIn, (KassandraConstants.ONE - KassandraConstants.EXIT_FEE));
         uint newPoolSupply = poolSupply - poolAmountInAfterExitFee;
-        uint poolRatio = bdiv(newPoolSupply, poolSupply);
+        uint poolRatio = KassandraSafeMath.bdiv(newPoolSupply, poolSupply);
 
         // newBalTo = poolRatio^(1/weightTo) * balTo;
-        uint tokenOutRatio = bpow(poolRatio, bdiv(KassandraConstants.ONE, normalizedWeight));
-        uint newTokenBalanceOut = bmul(tokenOutRatio, tokenBalanceOut);
+        uint tokenOutRatio = KassandraSafeMath.bpow(poolRatio, KassandraSafeMath.bdiv(KassandraConstants.ONE, normalizedWeight));
+        uint newTokenBalanceOut = KassandraSafeMath.bmul(tokenOutRatio, tokenBalanceOut);
 
         uint tokenAmountOutBeforeSwapFee = tokenBalanceOut - newTokenBalanceOut;
 
         // charge swap fee on the output token side
         //uint tAo = tAoBeforeSwapFee * (1 - (1-weightTo) * swapFee)
-        uint zaz = bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
-        tokenAmountOut = bmul(tokenAmountOutBeforeSwapFee, (KassandraConstants.ONE - zaz));
+        uint zaz = KassandraSafeMath.bmul((KassandraConstants.ONE - normalizedWeight), swapFee);
+        tokenAmountOut = KassandraSafeMath.bmul(tokenAmountOutBeforeSwapFee, (KassandraConstants.ONE - zaz));
         return tokenAmountOut;
     }
 
@@ -237,23 +238,23 @@ abstract contract Math is Num {
     {
 
         // charge swap fee on the output token side
-        uint normalizedWeight = bdiv(tokenWeightOut, totalWeight);
+        uint normalizedWeight = KassandraSafeMath.bdiv(tokenWeightOut, totalWeight);
         //uint tAoBeforeSwapFee = tAo / (1 - (1-weightTo) * swapFee) ;
         uint zoo = KassandraConstants.ONE - normalizedWeight;
-        uint zar = bmul(zoo, swapFee);
-        uint tokenAmountOutBeforeSwapFee = bdiv(tokenAmountOut, (KassandraConstants.ONE - zar));
+        uint zar = KassandraSafeMath.bmul(zoo, swapFee);
+        uint tokenAmountOutBeforeSwapFee = KassandraSafeMath.bdiv(tokenAmountOut, (KassandraConstants.ONE - zar));
 
         uint newTokenBalanceOut = tokenBalanceOut - tokenAmountOutBeforeSwapFee;
-        uint tokenOutRatio = bdiv(newTokenBalanceOut, tokenBalanceOut);
+        uint tokenOutRatio = KassandraSafeMath.bdiv(newTokenBalanceOut, tokenBalanceOut);
 
         //uint newPoolSupply = (ratioTo ^ weightTo) * poolSupply;
-        uint poolRatio = bpow(tokenOutRatio, normalizedWeight);
-        uint newPoolSupply = bmul(poolRatio, poolSupply);
+        uint poolRatio = KassandraSafeMath.bpow(tokenOutRatio, normalizedWeight);
+        uint newPoolSupply = KassandraSafeMath.bmul(poolRatio, poolSupply);
         uint poolAmountInAfterExitFee = poolSupply - newPoolSupply;
 
         // charge exit fee on the pool token side
         // pAi = pAiAfterExitFee/(1-exitFee)
-        poolAmountIn = bdiv(poolAmountInAfterExitFee, (KassandraConstants.ONE - KassandraConstants.EXIT_FEE));
+        poolAmountIn = KassandraSafeMath.bdiv(poolAmountInAfterExitFee, (KassandraConstants.ONE - KassandraConstants.EXIT_FEE));
         return poolAmountIn;
     }
 

@@ -6,6 +6,7 @@ import "./Token.sol";
 import "./Math.sol";
 
 import "../../libraries/BalancerConstants.sol";
+import "../../libraries/BalancerSafeMath.sol";
 
 contract Pool is Bronze, Token, Math {
     struct Record {
@@ -151,7 +152,7 @@ contract Pool is Bronze, Token, Math {
 
         require(_records[token].bound, "ERR_NOT_BOUND");
         uint denorm = _records[token].denorm;
-        return bdiv(denorm, _totalWeight);
+        return KassandraSafeMath.bdiv(denorm, _totalWeight);
     }
 
     function getBalance(address token)
@@ -281,7 +282,7 @@ contract Pool is Bronze, Token, Math {
         } else if (balance < oldBalance) {
             // In this case liquidity is being withdrawn, so charge EXIT_FEE
             uint tokenBalanceWithdrawn = oldBalance - balance;
-            uint tokenExitFee = bmul(tokenBalanceWithdrawn, KassandraConstants.EXIT_FEE);
+            uint tokenExitFee = KassandraSafeMath.bmul(tokenBalanceWithdrawn, KassandraConstants.EXIT_FEE);
             _pushUnderlying(token, msg.sender, tokenBalanceWithdrawn - tokenExitFee);
             _pushUnderlying(token, _factory, tokenExitFee);
         }
@@ -298,7 +299,7 @@ contract Pool is Bronze, Token, Math {
         require(!_finalized, "ERR_IS_FINALIZED");
 
         uint tokenBalance = _records[token].balance;
-        uint tokenExitFee = bmul(tokenBalance, KassandraConstants.EXIT_FEE);
+        uint tokenExitFee = KassandraSafeMath.bmul(tokenBalance, KassandraConstants.EXIT_FEE);
 
         _totalWeight -= _records[token].denorm;
 
@@ -362,13 +363,13 @@ contract Pool is Bronze, Token, Math {
         require(_finalized, "ERR_NOT_FINALIZED");
 
         uint poolTotal = totalSupply();
-        uint ratio = bdiv(poolAmountOut, poolTotal);
+        uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         for (uint i = 0; i < _tokens.length; i++) {
             address t = _tokens[i];
             uint bal = _records[t].balance;
-            uint tokenAmountIn = bmul(ratio, bal);
+            uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal);
             require(tokenAmountIn != 0, "ERR_MATH_APPROX");
             require(tokenAmountIn <= maxAmountsIn[i], "ERR_LIMIT_IN");
             _records[t].balance += tokenAmountIn;
@@ -387,9 +388,9 @@ contract Pool is Bronze, Token, Math {
         require(_finalized, "ERR_NOT_FINALIZED");
 
         uint poolTotal = totalSupply();
-        uint exitFee = bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
         uint pAiAfterExitFee = poolAmountIn - exitFee;
-        uint ratio = bdiv(pAiAfterExitFee, poolTotal);
+        uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         _pullPoolShare(msg.sender, poolAmountIn);
@@ -399,7 +400,7 @@ contract Pool is Bronze, Token, Math {
         for (uint i = 0; i < _tokens.length; i++) {
             address t = _tokens[i];
             uint bal = _records[t].balance;
-            uint tokenAmountOut = bmul(ratio, bal);
+            uint tokenAmountOut = KassandraSafeMath.bmul(ratio, bal);
             require(tokenAmountOut != 0, "ERR_MATH_APPROX");
             require(tokenAmountOut >= minAmountsOut[i], "ERR_LIMIT_OUT");
             _records[t].balance -= tokenAmountOut;
@@ -430,7 +431,7 @@ contract Pool is Bronze, Token, Math {
         Record storage inRecord = _records[address(tokenIn)];
         Record storage outRecord = _records[address(tokenOut)];
 
-        require(tokenAmountIn <= bmul(inRecord.balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
+        require(tokenAmountIn <= KassandraSafeMath.bmul(inRecord.balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
 
         uint spotPriceBefore = calcSpotPrice(
                                     inRecord.balance,
@@ -463,7 +464,7 @@ contract Pool is Bronze, Token, Math {
                             );
         require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
         require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
-        require(spotPriceBefore <= bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
+        require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
 
         emit LOG_SWAP(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
 
@@ -492,7 +493,7 @@ contract Pool is Bronze, Token, Math {
         Record storage inRecord = _records[address(tokenIn)];
         Record storage outRecord = _records[address(tokenOut)];
 
-        require(tokenAmountOut <= bmul(outRecord.balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO");
+        require(tokenAmountOut <= KassandraSafeMath.bmul(outRecord.balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO");
 
         uint spotPriceBefore = calcSpotPrice(
                                     inRecord.balance,
@@ -525,7 +526,7 @@ contract Pool is Bronze, Token, Math {
                             );
         require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
         require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
-        require(spotPriceBefore <= bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
+        require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
 
         emit LOG_SWAP(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
 
@@ -545,7 +546,7 @@ contract Pool is Bronze, Token, Math {
     {
         require(_finalized, "ERR_NOT_FINALIZED");
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-        require(tokenAmountIn <= bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
+        require(tokenAmountIn <= KassandraSafeMath.bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
 
         Record storage inRecord = _records[tokenIn];
 
@@ -594,7 +595,7 @@ contract Pool is Bronze, Token, Math {
         require(tokenAmountIn != 0, "ERR_MATH_APPROX");
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
 
-        require(tokenAmountIn <= bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
+        require(tokenAmountIn <= KassandraSafeMath.bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
 
         inRecord.balance += tokenAmountIn;
 
@@ -630,12 +631,12 @@ contract Pool is Bronze, Token, Math {
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
 
         require(
-            tokenAmountOut <= bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO"
+            tokenAmountOut <= KassandraSafeMath.bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO"
         );
 
         outRecord.balance -= tokenAmountOut;
 
-        uint exitFee = bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
 
         emit LOG_EXIT(msg.sender, tokenOut, tokenAmountOut);
 
@@ -657,7 +658,7 @@ contract Pool is Bronze, Token, Math {
         require(_finalized, "ERR_NOT_FINALIZED");
         require(_records[tokenOut].bound, "ERR_NOT_BOUND");
         require(
-            tokenAmountOut <= bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO"
+            tokenAmountOut <= KassandraSafeMath.bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO"
         );
 
         Record storage outRecord = _records[tokenOut];
@@ -676,7 +677,7 @@ contract Pool is Bronze, Token, Math {
 
         outRecord.balance -= tokenAmountOut;
 
-        uint exitFee = bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
 
         emit LOG_EXIT(msg.sender, tokenOut, tokenAmountOut);
 

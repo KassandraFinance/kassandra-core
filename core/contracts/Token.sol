@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "./Num.sol";
-
 // Highly opinionated token implementation
 
 interface IERC20 {
@@ -20,7 +18,7 @@ interface IERC20 {
     ) external returns (bool);
 }
 
-abstract contract TokenBase is Num, IERC20 {
+abstract contract TokenBase is IERC20 {
 
     mapping(address => uint)                   internal _balance;
     mapping(address => mapping(address=>uint)) internal _allowance;
