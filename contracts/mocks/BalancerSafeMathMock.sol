@@ -35,4 +35,8 @@ contract KassandraSafeMathMock {
     function baverage(uint a, uint b) external pure returns (uint) {
         return KassandraSafeMath.baverage(a, b);
     }
+
+    function bpow(uint a, uint b) external pure returns (uint) {
+        return KassandraSafeMath.bpow(a, b);
+    }
 }

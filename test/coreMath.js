@@ -80,6 +80,13 @@ contract('Test Math', async () => {
         });
     });
 
+    describe('power', () => {
+        it('bpow throws on base outside range', async () => {
+            await truffleAssert.reverts(bMath.calc_bpow(0, 2), 'ERR_BPOW_BASE_TOO_LOW');
+            await truffleAssert.reverts(bMath.calc_bpow(MAX, 2), 'ERR_BPOW_BASE_TOO_HIGH');
+        });
+    });
+
     describe('Exact math', async () => {
         async function testCommutative(fn, lhs, rhs, expected) {
             expect(await fn(lhs, rhs)).to.be.bignumber.equal(expected);
