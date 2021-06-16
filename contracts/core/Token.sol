@@ -1,25 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
+import "../../interfaces/IERC20.sol";
 // Highly opinionated token implementation
 
-interface IERC20 {
-    event Approval(address indexed src, address indexed dst, uint amt);
-    event Transfer(address indexed src, address indexed dst, uint amt);
-
-    function totalSupply() external view returns (uint);
-    function balanceOf(address whom) external view returns (uint);
-    function allowance(address src, address dst) external view returns (uint);
-
-    function approve(address dst, uint amt) external returns (bool);
-    function transfer(address dst, uint amt) external returns (bool);
-    function transferFrom(
-        address src, address dst, uint amt
-    ) external returns (bool);
-}
-
 abstract contract TokenBase is IERC20 {
-
     mapping(address => uint)                   internal _balance;
     mapping(address => mapping(address=>uint)) internal _allowance;
     uint internal _totalSupply;
@@ -54,7 +39,6 @@ abstract contract TokenBase is IERC20 {
 }
 
 contract Token is TokenBase {
-
     string  private _name     = "Kassandra Pool Token";
     string  private _symbol   = "KPT";
     uint8   private _decimals = 18;
