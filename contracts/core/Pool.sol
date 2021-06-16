@@ -5,8 +5,8 @@ import "./Color.sol";
 import "./Token.sol";
 import "./Math.sol";
 
-import "../../libraries/BalancerConstants.sol";
-import "../../libraries/BalancerSafeMath.sol";
+import "../../libraries/KassandraConstants.sol";
+import "../../libraries/KassandraSafeMath.sol";
 
 contract Pool is Bronze, Token, Math {
     struct Record {

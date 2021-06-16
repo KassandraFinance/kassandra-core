@@ -2,13 +2,12 @@ const RightsManager = artifacts.require('RightsManager');
 const SmartPoolManager = artifacts.require('SmartPoolManager');
 const CRPFactory = artifacts.require('CRPFactory');
 const ESPFactory = artifacts.require('ESPFactory');
-const BFactory = artifacts.require('BFactory');
-const KassandraSafeMath = artifacts.require('BalancerSafeMath');
-const KassandraSafeMathMock = artifacts.require('BalancerSafeMathMock');
+const Factory = artifacts.require('Factory');
+const KassandraSafeMath = artifacts.require('KassandraSafeMath');
+const KassandraSafeMathMock = artifacts.require('KassandraSafeMathMock');
 
 module.exports = async function (deployer, network, accounts) {
     if (network === 'development' || network === 'coverage') {
-        await deployer.deploy(BFactory);
         await deployer.deploy(KassandraSafeMathMock);
     }
 
@@ -20,6 +19,7 @@ module.exports = async function (deployer, network, accounts) {
     deployer.link(RightsManager, CRPFactory);
     deployer.link(SmartPoolManager, CRPFactory);
 
+    await deployer.deploy(Factory);
     await deployer.deploy(CRPFactory);
 
     if (network === 'development' || network === 'coverage') {

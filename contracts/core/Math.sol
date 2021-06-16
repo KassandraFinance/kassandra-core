@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "../../libraries/BalancerConstants.sol";
-import "../../libraries/BalancerSafeMath.sol";
+import "../../libraries/KassandraConstants.sol";
+import "../../libraries/KassandraSafeMath.sol";
 
 abstract contract Math {
     using KassandraSafeMath for uint;

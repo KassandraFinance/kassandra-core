@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 // Imports
 
-import "./BalancerConstants.sol";
+import "./KassandraConstants.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)

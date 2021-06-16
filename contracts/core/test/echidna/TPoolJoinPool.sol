@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import "../../../../libraries/BalancerSafeMath.sol";
+import "../../../../libraries/KassandraSafeMath.sol";
 
 pragma solidity ^0.8.0;
 

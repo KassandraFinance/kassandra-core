@@ -1,6 +1,6 @@
 /* eslint-env es6 */
 
-const KassandraSafeMathMock = artifacts.require('BalancerSafeMathMock');
+const KassandraSafeMathMock = artifacts.require('KassandraSafeMathMock');
 const { BN, constants, expectRevert } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
 const truffleAssert = require('truffle-assertions');

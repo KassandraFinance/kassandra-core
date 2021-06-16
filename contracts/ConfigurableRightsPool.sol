@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 
 import "./IBFactory.sol";
 import "./PCToken.sol";
-import "./utils/BalancerReentrancyGuard.sol";
-import "./utils/BalancerOwnable.sol";
+import "./utils/ReentrancyGuard.sol";
+import "./utils/Ownable.sol";
 
 // Interfaces
 
