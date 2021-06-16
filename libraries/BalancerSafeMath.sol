@@ -102,7 +102,7 @@ library KassandraSafeMath {
      * @return - the maximum of a and b
      */
     function bmax(uint a, uint b) internal pure returns (uint) {
-        return a >= b ? a : b;
+        return a > b ? a : b;
     }
 
     /**
