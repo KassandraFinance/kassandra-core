@@ -1,12 +1,12 @@
 /* eslint-env es6 */
 
-const BFactory = artifacts.require('BFactory');
+const BFactory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 const { assert } = require('chai');
-const BPool = artifacts.require('BPool')
+const BPool = artifacts.require('Pool')
 const { time } = require('@openzeppelin/test-helpers');
 const { calcInGivenOut, calcOutGivenIn, calcRelativeDiff } = require('../lib/calc_comparisons');
 const Decimal = require('decimal.js');

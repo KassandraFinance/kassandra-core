@@ -1,10 +1,10 @@
 /* eslint-env es6 */
 
-const BFactory = artifacts.require('BFactory');
+const BFactory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
-const BPool = artifacts.require('BPool');
+const BPool = artifacts.require('Pool');
 const truffleAssert = require('truffle-assertions');
 const { time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');

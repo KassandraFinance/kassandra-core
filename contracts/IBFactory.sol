@@ -15,8 +15,6 @@ interface IBPool {
     function isPublicSwap() external view returns (bool);
     function getDenormalizedWeight(address token) external view returns (uint);
     function getTotalDenormalizedWeight() external view returns (uint);
-    // solhint-disable-next-line func-name-mixedcase
-    function EXIT_FEE() external view returns (uint);
 
     function calcPoolOutGivenSingleIn(
         uint tokenBalanceIn,
@@ -68,9 +66,9 @@ interface IBPool {
 }
 
 interface IBFactory {
-    function newBPool() external returns (IBPool);
-    function setBLabs(address b) external;
+    function newPool() external returns (IBPool);
+    function setController(address b) external;
     function collect(IBPool pool) external;
-    function isBPool(address b) external view returns (bool);
-    function getBLabs() external view returns (address);
+    function isPool(address b) external view returns (bool);
+    function getController() external view returns (address);
 }

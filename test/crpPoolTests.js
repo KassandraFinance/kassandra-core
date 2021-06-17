@@ -1,7 +1,7 @@
 /* eslint-env es6 */
 
-const BFactory = artifacts.require('BFactory');
-const BPool = artifacts.require('BPool');
+const BFactory = artifacts.require('Factory');
+const BPool = artifacts.require('Pool');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
@@ -323,7 +323,7 @@ contract('crpPoolTests', async (accounts) => {
     it('JoinPool should revert if user does not have allowance to join pool', async () => {
         await truffleAssert.reverts(
             crpPool.joinPool(toWei('1'), [MAX, MAX, MAX], { from: user1 }),
-            'ERR_BTOKEN_BAD_CALLER',
+            'ERR_TOKEN_BAD_CALLER',
         );
     });
 
