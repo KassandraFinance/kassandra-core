@@ -3,6 +3,9 @@ cache
 node_modules
 .idea/*
 .env
+.coverage*/
 coverage.json
 coverage/
 yarn-error.log
+crytic-export
+mcore_*
