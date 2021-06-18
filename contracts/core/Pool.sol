@@ -4,10 +4,12 @@ pragma solidity ^0.8.0;
 import "./Token.sol";
 import "./Math.sol";
 
+import "../utils/Ownable.sol";
+
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
-contract Pool is Token, Math {
+contract Pool is Ownable, Token, Math {
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private
@@ -18,7 +20,6 @@ contract Pool is Token, Math {
     bool private _mutex;
 
     address private _factory;    // Factory address to push token exitFee to
-    address private _controller; // has CONTROL role
     bool private _publicSwap; // true if PUBLIC can call SWAP functions
 
     // `setSwapFee` and `finalize` require CONTROL
@@ -74,7 +75,6 @@ contract Pool is Token, Math {
     }
 
     constructor() {
-        _controller = msg.sender;
         _factory = msg.sender;
         _swapFee = KassandraConstants.MIN_FEE;
         _publicSwap = false;
@@ -83,41 +83,32 @@ contract Pool is Token, Math {
 
     function setSwapFee(uint swapFee)
         external
+        onlyOwner
         _logs_
         _lock_
     {
         require(!_finalized, "ERR_IS_FINALIZED");
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         require(swapFee >= KassandraConstants.MIN_FEE, "ERR_MIN_FEE");
         require(swapFee <= KassandraConstants.MAX_FEE, "ERR_MAX_FEE");
         _swapFee = swapFee;
     }
 
-    function setController(address manager)
-        external
-        _logs_
-        _lock_
-    {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        _controller = manager;
-    }
-
     function setPublicSwap(bool public_)
         external
+        onlyOwner
         _logs_
         _lock_
     {
         require(!_finalized, "ERR_IS_FINALIZED");
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         _publicSwap = public_;
     }
 
     function finalize()
         external
+        onlyOwner
         _logs_
         _lock_
     {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         require(!_finalized, "ERR_IS_FINALIZED");
         require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
 
@@ -130,10 +121,10 @@ contract Pool is Token, Math {
 
     function bind(address token, uint balance, uint denorm)
         external
+        onlyOwner
         _logs_
         // _lock_  Bind does not lock because it jumps to `rebind`, which does
     {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         require(!_records[token].bound, "ERR_IS_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
 
@@ -151,11 +142,10 @@ contract Pool is Token, Math {
 
     function unbind(address token)
         external
+        onlyOwner
         _logs_
         _lock_
     {
-
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
 
@@ -625,14 +615,6 @@ contract Pool is Token, Math {
         return _swapFee;
     }
 
-    function getController()
-        external view
-        _viewlock_
-        returns (address)
-    {
-        return _controller;
-    }
-
     function getSpotPrice(address tokenIn, address tokenOut)
         external view
         _viewlock_
@@ -659,10 +641,10 @@ contract Pool is Token, Math {
 
     function rebind(address token, uint balance, uint denorm)
         public
+        onlyOwner
         _logs_
         _lock_
     {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
 
