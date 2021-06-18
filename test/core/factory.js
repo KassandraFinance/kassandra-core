@@ -49,11 +49,6 @@ contract('Factory', async (accounts) => {
             await dai.approve(POOL, MAX, { from: nonAdmin });
         });
 
-        it('Factory is bronze release', async () => {
-            const color = await factory.getColor();
-            assert.equal(hexToUtf8(color), 'BRONZE');
-        });
-
         it('isPool on non pool returns false', async () => {
             const isPool = await factory.isPool(admin);
             assert.isFalse(isPool);

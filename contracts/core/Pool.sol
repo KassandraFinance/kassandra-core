@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "./Color.sol";
 import "./Token.sol";
 import "./Math.sol";
 
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
-contract Pool is Bronze, Token, Math {
+contract Pool is Token, Math {
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private

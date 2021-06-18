@@ -9,7 +9,7 @@ import "./Pool.sol";
 /**
  * @title Pool Factory
  */
-contract Factory is Bronze {
+contract Factory {
     /**
      * @dev Every new pool gets broadcast of its creation
      *
