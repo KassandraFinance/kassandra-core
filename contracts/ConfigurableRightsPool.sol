@@ -91,6 +91,14 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     // Limits the risk of experimental pools; failsafe/backup for fixed-size pools
     uint public bspCap;
 
+    // Default values for these variables (used only in updateWeightsGradually), set in the constructor
+    // Pools without permission to update weights cannot use them anyway, and should call
+    //   the default createPool() function.
+    // To override these defaults, pass them into the overloaded createPool()
+    // Period is in blocks; 500 blocks ~ 2 hours; 90,000 blocks ~ 2 weeks
+    uint public constant DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD = 90000;
+    uint public constant DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS = 500;
+
     // Event declarations
 
     // Anonymous logger event - can only be filtered by contract address
@@ -146,14 +154,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _;
         bPool.setPublicSwap(origSwapState);
     }
-
-    // Default values for these variables (used only in updateWeightsGradually), set in the constructor
-    // Pools without permission to update weights cannot use them anyway, and should call
-    //   the default createPool() function.
-    // To override these defaults, pass them into the overloaded createPool()
-    // Period is in blocks; 500 blocks ~ 2 hours; 90,000 blocks ~ 2 weeks
-    uint public constant DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD = 90000;
-    uint public constant DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS = 500;
 
     // Function declarations
 
@@ -230,23 +230,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         // Underlying pool will check against min/max fee
         bPool.setSwapFee(swapFee);
-    }
-
-    /**
-     * @notice Getter for the publicSwap field on the underlying pool
-     * @dev viewLock, because setPublicSwap is lock
-     *      bPool is a contract interface; function calls on it are external
-     * @return Current value of isPublicSwap
-     */
-    function isPublicSwap()
-        external
-        view
-        viewlock
-        needsBPool
-        virtual
-        returns (bool)
-    {
-        return bPool.isPublicSwap();
     }
 
     /**
@@ -815,6 +798,23 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(provider != address(0), "ERR_INVALID_ADDRESS");
 
         _liquidityProviderWhitelist[provider] = false;
+    }
+
+    /**
+     * @notice Getter for the publicSwap field on the underlying pool
+     * @dev viewLock, because setPublicSwap is lock
+     *      bPool is a contract interface; function calls on it are external
+     * @return Current value of isPublicSwap
+     */
+    function isPublicSwap()
+        external
+        view
+        viewlock
+        needsBPool
+        virtual
+        returns (bool)
+    {
+        return bPool.isPublicSwap();
     }
 
     /**

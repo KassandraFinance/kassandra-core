@@ -13,25 +13,13 @@ contract BadToken {
     mapping(address => uint)                   internal _balance;
     mapping(address => mapping(address=>uint)) internal _allowance;
 
+    event Approval(address indexed src, address indexed dst, uint amt);
+    event Transfer(address indexed src, address indexed dst, uint amt);
+
     modifier _onlyOwner_() {
         require(msg.sender == _owner, "ERR_NOT_OWNER");
         _;
     }
-
-    event Approval(address indexed src, address indexed dst, uint amt);
-    event Transfer(address indexed src, address indexed dst, uint amt);
-
-    /* solhint-disable private-vars-leading-underscore */
-
-    // Math
-    function add(uint a, uint b) internal pure returns (uint c) {
-        require((c = a + b) >= a, "ERR_ADD");
-    }
-    function sub(uint a, uint b) internal pure returns (uint c) {
-        require((c = a - b) <= a, "ERR_SUB");
-    }
-
-    /* solhint-disable func-order */
 
     constructor(
         string memory name_,
@@ -43,6 +31,8 @@ contract BadToken {
         _decimals = decimals_;
         _owner = msg.sender;
     }
+
+    /* solhint-disable ordering */
 
     function name() public view returns (string memory) {
         return _name;
@@ -61,8 +51,8 @@ contract BadToken {
         //require(amt > 0, "ERR_NO_ZERO_XFER");
 
         require(_balance[src] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[src] = sub(_balance[src], amt);
-        _balance[dst] = add(_balance[dst], amt);
+        _balance[src] = _balance[src] - amt;
+        _balance[dst] = _balance[dst] + amt;
         emit Transfer(src, dst, amt);
     }
 
@@ -75,8 +65,8 @@ contract BadToken {
     }
 
     function _mint(address dst, uint amt) internal {
-        _balance[dst] = add(_balance[dst], amt);
-        _totalSupply = add(_totalSupply, amt);
+        _balance[dst] = _balance[dst] + amt;
+        _totalSupply = _totalSupply + amt;
         emit Transfer(address(0), dst, amt);
     }
 
@@ -108,8 +98,8 @@ contract BadToken {
 
     function burn(uint amt) public returns (bool) {
         require(_balance[address(this)] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[address(this)] = sub(_balance[address(this)], amt);
-        _totalSupply = sub(_totalSupply, amt);
+        _balance[address(this)] = _balance[address(this)] - amt;
+        _totalSupply = _totalSupply - amt;
         emit Transfer(address(this), address(0), amt);
         return true;
     }
@@ -123,11 +113,12 @@ contract BadToken {
         require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
         _move(src, dst, amt);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
-            _allowance[src][msg.sender] = sub(_allowance[src][msg.sender], amt);
+            _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt;
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
         return true;
     }
+    /* solhint-enable ordering */
 }
 
 /* solhint-disable no-empty-blocks */
@@ -147,8 +138,8 @@ contract NoZeroXferToken is BadToken {
         require(amt > 0, "ERR_NO_ZERO_XFER");
 
         require(_balance[src] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[src] = sub(_balance[src], amt);
-        _balance[dst] = add(_balance[dst], amt);
+        _balance[src] = _balance[src] - amt;
+        _balance[dst] = _balance[dst] + amt;
         emit Transfer(src, dst, amt);
     }
 }
@@ -192,7 +183,7 @@ contract FalseReturningToken is BadToken {
         require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
         _move(src, dst, amt);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
-            _allowance[src][msg.sender] = sub(_allowance[src][msg.sender], amt);
+            _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt;
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
 
@@ -219,7 +210,7 @@ contract TaxingToken is BadToken {
         require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
         _move(src, dst, amt - 1);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
-            _allowance[src][msg.sender] = sub(_allowance[src][msg.sender], amt - 1);
+            _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt - 1;
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
         return true;

@@ -74,75 +74,6 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
     // External functions
 
     /**
-     * @notice ElasticSupply pools don't have updateWeightsGradually, so cannot call this
-     * param initialSupply starting token balance
-     * param minimumWeightChangeBlockPeriod - Enforce a minimum time between the start and end blocks
-     * param addTokenTimeLockInBlocks - Enforce a mandatory wait time between updates
-     *                                   This is also the wait time between committing and applying a new token
-     */
-    function createPool(
-        uint, // initialSupply
-        uint, // minimumWeightChangeBlockPeriod
-        uint // addTokenTimeLockInBlocks
-    )
-        external
-        pure
-        override
-    {
-        revert("ERR_UNSUPPORTED_OPERATION");
-    }
-
-    /**
-     * @notice Update the weight of an existing token - cannot do this in ElasticSupplyPools
-     * param token - token to be reweighted
-     * param newWeight - new weight of the token
-    */
-    function updateWeight(
-        address, // token
-        uint // newWeight
-    )
-        external
-        pure
-        override
-    {
-        revert("ERR_UNSUPPORTED_OPERATION");
-    }
-
-    /**
-     * @notice Update weights in a predetermined way, between startBlock and endBlock,
-     *         through external calls to pokeWeights -- cannot do this in ElasticSupplyPools
-     * @dev Makes sure we aren't already in a weight update scheme
-     *      Must call pokeWeights at least once past the end for it to do the final update
-     *      and enable calling this again. (Could make this check for that case, but unwarranted complexity.)
-     * param newWeights - final weights we want to get to
-     * param startBlock - when weights should start to change
-     * param endBlock - when weights will be at their final values
-    */
-    function updateWeightsGradually(
-        uint[] calldata, // newWeights
-        uint, // startBlock
-        uint // endBlock
-    )
-        external
-        pure
-        override
-    {
-        revert("ERR_UNSUPPORTED_OPERATION");
-    }
-
-    /**
-     * @notice External function called to make the contract update weights according to plan
-     *         Unsupported in ElasticSupplyPools
-    */
-    function pokeWeights()
-        external
-        pure
-        override
-    {
-        revert("ERR_UNSUPPORTED_OPERATION");
-    }
-
-    /**
      * @notice Update the weight of a token without changing the price (or transferring tokens)
      * @param token The address of the token in the underlying BPool to be weight adjusted.
      * @dev Checks if the token's current pool balance has deviated from cached balance,
@@ -210,5 +141,74 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
                 IBPool(address(bPool)).rebind(tokens[i], otherBalance, otherWeightAfter);
             }
         }
+    }
+    
+    /**
+     * @notice ElasticSupply pools don't have updateWeightsGradually, so cannot call this
+     * param initialSupply starting token balance
+     * param minimumWeightChangeBlockPeriod - Enforce a minimum time between the start and end blocks
+     * param addTokenTimeLockInBlocks - Enforce a mandatory wait time between updates
+     *                                   This is also the wait time between committing and applying a new token
+     */
+    function createPool(
+        uint, // initialSupply
+        uint, // minimumWeightChangeBlockPeriod
+        uint // addTokenTimeLockInBlocks
+    )
+        external
+        pure
+        override
+    {
+        revert("ERR_UNSUPPORTED_OPERATION");
+    }
+
+    /**
+     * @notice Update the weight of an existing token - cannot do this in ElasticSupplyPools
+     * param token - token to be reweighted
+     * param newWeight - new weight of the token
+    */
+    function updateWeight(
+        address, // token
+        uint // newWeight
+    )
+        external
+        pure
+        override
+    {
+        revert("ERR_UNSUPPORTED_OPERATION");
+    }
+
+    /**
+     * @notice Update weights in a predetermined way, between startBlock and endBlock,
+     *         through external calls to pokeWeights -- cannot do this in ElasticSupplyPools
+     * @dev Makes sure we aren't already in a weight update scheme
+     *      Must call pokeWeights at least once past the end for it to do the final update
+     *      and enable calling this again. (Could make this check for that case, but unwarranted complexity.)
+     * param newWeights - final weights we want to get to
+     * param startBlock - when weights should start to change
+     * param endBlock - when weights will be at their final values
+    */
+    function updateWeightsGradually(
+        uint[] calldata, // newWeights
+        uint, // startBlock
+        uint // endBlock
+    )
+        external
+        pure
+        override
+    {
+        revert("ERR_UNSUPPORTED_OPERATION");
+    }
+
+    /**
+     * @notice External function called to make the contract update weights according to plan
+     *         Unsupported in ElasticSupplyPools
+    */
+    function pokeWeights()
+        external
+        pure
+        override
+    {
+        revert("ERR_UNSUPPORTED_OPERATION");
     }
 }

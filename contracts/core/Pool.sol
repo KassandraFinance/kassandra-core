@@ -15,49 +15,6 @@ contract Pool is Token, Math {
         uint balance;
     }
 
-    event LOG_SWAP(
-        address indexed caller,
-        address indexed tokenIn,
-        address indexed tokenOut,
-        uint256         tokenAmountIn,
-        uint256         tokenAmountOut
-    );
-
-    event LOG_JOIN(
-        address indexed caller,
-        address indexed tokenIn,
-        uint256         tokenAmountIn
-    );
-
-    event LOG_EXIT(
-        address indexed caller,
-        address indexed tokenOut,
-        uint256         tokenAmountOut
-    );
-
-    event LOG_CALL(
-        bytes4  indexed sig,
-        address indexed caller,
-        bytes           data
-    ) anonymous;
-
-    modifier _logs_() {
-        emit LOG_CALL(msg.sig, msg.sender, msg.data);
-        _;
-    }
-
-    modifier _lock_() {
-        require(!_mutex, "ERR_REENTRY");
-        _mutex = true;
-        _;
-        _mutex = false;
-    }
-
-    modifier _viewlock_() {
-        require(!_mutex, "ERR_REENTRY");
-        _;
-    }
-
     bool private _mutex;
 
     address private _factory;    // Factory address to push token exitFee to
@@ -73,12 +30,508 @@ contract Pool is Token, Math {
     mapping(address=>Record) private  _records;
     uint private _totalWeight;
 
+    event LogSwap(
+        address indexed caller,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint256         tokenAmountIn,
+        uint256         tokenAmountOut
+    );
+
+    event LogJoin(
+        address indexed caller,
+        address indexed tokenIn,
+        uint256         tokenAmountIn
+    );
+
+    event LogExit(
+        address indexed caller,
+        address indexed tokenOut,
+        uint256         tokenAmountOut
+    );
+
+    event LogCall(
+        bytes4  indexed sig,
+        address indexed caller,
+        bytes           data
+    ) anonymous;
+
+    modifier _logs_() {
+        emit LogCall(msg.sig, msg.sender, msg.data);
+        _;
+    }
+
+    modifier _lock_() {
+        require(!_mutex, "ERR_REENTRY");
+        _mutex = true;
+        _;
+        _mutex = false;
+    }
+
+    modifier _viewlock_() {
+        require(!_mutex, "ERR_REENTRY");
+        _;
+    }
+
     constructor() {
         _controller = msg.sender;
         _factory = msg.sender;
         _swapFee = KassandraConstants.MIN_FEE;
         _publicSwap = false;
         _finalized = false;
+    }
+
+    function setSwapFee(uint swapFee)
+        external
+        _logs_
+        _lock_
+    {
+        require(!_finalized, "ERR_IS_FINALIZED");
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        require(swapFee >= KassandraConstants.MIN_FEE, "ERR_MIN_FEE");
+        require(swapFee <= KassandraConstants.MAX_FEE, "ERR_MAX_FEE");
+        _swapFee = swapFee;
+    }
+
+    function setController(address manager)
+        external
+        _logs_
+        _lock_
+    {
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        _controller = manager;
+    }
+
+    function setPublicSwap(bool public_)
+        external
+        _logs_
+        _lock_
+    {
+        require(!_finalized, "ERR_IS_FINALIZED");
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        _publicSwap = public_;
+    }
+
+    function finalize()
+        external
+        _logs_
+        _lock_
+    {
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        require(!_finalized, "ERR_IS_FINALIZED");
+        require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
+
+        _finalized = true;
+        _publicSwap = true;
+
+        _mintPoolShare(KassandraConstants.INIT_POOL_SUPPLY);
+        _pushPoolShare(msg.sender, KassandraConstants.INIT_POOL_SUPPLY);
+    }
+
+    function bind(address token, uint balance, uint denorm)
+        external
+        _logs_
+        // _lock_  Bind does not lock because it jumps to `rebind`, which does
+    {
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        require(!_records[token].bound, "ERR_IS_BOUND");
+        require(!_finalized, "ERR_IS_FINALIZED");
+
+        require(_tokens.length < KassandraConstants.MAX_ASSET_LIMIT, "ERR_MAX_TOKENS");
+
+        _records[token] = Record({
+            bound: true,
+            index: _tokens.length,
+            denorm: 0,    // balance and denorm will be validated
+            balance: 0   // and set by `rebind`
+        });
+        _tokens.push(token);
+        rebind(token, balance, denorm);
+    }
+
+    function unbind(address token)
+        external
+        _logs_
+        _lock_
+    {
+
+        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
+        require(_records[token].bound, "ERR_NOT_BOUND");
+        require(!_finalized, "ERR_IS_FINALIZED");
+
+        uint tokenBalance = _records[token].balance;
+        uint tokenExitFee = KassandraSafeMath.bmul(tokenBalance, KassandraConstants.EXIT_FEE);
+
+        _totalWeight -= _records[token].denorm;
+
+        // Swap the token-to-unbind with the last token,
+        // then delete the last token
+        uint index = _records[token].index;
+        uint last = _tokens.length - 1;
+        _tokens[index] = _tokens[last];
+        _records[_tokens[index]].index = index;
+        _tokens.pop();
+        _records[token] = Record({
+            bound: false,
+            index: 0,
+            denorm: 0,
+            balance: 0
+        });
+
+        _pushUnderlying(token, msg.sender, tokenBalance - tokenExitFee);
+        _pushUnderlying(token, _factory, tokenExitFee);
+    }
+
+    // Absorb any tokens that have been sent to this contract into the pool
+    function gulp(address token)
+        external
+        _logs_
+        _lock_
+    {
+        require(_records[token].bound, "ERR_NOT_BOUND");
+        _records[token].balance = IERC20(token).balanceOf(address(this));
+    }
+
+    function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
+        external
+        _logs_
+        _lock_
+    {
+        require(_finalized, "ERR_NOT_FINALIZED");
+
+        uint poolTotal = totalSupply();
+        uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal);
+        require(ratio != 0, "ERR_MATH_APPROX");
+
+        for (uint i = 0; i < _tokens.length; i++) {
+            address t = _tokens[i];
+            uint bal = _records[t].balance;
+            uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal);
+            require(tokenAmountIn != 0, "ERR_MATH_APPROX");
+            require(tokenAmountIn <= maxAmountsIn[i], "ERR_LIMIT_IN");
+            _records[t].balance += tokenAmountIn;
+            emit LogJoin(msg.sender, t, tokenAmountIn);
+            _pullUnderlying(t, msg.sender, tokenAmountIn);
+        }
+        _mintPoolShare(poolAmountOut);
+        _pushPoolShare(msg.sender, poolAmountOut);
+    }
+
+    function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
+        external
+        _logs_
+        _lock_
+    {
+        require(_finalized, "ERR_NOT_FINALIZED");
+
+        uint poolTotal = totalSupply();
+        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint pAiAfterExitFee = poolAmountIn - exitFee;
+        uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal);
+        require(ratio != 0, "ERR_MATH_APPROX");
+
+        _pullPoolShare(msg.sender, poolAmountIn);
+        _pushPoolShare(_factory, exitFee);
+        _burnPoolShare(pAiAfterExitFee);
+
+        for (uint i = 0; i < _tokens.length; i++) {
+            address t = _tokens[i];
+            uint bal = _records[t].balance;
+            uint tokenAmountOut = KassandraSafeMath.bmul(ratio, bal);
+            require(tokenAmountOut != 0, "ERR_MATH_APPROX");
+            require(tokenAmountOut >= minAmountsOut[i], "ERR_LIMIT_OUT");
+            _records[t].balance -= tokenAmountOut;
+            emit LogExit(msg.sender, t, tokenAmountOut);
+            _pushUnderlying(t, msg.sender, tokenAmountOut);
+        }
+
+    }
+
+
+    function swapExactAmountIn(
+        address tokenIn,
+        uint tokenAmountIn,
+        address tokenOut,
+        uint minAmountOut,
+        uint maxPrice
+    )
+        external
+        _logs_
+        _lock_
+        returns (uint tokenAmountOut, uint spotPriceAfter)
+    {
+        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
+        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
+        require(_publicSwap, "ERR_SWAP_NOT_PUBLIC");
+
+        Record storage inRecord = _records[address(tokenIn)];
+        Record storage outRecord = _records[address(tokenOut)];
+
+        require(
+            tokenAmountIn <= KassandraSafeMath.bmul(inRecord.balance, KassandraConstants.MAX_IN_RATIO),
+            "ERR_MAX_IN_RATIO"
+        );
+
+        uint spotPriceBefore = calcSpotPrice(
+                                    inRecord.balance,
+                                    inRecord.denorm,
+                                    outRecord.balance,
+                                    outRecord.denorm,
+                                    _swapFee
+                                );
+        require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
+
+        tokenAmountOut = calcOutGivenIn(
+                            inRecord.balance,
+                            inRecord.denorm,
+                            outRecord.balance,
+                            outRecord.denorm,
+                            tokenAmountIn,
+                            _swapFee
+                        );
+        require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
+
+        inRecord.balance += tokenAmountIn;
+        outRecord.balance -= tokenAmountOut;
+
+        spotPriceAfter = calcSpotPrice(
+                                inRecord.balance,
+                                inRecord.denorm,
+                                outRecord.balance,
+                                outRecord.denorm,
+                                _swapFee
+                            );
+        require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
+        require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
+        require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
+
+        emit LogSwap(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
+        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+        return (tokenAmountOut, spotPriceAfter);
+    }
+
+    function swapExactAmountOut(
+        address tokenIn,
+        uint maxAmountIn,
+        address tokenOut,
+        uint tokenAmountOut,
+        uint maxPrice
+    )
+        external
+        _logs_
+        _lock_
+        returns (uint tokenAmountIn, uint spotPriceAfter)
+    {
+        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
+        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
+        require(_publicSwap, "ERR_SWAP_NOT_PUBLIC");
+
+        Record storage inRecord = _records[address(tokenIn)];
+        Record storage outRecord = _records[address(tokenOut)];
+
+        require(
+            tokenAmountOut <= KassandraSafeMath.bmul(outRecord.balance, KassandraConstants.MAX_OUT_RATIO),
+            "ERR_MAX_OUT_RATIO"
+        );
+
+        uint spotPriceBefore = calcSpotPrice(
+                                    inRecord.balance,
+                                    inRecord.denorm,
+                                    outRecord.balance,
+                                    outRecord.denorm,
+                                    _swapFee
+                                );
+        require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
+
+        tokenAmountIn = calcInGivenOut(
+                            inRecord.balance,
+                            inRecord.denorm,
+                            outRecord.balance,
+                            outRecord.denorm,
+                            tokenAmountOut,
+                            _swapFee
+                        );
+        require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
+
+        inRecord.balance += tokenAmountIn;
+        outRecord.balance -= tokenAmountOut;
+
+        spotPriceAfter = calcSpotPrice(
+                                inRecord.balance,
+                                inRecord.denorm,
+                                outRecord.balance,
+                                outRecord.denorm,
+                                _swapFee
+                            );
+        require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
+        require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
+        require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
+
+        emit LogSwap(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
+        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+        return (tokenAmountIn, spotPriceAfter);
+    }
+
+
+    function joinswapExternAmountIn(address tokenIn, uint tokenAmountIn, uint minPoolAmountOut)
+        external
+        _logs_
+        _lock_
+        returns (uint poolAmountOut)
+
+    {
+        require(_finalized, "ERR_NOT_FINALIZED");
+        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
+        require(
+            tokenAmountIn <= KassandraSafeMath.bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO),
+            "ERR_MAX_IN_RATIO"
+        );
+
+        Record storage inRecord = _records[tokenIn];
+
+        poolAmountOut = calcPoolOutGivenSingleIn(
+                            inRecord.balance,
+                            inRecord.denorm,
+                            _totalSupply,
+                            _totalWeight,
+                            tokenAmountIn,
+                            _swapFee
+                        );
+
+        require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT");
+
+        inRecord.balance += tokenAmountIn;
+
+        emit LogJoin(msg.sender, tokenIn, tokenAmountIn);
+
+        _mintPoolShare(poolAmountOut);
+        _pushPoolShare(msg.sender, poolAmountOut);
+        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+
+        return poolAmountOut;
+    }
+
+    function joinswapPoolAmountOut(address tokenIn, uint poolAmountOut, uint maxAmountIn)
+        external
+        _logs_
+        _lock_
+        returns (uint tokenAmountIn)
+    {
+        require(_finalized, "ERR_NOT_FINALIZED");
+        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
+
+        Record storage inRecord = _records[tokenIn];
+
+        tokenAmountIn = calcSingleInGivenPoolOut(
+                            inRecord.balance,
+                            inRecord.denorm,
+                            _totalSupply,
+                            _totalWeight,
+                            poolAmountOut,
+                            _swapFee
+                        );
+
+        require(tokenAmountIn != 0, "ERR_MATH_APPROX");
+        require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
+
+        require(
+            tokenAmountIn <= KassandraSafeMath.bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO),
+            "ERR_MAX_IN_RATIO"
+        );
+
+        inRecord.balance += tokenAmountIn;
+
+        emit LogJoin(msg.sender, tokenIn, tokenAmountIn);
+
+        _mintPoolShare(poolAmountOut);
+        _pushPoolShare(msg.sender, poolAmountOut);
+        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+
+        return tokenAmountIn;
+    }
+
+    function exitswapPoolAmountIn(address tokenOut, uint poolAmountIn, uint minAmountOut)
+        external
+        _logs_
+        _lock_
+        returns (uint tokenAmountOut)
+    {
+        require(_finalized, "ERR_NOT_FINALIZED");
+        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
+
+        Record storage outRecord = _records[tokenOut];
+
+        tokenAmountOut = calcSingleOutGivenPoolIn(
+                            outRecord.balance,
+                            outRecord.denorm,
+                            _totalSupply,
+                            _totalWeight,
+                            poolAmountIn,
+                            _swapFee
+                        );
+
+        require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
+
+        require(
+            tokenAmountOut <= KassandraSafeMath.bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO),
+            "ERR_MAX_OUT_RATIO"
+        );
+
+        outRecord.balance -= tokenAmountOut;
+
+        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+
+        emit LogExit(msg.sender, tokenOut, tokenAmountOut);
+
+        _pullPoolShare(msg.sender, poolAmountIn);
+        _burnPoolShare(poolAmountIn - exitFee);
+        _pushPoolShare(_factory, exitFee);
+        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+
+        return tokenAmountOut;
+    }
+
+    function exitswapExternAmountOut(address tokenOut, uint tokenAmountOut, uint maxPoolAmountIn)
+        external
+        _logs_
+        _lock_
+        returns (uint poolAmountIn)
+    {
+        require(_finalized, "ERR_NOT_FINALIZED");
+        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
+        require(
+            tokenAmountOut <= KassandraSafeMath.bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO),
+            "ERR_MAX_OUT_RATIO"
+        );
+
+        Record storage outRecord = _records[tokenOut];
+
+        poolAmountIn = calcPoolInGivenSingleOut(
+                            outRecord.balance,
+                            outRecord.denorm,
+                            _totalSupply,
+                            _totalWeight,
+                            tokenAmountOut,
+                            _swapFee
+                        );
+
+        require(poolAmountIn != 0, "ERR_MATH_APPROX");
+        require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
+
+        outRecord.balance -= tokenAmountOut;
+
+        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+
+        emit LogExit(msg.sender, tokenOut, tokenAmountOut);
+
+        _pullPoolShare(msg.sender, poolAmountIn);
+        _burnPoolShare(poolAmountIn - exitFee);
+        _pushPoolShare(_factory, exitFee);
+        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+
+        return poolAmountIn;
     }
 
     function isPublicSwap()
@@ -180,73 +633,28 @@ contract Pool is Token, Math {
         return _controller;
     }
 
-    function setSwapFee(uint swapFee)
-        external
-        _logs_
-        _lock_
+    function getSpotPrice(address tokenIn, address tokenOut)
+        external view
+        _viewlock_
+        returns (uint spotPrice)
     {
-        require(!_finalized, "ERR_IS_FINALIZED");
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        require(swapFee >= KassandraConstants.MIN_FEE, "ERR_MIN_FEE");
-        require(swapFee <= KassandraConstants.MAX_FEE, "ERR_MAX_FEE");
-        _swapFee = swapFee;
+        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
+        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
+        Record storage inRecord = _records[tokenIn];
+        Record storage outRecord = _records[tokenOut];
+        return calcSpotPrice(inRecord.balance, inRecord.denorm, outRecord.balance, outRecord.denorm, _swapFee);
     }
 
-    function setController(address manager)
-        external
-        _logs_
-        _lock_
+    function getSpotPriceSansFee(address tokenIn, address tokenOut)
+        external view
+        _viewlock_
+        returns (uint spotPrice)
     {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        _controller = manager;
-    }
-
-    function setPublicSwap(bool public_)
-        external
-        _logs_
-        _lock_
-    {
-        require(!_finalized, "ERR_IS_FINALIZED");
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        _publicSwap = public_;
-    }
-
-    function finalize()
-        external
-        _logs_
-        _lock_
-    {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        require(!_finalized, "ERR_IS_FINALIZED");
-        require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
-
-        _finalized = true;
-        _publicSwap = true;
-
-        _mintPoolShare(KassandraConstants.INIT_POOL_SUPPLY);
-        _pushPoolShare(msg.sender, KassandraConstants.INIT_POOL_SUPPLY);
-    }
-
-
-    function bind(address token, uint balance, uint denorm)
-        external
-        _logs_
-        // _lock_  Bind does not lock because it jumps to `rebind`, which does
-    {
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        require(!_records[token].bound, "ERR_IS_BOUND");
-        require(!_finalized, "ERR_IS_FINALIZED");
-
-        require(_tokens.length < KassandraConstants.MAX_ASSET_LIMIT, "ERR_MAX_TOKENS");
-
-        _records[token] = Record({
-            bound: true,
-            index: _tokens.length,
-            denorm: 0,    // balance and denorm will be validated
-            balance: 0   // and set by `rebind`
-        });
-        _tokens.push(token);
-        rebind(token, balance, denorm);
+        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
+        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
+        Record storage inRecord = _records[tokenIn];
+        Record storage outRecord = _records[tokenOut];
+        return calcSpotPrice(inRecord.balance, inRecord.denorm, outRecord.balance, outRecord.denorm, 0);
     }
 
     function rebind(address token, uint balance, uint denorm)
@@ -254,7 +662,6 @@ contract Pool is Token, Math {
         _logs_
         _lock_
     {
-
         require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -286,408 +693,6 @@ contract Pool is Token, Math {
             _pushUnderlying(token, _factory, tokenExitFee);
         }
     }
-
-    function unbind(address token)
-        external
-        _logs_
-        _lock_
-    {
-
-        require(msg.sender == _controller, "ERR_NOT_CONTROLLER");
-        require(_records[token].bound, "ERR_NOT_BOUND");
-        require(!_finalized, "ERR_IS_FINALIZED");
-
-        uint tokenBalance = _records[token].balance;
-        uint tokenExitFee = KassandraSafeMath.bmul(tokenBalance, KassandraConstants.EXIT_FEE);
-
-        _totalWeight -= _records[token].denorm;
-
-        // Swap the token-to-unbind with the last token,
-        // then delete the last token
-        uint index = _records[token].index;
-        uint last = _tokens.length - 1;
-        _tokens[index] = _tokens[last];
-        _records[_tokens[index]].index = index;
-        _tokens.pop();
-        _records[token] = Record({
-            bound: false,
-            index: 0,
-            denorm: 0,
-            balance: 0
-        });
-
-        _pushUnderlying(token, msg.sender, tokenBalance - tokenExitFee);
-        _pushUnderlying(token, _factory, tokenExitFee);
-    }
-
-    // Absorb any tokens that have been sent to this contract into the pool
-    function gulp(address token)
-        external
-        _logs_
-        _lock_
-    {
-        require(_records[token].bound, "ERR_NOT_BOUND");
-        _records[token].balance = IERC20(token).balanceOf(address(this));
-    }
-
-    function getSpotPrice(address tokenIn, address tokenOut)
-        external view
-        _viewlock_
-        returns (uint spotPrice)
-    {
-        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
-        Record storage inRecord = _records[tokenIn];
-        Record storage outRecord = _records[tokenOut];
-        return calcSpotPrice(inRecord.balance, inRecord.denorm, outRecord.balance, outRecord.denorm, _swapFee);
-    }
-
-    function getSpotPriceSansFee(address tokenIn, address tokenOut)
-        external view
-        _viewlock_
-        returns (uint spotPrice)
-    {
-        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
-        Record storage inRecord = _records[tokenIn];
-        Record storage outRecord = _records[tokenOut];
-        return calcSpotPrice(inRecord.balance, inRecord.denorm, outRecord.balance, outRecord.denorm, 0);
-    }
-
-    function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
-        external
-        _logs_
-        _lock_
-    {
-        require(_finalized, "ERR_NOT_FINALIZED");
-
-        uint poolTotal = totalSupply();
-        uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal);
-        require(ratio != 0, "ERR_MATH_APPROX");
-
-        for (uint i = 0; i < _tokens.length; i++) {
-            address t = _tokens[i];
-            uint bal = _records[t].balance;
-            uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal);
-            require(tokenAmountIn != 0, "ERR_MATH_APPROX");
-            require(tokenAmountIn <= maxAmountsIn[i], "ERR_LIMIT_IN");
-            _records[t].balance += tokenAmountIn;
-            emit LOG_JOIN(msg.sender, t, tokenAmountIn);
-            _pullUnderlying(t, msg.sender, tokenAmountIn);
-        }
-        _mintPoolShare(poolAmountOut);
-        _pushPoolShare(msg.sender, poolAmountOut);
-    }
-
-    function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
-        external
-        _logs_
-        _lock_
-    {
-        require(_finalized, "ERR_NOT_FINALIZED");
-
-        uint poolTotal = totalSupply();
-        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
-        uint pAiAfterExitFee = poolAmountIn - exitFee;
-        uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal);
-        require(ratio != 0, "ERR_MATH_APPROX");
-
-        _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(_factory, exitFee);
-        _burnPoolShare(pAiAfterExitFee);
-
-        for (uint i = 0; i < _tokens.length; i++) {
-            address t = _tokens[i];
-            uint bal = _records[t].balance;
-            uint tokenAmountOut = KassandraSafeMath.bmul(ratio, bal);
-            require(tokenAmountOut != 0, "ERR_MATH_APPROX");
-            require(tokenAmountOut >= minAmountsOut[i], "ERR_LIMIT_OUT");
-            _records[t].balance -= tokenAmountOut;
-            emit LOG_EXIT(msg.sender, t, tokenAmountOut);
-            _pushUnderlying(t, msg.sender, tokenAmountOut);
-        }
-
-    }
-
-
-    function swapExactAmountIn(
-        address tokenIn,
-        uint tokenAmountIn,
-        address tokenOut,
-        uint minAmountOut,
-        uint maxPrice
-    )
-        external
-        _logs_
-        _lock_
-        returns (uint tokenAmountOut, uint spotPriceAfter)
-    {
-
-        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
-        require(_publicSwap, "ERR_SWAP_NOT_PUBLIC");
-
-        Record storage inRecord = _records[address(tokenIn)];
-        Record storage outRecord = _records[address(tokenOut)];
-
-        require(tokenAmountIn <= KassandraSafeMath.bmul(inRecord.balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
-
-        uint spotPriceBefore = calcSpotPrice(
-                                    inRecord.balance,
-                                    inRecord.denorm,
-                                    outRecord.balance,
-                                    outRecord.denorm,
-                                    _swapFee
-                                );
-        require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
-
-        tokenAmountOut = calcOutGivenIn(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            outRecord.balance,
-                            outRecord.denorm,
-                            tokenAmountIn,
-                            _swapFee
-                        );
-        require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
-
-        inRecord.balance += tokenAmountIn;
-        outRecord.balance -= tokenAmountOut;
-
-        spotPriceAfter = calcSpotPrice(
-                                inRecord.balance,
-                                inRecord.denorm,
-                                outRecord.balance,
-                                outRecord.denorm,
-                                _swapFee
-                            );
-        require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
-        require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
-        require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
-
-        emit LOG_SWAP(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
-
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return (tokenAmountOut, spotPriceAfter);
-    }
-
-    function swapExactAmountOut(
-        address tokenIn,
-        uint maxAmountIn,
-        address tokenOut,
-        uint tokenAmountOut,
-        uint maxPrice
-    )
-        external
-        _logs_
-        _lock_
-        returns (uint tokenAmountIn, uint spotPriceAfter)
-    {
-        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
-        require(_publicSwap, "ERR_SWAP_NOT_PUBLIC");
-
-        Record storage inRecord = _records[address(tokenIn)];
-        Record storage outRecord = _records[address(tokenOut)];
-
-        require(tokenAmountOut <= KassandraSafeMath.bmul(outRecord.balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO");
-
-        uint spotPriceBefore = calcSpotPrice(
-                                    inRecord.balance,
-                                    inRecord.denorm,
-                                    outRecord.balance,
-                                    outRecord.denorm,
-                                    _swapFee
-                                );
-        require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
-
-        tokenAmountIn = calcInGivenOut(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            outRecord.balance,
-                            outRecord.denorm,
-                            tokenAmountOut,
-                            _swapFee
-                        );
-        require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
-
-        inRecord.balance += tokenAmountIn;
-        outRecord.balance -= tokenAmountOut;
-
-        spotPriceAfter = calcSpotPrice(
-                                inRecord.balance,
-                                inRecord.denorm,
-                                outRecord.balance,
-                                outRecord.denorm,
-                                _swapFee
-                            );
-        require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
-        require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
-        require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
-
-        emit LOG_SWAP(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
-
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return (tokenAmountIn, spotPriceAfter);
-    }
-
-
-    function joinswapExternAmountIn(address tokenIn, uint tokenAmountIn, uint minPoolAmountOut)
-        external
-        _logs_
-        _lock_
-        returns (uint poolAmountOut)
-
-    {
-        require(_finalized, "ERR_NOT_FINALIZED");
-        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-        require(tokenAmountIn <= KassandraSafeMath.bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
-
-        Record storage inRecord = _records[tokenIn];
-
-        poolAmountOut = calcPoolOutGivenSingleIn(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            tokenAmountIn,
-                            _swapFee
-                        );
-
-        require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT");
-
-        inRecord.balance += tokenAmountIn;
-
-        emit LOG_JOIN(msg.sender, tokenIn, tokenAmountIn);
-
-        _mintPoolShare(poolAmountOut);
-        _pushPoolShare(msg.sender, poolAmountOut);
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-
-        return poolAmountOut;
-    }
-
-    function joinswapPoolAmountOut(address tokenIn, uint poolAmountOut, uint maxAmountIn)
-        external
-        _logs_
-        _lock_
-        returns (uint tokenAmountIn)
-    {
-        require(_finalized, "ERR_NOT_FINALIZED");
-        require(_records[tokenIn].bound, "ERR_NOT_BOUND");
-
-        Record storage inRecord = _records[tokenIn];
-
-        tokenAmountIn = calcSingleInGivenPoolOut(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            poolAmountOut,
-                            _swapFee
-                        );
-
-        require(tokenAmountIn != 0, "ERR_MATH_APPROX");
-        require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
-
-        require(tokenAmountIn <= KassandraSafeMath.bmul(_records[tokenIn].balance, KassandraConstants.MAX_IN_RATIO), "ERR_MAX_IN_RATIO");
-
-        inRecord.balance += tokenAmountIn;
-
-        emit LOG_JOIN(msg.sender, tokenIn, tokenAmountIn);
-
-        _mintPoolShare(poolAmountOut);
-        _pushPoolShare(msg.sender, poolAmountOut);
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-
-        return tokenAmountIn;
-    }
-
-    function exitswapPoolAmountIn(address tokenOut, uint poolAmountIn, uint minAmountOut)
-        external
-        _logs_
-        _lock_
-        returns (uint tokenAmountOut)
-    {
-        require(_finalized, "ERR_NOT_FINALIZED");
-        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
-
-        Record storage outRecord = _records[tokenOut];
-
-        tokenAmountOut = calcSingleOutGivenPoolIn(
-                            outRecord.balance,
-                            outRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            poolAmountIn,
-                            _swapFee
-                        );
-
-        require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
-
-        require(
-            tokenAmountOut <= KassandraSafeMath.bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO"
-        );
-
-        outRecord.balance -= tokenAmountOut;
-
-        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
-
-        emit LOG_EXIT(msg.sender, tokenOut, tokenAmountOut);
-
-        _pullPoolShare(msg.sender, poolAmountIn);
-        _burnPoolShare(poolAmountIn - exitFee);
-        _pushPoolShare(_factory, exitFee);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return tokenAmountOut;
-    }
-
-    function exitswapExternAmountOut(address tokenOut, uint tokenAmountOut, uint maxPoolAmountIn)
-        external
-        _logs_
-        _lock_
-        returns (uint poolAmountIn)
-    {
-        // require(false, "ERR_FALSE");
-        require(_finalized, "ERR_NOT_FINALIZED");
-        require(_records[tokenOut].bound, "ERR_NOT_BOUND");
-        require(
-            tokenAmountOut <= KassandraSafeMath.bmul(_records[tokenOut].balance, KassandraConstants.MAX_OUT_RATIO), "ERR_MAX_OUT_RATIO"
-        );
-
-        Record storage outRecord = _records[tokenOut];
-
-        poolAmountIn = calcPoolInGivenSingleOut(
-                            outRecord.balance,
-                            outRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            tokenAmountOut,
-                            _swapFee
-                        );
-
-        require(poolAmountIn != 0, "ERR_MATH_APPROX");
-        require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
-
-        outRecord.balance -= tokenAmountOut;
-
-        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
-
-        emit LOG_EXIT(msg.sender, tokenOut, tokenAmountOut);
-
-        _pullPoolShare(msg.sender, poolAmountIn);
-        _burnPoolShare(poolAmountIn - exitFee);
-        _pushPoolShare(_factory, exitFee);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return poolAmountIn;
-    }
-
 
     // ==
     // 'Underlying' token-manipulation functions make external calls but are NOT locked
@@ -730,5 +735,4 @@ contract Pool is Token, Math {
     {
         _burn(amount);
     }
-
 }

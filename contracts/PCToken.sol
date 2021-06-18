@@ -7,8 +7,6 @@ import "../interfaces/IERC20.sol";
 
 // Contracts
 
-/* solhint-disable func-order */
-
 /**
  * @author Kassandra (and Balancer Labs)
  * @title Highly opinionated token implementation
@@ -40,6 +38,7 @@ abstract contract PCToken is IERC20 {
         _name = tokenName;
     }
 
+    /* solhint-disable ordering */
     // External functions
 
     /**

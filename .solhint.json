@@ -11,7 +11,7 @@
     "func-param-name-mixedcase": "warn",
     "modifier-name-mixedcase": "warn",
     "private-vars-leading-underscore": ["error", {"strict":false}],
-    "func-order": "warn",
+    "ordering": "warn",
     "imports-on-top": "error",
     "mark-callable-contracts": "off",
     "check-send-result": "error",

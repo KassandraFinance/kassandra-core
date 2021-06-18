@@ -35,10 +35,6 @@ abstract contract ReentrancyGuard {
 
     uint private _status;
 
-    constructor () {
-        _status = _NOT_ENTERED;
-    }
-
     /**
      * @dev Prevents a contract from calling itself, directly or indirectly.
      * Calling a `_lock_` function from another `_lock_`
@@ -65,5 +61,9 @@ abstract contract ReentrancyGuard {
     modifier viewlock() {
         require(_status != _ENTERED, "ERR_REENTRY_VIEW");
         _;
+    }
+
+    constructor () {
+        _status = _NOT_ENTERED;
     }
 }

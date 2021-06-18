@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 // Test Token
 
 contract TToken {
-
     string private _name;
     string private _symbol;
     uint8   private _decimals;
@@ -16,20 +15,12 @@ contract TToken {
     mapping(address => uint)                   private _balance;
     mapping(address => mapping(address=>uint)) private _allowance;
 
-    modifier _onlyOwner_() {
-        require(msg.sender == _owner, "ERR_NOT_OWNER");
-        _;
-    }
-
     event Approval(address indexed src, address indexed dst, uint amt);
     event Transfer(address indexed src, address indexed dst, uint amt);
 
-    // Math
-    function add(uint a, uint b) internal pure returns (uint c) {
-        require((c = a + b) >= a);
-    }
-    function sub(uint a, uint b) internal pure returns (uint c) {
-        require((c = a - b) <= a);
+    modifier _onlyOwner_() {
+        require(msg.sender == _owner, "ERR_NOT_OWNER");
+        _;
     }
 
     constructor(
@@ -42,6 +33,8 @@ contract TToken {
         _decimals = decimals_;
         _owner = msg.sender;
     }
+
+    /* solhint-disable ordering */
 
     function name() public view returns (string memory) {
         return _name;
@@ -57,8 +50,8 @@ contract TToken {
 
     function _move(address src, address dst, uint amt) internal {
         require(_balance[src] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[src] = sub(_balance[src], amt);
-        _balance[dst] = add(_balance[dst], amt);
+        _balance[src] = _balance[src] - amt;
+        _balance[dst] = _balance[dst] + amt;
         emit Transfer(src, dst, amt);
     }
 
@@ -71,8 +64,8 @@ contract TToken {
     }
 
     function _mint(address dst, uint amt) internal {
-        _balance[dst] = add(_balance[dst], amt);
-        _totalSupply = add(_totalSupply, amt);
+        _balance[dst] = _balance[dst] + amt;
+        _totalSupply = _totalSupply + amt;
         emit Transfer(address(0), dst, amt);
     }
 
@@ -101,8 +94,8 @@ contract TToken {
 
     function burn(uint amt) public returns (bool) {
         require(_balance[address(this)] >= amt, "ERR_INSUFFICIENT_BAL");
-        _balance[address(this)] = sub(_balance[address(this)], amt);
-        _totalSupply = sub(_totalSupply, amt);
+        _balance[address(this)] = _balance[address(this)] - amt;
+        _totalSupply = _totalSupply - amt;
         emit Transfer(address(this), address(0), amt);
         return true;
     }
@@ -116,7 +109,7 @@ contract TToken {
         require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_TOKEN_BAD_CALLER");
         _move(src, dst, amt);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
-            _allowance[src][msg.sender] = sub(_allowance[src][msg.sender], amt);
+            _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt;
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
         return true;

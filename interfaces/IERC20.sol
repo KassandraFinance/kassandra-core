@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // Interface declarations
 
-/* solhint-disable func-order */
+/* solhint-disable ordering */
 
 interface IERC20 {
     // Emitted when the allowance of a spender for an owner is set by a call to approve.

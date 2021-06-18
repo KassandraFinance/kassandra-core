@@ -43,6 +43,8 @@ contract Token is TokenBase {
     string  private _symbol   = "KPT";
     uint8   private _decimals = 18;
 
+    /* solhint-disable ordering */
+
     function name() public view returns (string memory) {
         return _name;
     }

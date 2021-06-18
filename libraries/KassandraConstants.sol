@@ -31,10 +31,10 @@ library KassandraConstants {
     uint public constant MAX_IN_RATIO      = ONE / 2;
     uint public constant MAX_OUT_RATIO     = (ONE / 3) + 1 wei;
 
-    uint public constant MIN_ASSET_LIMIT = 2;
-    uint public constant MAX_ASSET_LIMIT = 8;
+    uint public constant MIN_ASSET_LIMIT   = 2;
+    uint public constant MAX_ASSET_LIMIT   = 8;
 
-    uint public constant MAX_UINT = type(uint).max;
+    uint public constant MAX_UINT          = type(uint).max;
 
     // Core Pools
     uint public constant MIN_CORE_BALANCE  = ONE / 10**12;

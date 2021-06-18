@@ -108,8 +108,10 @@ library SmartPoolManager {
             // They will be minted and given PCTokens
             deltaWeight = newWeight - currentWeight;
 
-            require((totalWeight + deltaWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
-                    "ERR_MAX_TOTAL_WEIGHT");
+            require(
+                (totalWeight + deltaWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
+                "ERR_MAX_TOTAL_WEIGHT"
+            );
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
             poolShares = KassandraSafeMath.bmul(
@@ -637,9 +639,10 @@ library SmartPoolManager {
                         );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
-        require(tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut),
-                                                        KassandraConstants.MAX_OUT_RATIO),
-                                                        "ERR_MAX_OUT_RATIO");
+        require(
+            tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
+            "ERR_MAX_OUT_RATIO"
+        );
 
         exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
     }
@@ -667,9 +670,10 @@ library SmartPoolManager {
         returns (uint exitFee, uint poolAmountIn)
     {
         require(bPool.isBound(tokenOut), "ERR_NOT_BOUND");
-        require(tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut),
-                                                        KassandraConstants.MAX_OUT_RATIO),
-                                                        "ERR_MAX_OUT_RATIO");
+        require(
+            tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
+            "ERR_MAX_OUT_RATIO"
+        );
         poolAmountIn = bPool.calcPoolInGivenSingleOut(
                             bPool.getBalance(tokenOut),
                             bPool.getDenormalizedWeight(tokenOut),
