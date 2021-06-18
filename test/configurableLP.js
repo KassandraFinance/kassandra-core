@@ -17,8 +17,8 @@ contract('configurableLPNoWhitelist', async (accounts) => {
 
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory; let
-        bFactory;
+    let crpFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let WETH; let DAI; let XYZ;
@@ -42,7 +42,7 @@ contract('configurableLPNoWhitelist', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -69,13 +69,13 @@ contract('configurableLPNoWhitelist', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -135,7 +135,7 @@ contract('configurableLP', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let WETH; let DAI; let XYZ;
@@ -157,7 +157,7 @@ contract('configurableLP', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -184,13 +184,13 @@ contract('configurableLP', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );

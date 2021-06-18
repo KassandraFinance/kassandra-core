@@ -127,8 +127,8 @@ contract('configurableWeights_withSwaps', async (accounts) => {
             let weightXYZ;
             let weightWETH;
             let block;
-            const bPoolAddr = await controller.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await controller.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             // Pool was created by CRP
             const owner = await underlyingPool.getController();

@@ -15,7 +15,7 @@ contract('CRPFactory', async (accounts) => {
     const swapFee = 10**15;
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let CRPPOOL_ADDRESS;
@@ -57,7 +57,7 @@ contract('CRPFactory', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -82,13 +82,13 @@ contract('CRPFactory', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             longPermissions, // tolerates extra data at end (calldata still the same size)
         );
@@ -130,7 +130,7 @@ contract('CRPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -152,7 +152,7 @@ contract('CRPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -171,7 +171,7 @@ contract('CRPFactory', async (accounts) => {
         }
 
         crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -189,7 +189,7 @@ contract('CRPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -213,7 +213,7 @@ contract('CRPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -235,7 +235,7 @@ contract('CRPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -269,7 +269,7 @@ contract('CRPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),

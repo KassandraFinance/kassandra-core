@@ -16,8 +16,8 @@ contract('pausableSwap', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
     const errorDelta = 10 ** -8;
 
-    let crpFactory; let
-        bFactory;
+    let crpFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let WETH; let DAI; let XYZ;
@@ -55,7 +55,7 @@ contract('pausableSwap', async (accounts) => {
         Admin approves CRP for MAX
         newCrp call with pausableSwap set to true
         */
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -87,13 +87,13 @@ contract('pausableSwap', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -123,11 +123,11 @@ contract('pausableSwap', async (accounts) => {
     });
 
     it('ConfigurableRightsPool isPublicSwap should be true after creation', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
         const isPublicSwap = await crpPool.isPublicSwap.call();
         assert.equal(isPublicSwap, true);
-        const isPublicSwapCheck = await bPool.isPublicSwap.call();
+        const isPublicSwapCheck = await corePool.isPublicSwap.call();
         assert.equal(isPublicSwapCheck, true);
     });
 
@@ -139,14 +139,14 @@ contract('pausableSwap', async (accounts) => {
     });
 
     it('Controller should be able to pause trades', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
         await crpPool.setPublicSwap(false);
 
         const isPublicSwap = await crpPool.isPublicSwap.call();
         assert.equal(isPublicSwap, false);
-        const isPublicSwapCheck = await bPool.isPublicSwap.call();
+        const isPublicSwapCheck = await corePool.isPublicSwap.call();
         assert.equal(isPublicSwapCheck, false);
     });
 
@@ -158,11 +158,11 @@ contract('pausableSwap', async (accounts) => {
     });
 
     it('Should not allow swaps while paused', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
         await truffleAssert.reverts(
-            bPool.swapExactAmountIn(
+            corePool.swapExactAmountIn(
                 DAI, toWei('500'),
                 WETH, toWei('0'),
                 MAX,
@@ -172,7 +172,7 @@ contract('pausableSwap', async (accounts) => {
         );
 
         await truffleAssert.reverts(
-            bPool.swapExactAmountOut(
+            corePool.swapExactAmountOut(
                 DAI, MAX,
                 WETH, toWei('1'),
                 MAX,
@@ -183,27 +183,27 @@ contract('pausableSwap', async (accounts) => {
     });
 
     it('Controller should be able to restart trades', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
         await crpPool.setPublicSwap(true);
 
         const isPublicSwap = await crpPool.isPublicSwap.call();
         assert.equal(isPublicSwap, true);
-        const isPublicSwapCheck = await bPool.isPublicSwap.call();
+        const isPublicSwapCheck = await corePool.isPublicSwap.call();
         assert.equal(isPublicSwapCheck, true);
     });
 
     it('Should allow swap in now', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
-        await weth.approve(bPool.address, MAX, { from: user });
+        await weth.approve(corePool.address, MAX, { from: user });
 
-        const tokenInBalance = await weth.balanceOf.call(bPool.address);
-        const tokenInWeight = await bPool.getDenormalizedWeight(WETH);
-        const tokenOutBalance = await dai.balanceOf.call(bPool.address);
-        const tokenOutWeight = await bPool.getDenormalizedWeight(DAI);
+        const tokenInBalance = await weth.balanceOf.call(corePool.address);
+        const tokenInWeight = await corePool.getDenormalizedWeight(WETH);
+        const tokenOutBalance = await dai.balanceOf.call(corePool.address);
+        const tokenOutWeight = await corePool.getDenormalizedWeight(DAI);
 
         const expectedTotalOut = calcOutGivenIn(
             fromWei(tokenInBalance),
@@ -215,7 +215,7 @@ contract('pausableSwap', async (accounts) => {
         );
 
         // Actually returns an array of tokenAmountOut, spotPriceAfter
-        const tokenAmountOut = await bPool.swapExactAmountIn.call(
+        const tokenAmountOut = await corePool.swapExactAmountIn.call(
             tokenIn,
             toWei('5'), // tokenAmountIn
             tokenOut,
@@ -228,15 +228,15 @@ contract('pausableSwap', async (accounts) => {
     });
 
     it('Should now allow swap outs', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
-        await weth.approve(bPool.address, MAX, { from: user });
+        await weth.approve(corePool.address, MAX, { from: user });
 
-        const tokenInBalance = await weth.balanceOf.call(bPool.address); // 40
-        const tokenInWeight = await bPool.getDenormalizedWeight(WETH); // 1.5
-        const tokenOutBalance = await dai.balanceOf.call(bPool.address); // 10000
-        const tokenOutWeight = await bPool.getDenormalizedWeight(DAI); // 1.5
+        const tokenInBalance = await weth.balanceOf.call(corePool.address); // 40
+        const tokenInWeight = await corePool.getDenormalizedWeight(WETH); // 1.5
+        const tokenOutBalance = await dai.balanceOf.call(corePool.address); // 10000
+        const tokenOutWeight = await corePool.getDenormalizedWeight(DAI); // 1.5
 
         const expectedTotalIn = calcInGivenOut(
             fromWei(tokenInBalance),
@@ -248,7 +248,7 @@ contract('pausableSwap', async (accounts) => {
         );
 
         // Actually returns an array of tokenAmountIn, spotPriceAfter
-        const tokenAmountIn = await bPool.swapExactAmountOut.call(
+        const tokenAmountIn = await corePool.swapExactAmountOut.call(
             tokenIn,
             MAX, // maxAmountIn
             tokenOut,

@@ -15,7 +15,7 @@ contract('elasticSupplyPool', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let usdc;
@@ -39,7 +39,7 @@ contract('elasticSupplyPool', async (accounts) => {
 
     describe('resyncWeight', () => {
         before(async () => {
-            bFactory = await BFactory.deployed();
+            coreFactory = await BFactory.deployed();
             crpFactory = await ESPFactory.deployed();
 
             usdc = await TToken.new('USD Stablecoin', 'USDC', 18);
@@ -65,13 +65,13 @@ contract('elasticSupplyPool', async (accounts) => {
                 }
 
             CRPPOOL = await crpFactory.newEsp.call(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
             await crpFactory.newEsp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -85,20 +85,20 @@ contract('elasticSupplyPool', async (accounts) => {
         });
 
         it('resync weights should gulp and not move price', async () => {
-            const bPoolAddr = await crpPool.bPool();
-            const bPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await BPool.at(corePoolAddr);
 
             // both pools are out of balance
             // calling gulp after transfer will move the price
-            await dai.transfer(bPoolAddr, toWei('1000'));
+            await dai.transfer(corePoolAddr, toWei('1000'));
 
             // resync weights, safely calls gulp and adjusts weights
             // proportionally so that price does not move
-            const spotPriceBefore = await bPool.getSpotPrice.call(dai.address, usdc.address);
+            const spotPriceBefore = await corePool.getSpotPrice.call(dai.address, usdc.address);
 
             await crpPool.resyncWeight(dai.address);
 
-            const spotPriceAfter = await bPool.getSpotPrice.call(dai.address, usdc.address);
+            const spotPriceAfter = await corePool.getSpotPrice.call(dai.address, usdc.address);
 
             assert.equal(spotPriceBefore.toString(), spotPriceAfter.toString());
         });

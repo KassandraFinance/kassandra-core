@@ -20,7 +20,7 @@ contract('testERC20 violations', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let CRPPOOL_ADDRESS;
@@ -57,7 +57,7 @@ contract('testERC20 violations', async (accounts) => {
 
     describe
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -96,13 +96,13 @@ contract('testERC20 violations', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -185,7 +185,7 @@ contract('testERC20 violations', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -209,7 +209,7 @@ contract('testERC20 violations', async (accounts) => {
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),

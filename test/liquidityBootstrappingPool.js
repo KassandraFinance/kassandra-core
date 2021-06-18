@@ -30,7 +30,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
     };
 
     describe('Factory_LBP (linear)', () => {
-        let bFactory;
+        let coreFactory;
         let crpFactory;
         let controller;
         let CONTROLLER;
@@ -70,7 +70,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
         let blockRange;
 
         before(async () => {
-            bFactory = await BFactory.deployed();
+            coreFactory = await BFactory.deployed();
             crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'Example Project Token', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -94,13 +94,13 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             }
 
             CONTROLLER = await crpFactory.newCrp.call(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
             await crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -188,7 +188,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
         const swapFee = 10**15;
 
         before(async () => {
-            bFactory = await BFactory.deployed();
+            coreFactory = await BFactory.deployed();
             crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'Example Project Token', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -212,13 +212,13 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 }
 
             CONTROLLER = await crpFactory.newCrp.call(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
             await crpFactory.newCrp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -250,8 +250,8 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 // Steepness parameter
                 const b = 1;
 
-                const bPoolAddr = await controller.bPool();
-                const underlyingPool = await BPool.at(bPoolAddr);
+                const corePoolAddr = await controller.corePool();
+                const underlyingPool = await BPool.at(corePoolAddr);
 
                 /* Exponential curve formula (for 80/20%)
                    "b" parameterizes the "steepness" of the curve

@@ -34,8 +34,8 @@ contract('crpPoolOverloadTests', async (accounts) => {
     };
 
     let crpFactory;
-    let bFactory;
-    let bPool;
+    let coreFactory;
+    let corePool;
     let crpPool;
     let CRPPOOL;
     let CRPPOOL_ADDRESS;
@@ -48,7 +48,7 @@ contract('crpPoolOverloadTests', async (accounts) => {
     let xxx;
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -74,13 +74,13 @@ contract('crpPoolOverloadTests', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -124,8 +124,8 @@ contract('crpPoolOverloadTests', async (accounts) => {
 
     it('crpPool should have a BPool after creation', async () => {
         await crpPool.createPool(toWei('100'), 0, 0);
-        const bPoolAddr = await crpPool.bPool();
-        assert.notEqual(bPoolAddr, ZERO_ADDRESS);
-        bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        assert.notEqual(corePoolAddr, ZERO_ADDRESS);
+        corePool = await BPool.at(corePoolAddr);
     });
 });

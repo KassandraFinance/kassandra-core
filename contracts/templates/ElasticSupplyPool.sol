@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // Imports
 
-import "../IBFactory.sol";
+import "../../interfaces/IFactory.sol";
 import "../PCToken.sol";
 import "../utils/ReentrancyGuard.sol";
 import "../utils/Ownable.sol";
@@ -89,16 +89,16 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         virtual
     {
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
-        require(IBPool(address(bPool)).isBound(token), "ERR_NOT_BOUND");
+        require(IPool(address(corePool)).isBound(token), "ERR_NOT_BOUND");
 
         // get cached balance
-        uint tokenBalanceBefore = IBPool(address(bPool)).getBalance(token);
+        uint tokenBalanceBefore = IPool(address(corePool)).getBalance(token);
 
         // sync balance
-        IBPool(address(bPool)).gulp(token);
+        IPool(address(corePool)).gulp(token);
 
         // get new balance
-        uint tokenBalanceAfter = IBPool(address(bPool)).getBalance(token);
+        uint tokenBalanceAfter = IPool(address(corePool)).getBalance(token);
 
         // No-Op
         if(tokenBalanceBefore == tokenBalanceAfter) {
@@ -106,7 +106,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
         }
 
         // current token weight
-        uint tokenWeightBefore = IBPool(address(bPool)).getDenormalizedWeight(token);
+        uint tokenWeightBefore = IPool(address(corePool)).getDenormalizedWeight(token);
 
         // target token weight = RebaseRatio * previous token weight
         uint tokenWeightTarget = KassandraSafeMath.bdiv(
@@ -121,16 +121,16 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
             )
         );
 
-        address[] memory tokens = IBPool(address(bPool)).getCurrentTokens();
+        address[] memory tokens = IPool(address(corePool)).getCurrentTokens();
         for(uint i=0; i<tokens.length; i++){
             if(tokens[i] == token) {
                 // adjust weight
-                IBPool(address(bPool)).rebind(token, tokenBalanceAfter, tokenWeightAfter);
+                IPool(address(corePool)).rebind(token, tokenBalanceAfter, tokenWeightAfter);
 
             }
             else {
-                uint otherWeightBefore = IBPool(address(bPool)).getDenormalizedWeight(tokens[i]);
-                uint otherBalance = bPool.getBalance(tokens[i]);
+                uint otherWeightBefore = IPool(address(corePool)).getDenormalizedWeight(tokens[i]);
+                uint otherBalance = corePool.getBalance(tokens[i]);
 
                 // other token weight = (new token weight * other token weight before) / target token weight
                 uint otherWeightAfter = KassandraSafeMath.bdiv(
@@ -138,7 +138,7 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
                 );
 
                 // adjust weight
-                IBPool(address(bPool)).rebind(tokens[i], otherBalance, otherWeightAfter);
+                IPool(address(corePool)).rebind(tokens[i], otherBalance, otherWeightAfter);
             }
         }
     }

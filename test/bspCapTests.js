@@ -20,7 +20,7 @@ contract('BSP Cap', async (accounts) => {
     const MaxBig256 = '115792089237316195423570985008687907853269984665640564039457.584007913129639935';
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let DAI;
@@ -47,7 +47,7 @@ contract('BSP Cap', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -75,13 +75,13 @@ contract('BSP Cap', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );

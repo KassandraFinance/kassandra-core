@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // Imports
 
-import "./IBFactory.sol";
+import "../interfaces/IFactory.sol";
 import "./PCToken.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./utils/Ownable.sol";
@@ -30,10 +30,10 @@ import "../libraries/SafeApprove.sol";
  *      4: canWhitelistLPs - can restrict LPs to a whitelist
  *      5: canChangeCap - can change the BSP cap (max # of pool tokens)
  *
- * Note that functions called on bPool and bFactory may look like internal calls,
+ * Note that functions called on corePool and coreFactory may look like internal calls,
  *   but since they are contracts accessed through an interface, they are really external.
- * To make this explicit, we could write "IBPool(address(bPool)).function()" everywhere,
- *   instead of "bPool.function()".
+ * To make this explicit, we could write "IPool(address(corePool)).function()" everywhere,
+ *   instead of "corePool.function()".
  */
 contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     using SafeApprove for IERC20;
@@ -53,8 +53,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     // State variables
 
-    IBFactory public bFactory;
-    IBPool public bPool;
+    IFactory public coreFactory;
+    IPool public corePool;
 
     // Struct holding the rights configuration
     RightsManager.Rights public rights;
@@ -142,17 +142,17 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     // Mark functions that require delegation to the underlying Pool
     modifier needsBPool() {
-        require(address(bPool) != address(0), "ERR_NOT_CREATED");
+        require(address(corePool) != address(0), "ERR_NOT_CREATED");
         _;
     }
 
     modifier lockUnderlyingPool() {
         // Turn off swapping on the underlying pool during joins
         // Otherwise tokens with callbacks would enable attacks involving simultaneous swaps and joins
-        bool origSwapState = bPool.isPublicSwap();
-        bPool.setPublicSwap(false);
+        bool origSwapState = corePool.isPublicSwap();
+        corePool.setPublicSwap(false);
         _;
-        bPool.setPublicSwap(origSwapState);
+        corePool.setPublicSwap(origSwapState);
     }
 
     // Function declarations
@@ -193,7 +193,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         SmartPoolManager.verifyTokenCompliance(poolParams.constituentTokens);
 
-        bFactory = IBFactory(factoryAddress);
+        coreFactory = IFactory(factoryAddress);
         rights = rightsStruct;
         _initialTokens = poolParams.constituentTokens;
         _initialBalances = poolParams.tokenBalances;
@@ -215,7 +215,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     /**
      * @notice Set the swap fee on the underlying pool
      * @dev Keep the local version and core in sync (see below)
-     *      bPool is a contract interface; function calls on it are external
+     *      corePool is a contract interface; function calls on it are external
      * @param swapFee in Wei
      */
     function setSwapFee(uint swapFee)
@@ -229,7 +229,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(rights.canChangeSwapFee, "ERR_NOT_CONFIGURABLE_SWAP_FEE");
 
         // Underlying pool will check against min/max fee
-        bPool.setSwapFee(swapFee);
+        corePool.setSwapFee(swapFee);
     }
 
     /**
@@ -263,7 +263,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      *      smart pool functions. (Only the owner can finalize the pool - which is this contract -
      *      so there is no risk from outside.)
      *
-     *      bPool is a contract interface; function calls on it are external
+     *      corePool is a contract interface; function calls on it are external
      * @param publicSwap new value of the swap
      */
     function setPublicSwap(bool publicSwap)
@@ -276,7 +276,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     {
         require(rights.canPauseSwapping, "ERR_NOT_PAUSABLE_SWAP");
 
-        bPool.setPublicSwap(publicSwap);
+        corePool.setPublicSwap(publicSwap);
     }
 
     /**
@@ -352,7 +352,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
 
         // Delegate to library to save space
-        SmartPoolManager.updateWeight(IConfigurableRightsPool(address(this)), bPool, token, newWeight);
+        SmartPoolManager.updateWeight(IConfigurableRightsPool(address(this)), corePool, token, newWeight);
     }
 
     /**
@@ -389,7 +389,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Library computes the startBlock, computes startWeights as the current
         // denormalized weights of the core pool tokens.
         SmartPoolManager.updateWeightsGradually(
-            bPool,
+            corePool,
             gradualUpdate,
             newWeights,
             startBlock,
@@ -413,7 +413,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
 
         // Delegate to library to save space
-        SmartPoolManager.pokeWeights(bPool, gradualUpdate);
+        SmartPoolManager.pokeWeights(corePool, gradualUpdate);
     }
 
     /**
@@ -452,7 +452,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         // Delegate to library to save space
         SmartPoolManager.commitAddToken(
-            bPool,
+            corePool,
             token,
             balance,
             denormalizedWeight,
@@ -476,7 +476,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Delegate to library to save space
         SmartPoolManager.applyAddToken(
             IConfigurableRightsPool(address(this)),
-            bPool,
+            corePool,
             addTokenTimeLockInBlocks,
             newToken
         );
@@ -484,7 +484,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     /**
      * @notice Remove a token from the pool
-     * @dev bPool is a contract interface; function calls on it are external
+     * @dev corePool is a contract interface; function calls on it are external
      * @param token - token to remove
      */
     function removeToken(address token)
@@ -502,13 +502,13 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
 
         // Delegate to library to save space
-        SmartPoolManager.removeToken(IConfigurableRightsPool(address(this)), bPool, token);
+        SmartPoolManager.removeToken(IConfigurableRightsPool(address(this)), corePool, token);
     }
 
     /**
      * @notice Join a pool
      * @dev Emits a LogJoin event (for each token)
-     *      bPool is a contract interface; function calls on it are external
+     *      corePool is a contract interface; function calls on it are external
      * @param poolAmountOut - number of pool tokens to receive
      * @param maxAmountsIn - Max amount of asset tokens to spend
      */
@@ -530,13 +530,13 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // they must be internal
         uint[] memory actualAmountsIn = SmartPoolManager.joinPool(
                                             IConfigurableRightsPool(address(this)),
-                                            bPool,
+                                            corePool,
                                             poolAmountOut,
                                             maxAmountsIn
                                         );
 
         // After createPool, token list is maintained in the underlying BPool
-        address[] memory poolTokens = bPool.getCurrentTokens();
+        address[] memory poolTokens = corePool.getCurrentTokens();
 
         for (uint i = 0; i < poolTokens.length; i++) {
             address t = poolTokens[i];
@@ -554,7 +554,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     /**
      * @notice Exit a pool - redeem pool tokens for underlying assets
      * @dev Emits a LogExit event for each token
-     *      bPool is a contract interface; function calls on it are external
+     *      corePool is a contract interface; function calls on it are external
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountsOut - minimum amount of asset tokens to receive
      */
@@ -575,17 +575,17 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
             uint[] memory actualAmountsOut
         ) = SmartPoolManager.exitPool(
             IConfigurableRightsPool(address(this)),
-            bPool,
+            corePool,
             poolAmountIn,
             minAmountsOut
         );
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(address(bFactory), exitFee);
+        _pushPoolShare(address(coreFactory), exitFee);
         _burnPoolShare(pAiAfterExitFee);
 
         // After createPool, token list is maintained in the underlying BPool
-        address[] memory poolTokens = bPool.getCurrentTokens();
+        address[] memory poolTokens = corePool.getCurrentTokens();
 
         for (uint i = 0; i < poolTokens.length; i++) {
             address t = poolTokens[i];
@@ -623,7 +623,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Delegate to library to save space
         poolAmountOut = SmartPoolManager.joinswapExternAmountIn(
                             IConfigurableRightsPool(address(this)),
-                            bPool,
+                            corePool,
                             tokenIn,
                             tokenAmountIn,
                             minPoolAmountOut
@@ -664,7 +664,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Delegate to library to save space
         tokenAmountIn = SmartPoolManager.joinswapPoolAmountOut(
                             IConfigurableRightsPool(address(this)),
-                            bPool,
+                            corePool,
                             tokenIn,
                             poolAmountOut,
                             maxAmountIn
@@ -704,7 +704,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Calculates final amountOut, and the fee and final amount in
         (uint exitFee, uint amountOut) = SmartPoolManager.exitswapPoolAmountIn(
             IConfigurableRightsPool(address(this)),
-            bPool,
+            corePool,
             tokenOut,
             poolAmountIn,
             minAmountOut
@@ -717,7 +717,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(pAiAfterExitFee);
-        _pushPoolShare(address(bFactory), exitFee);
+        _pushPoolShare(address(coreFactory), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
 
         return tokenAmountOut;
@@ -748,7 +748,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Calculates final amounts in, accounting for the exit fee
         (uint exitFee, uint amountIn) = SmartPoolManager.exitswapExternAmountOut(
             IConfigurableRightsPool(address(this)),
-            bPool,
+            corePool,
             tokenOut,
             tokenAmountOut,
             maxPoolAmountIn
@@ -761,7 +761,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(pAiAfterExitFee);
-        _pushPoolShare(address(bFactory), exitFee);
+        _pushPoolShare(address(coreFactory), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
 
         return poolAmountIn;
@@ -803,7 +803,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     /**
      * @notice Getter for the publicSwap field on the underlying pool
      * @dev viewLock, because setPublicSwap is lock
-     *      bPool is a contract interface; function calls on it are external
+     *      corePool is a contract interface; function calls on it are external
      * @return Current value of isPublicSwap
      */
     function isPublicSwap()
@@ -814,7 +814,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         virtual
         returns (bool)
     {
-        return bPool.isPublicSwap();
+        return corePool.isPublicSwap();
     }
 
     /**
@@ -864,7 +864,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         needsBPool
         returns (uint)
     {
-        return bPool.getDenormalizedWeight(token);
+        return corePool.getDenormalizedWeight(token);
     }
 
     /**
@@ -926,7 +926,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      * @param initialSupply starting token balance
      */
     function createPoolInternal(uint initialSupply) internal {
-        require(address(bPool) == address(0), "ERR_IS_CREATED");
+        require(address(corePool) == address(0), "ERR_IS_CREATED");
         require(initialSupply >= KassandraConstants.MIN_POOL_SUPPLY, "ERR_INIT_SUPPLY_MIN");
         require(initialSupply <= KassandraConstants.MAX_POOL_SUPPLY, "ERR_INIT_SUPPLY_MAX");
 
@@ -945,8 +945,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _mintPoolShare(initialSupply);
         _pushPoolShare(msg.sender, initialSupply);
 
-        // Deploy new BPool (bFactory and bPool are interfaces; all calls are external)
-        bPool = bFactory.newPool();
+        // Deploy new BPool (coreFactory and corePool are interfaces; all calls are external)
+        corePool = coreFactory.newPool();
 
         // EXIT_FEE must always be zero, or ConfigurableRightsPool._pushUnderlying will fail
         require(KassandraConstants.EXIT_FEE == 0, "ERR_NONZERO_EXIT_FEE");
@@ -959,10 +959,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
             bool returnValue = IERC20(t).transferFrom(msg.sender, address(this), bal);
             require(returnValue, "ERR_ERC20_FALSE");
 
-            returnValue = IERC20(t).safeApprove(address(bPool), KassandraConstants.MAX_UINT);
+            returnValue = IERC20(t).safeApprove(address(corePool), KassandraConstants.MAX_UINT);
             require(returnValue, "ERR_ERC20_FALSE");
 
-            bPool.bind(t, bal, denorm);
+            corePool.bind(t, bal, denorm);
         }
 
         while (_initialTokens.length > 0) {
@@ -973,8 +973,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         // Set fee to the initial value set in the constructor
         // Hereafter, read the swapFee from the underlying pool, not the local state variable
-        bPool.setSwapFee(_initialSwapFee);
-        bPool.setPublicSwap(true);
+        corePool.setSwapFee(_initialSwapFee);
+        corePool.setPublicSwap(true);
 
         // "destroy" the temporary swap fee (like _initialTokens above) in case a subclass tries to use it
         _initialSwapFee = 0;
@@ -983,24 +983,24 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     /* solhint-enable private-vars-leading-underscore */
 
     // Rebind BPool and pull tokens from address
-    // bPool is a contract interface; function calls on it are external
+    // corePool is a contract interface; function calls on it are external
     function _pullUnderlying(address erc20, address from, uint amount) internal needsBPool {
         // Gets current Balance of token i, Bi, and weight of token i, Wi, from BPool.
-        uint tokenBalance = bPool.getBalance(erc20);
-        uint tokenWeight = bPool.getDenormalizedWeight(erc20);
+        uint tokenBalance = corePool.getBalance(erc20);
+        uint tokenWeight = corePool.getDenormalizedWeight(erc20);
 
         bool xfer = IERC20(erc20).transferFrom(from, address(this), amount);
         require(xfer, "ERR_ERC20_FALSE");
-        bPool.rebind(erc20, tokenBalance + amount, tokenWeight);
+        corePool.rebind(erc20, tokenBalance + amount, tokenWeight);
     }
 
     // Rebind BPool and push tokens to address
-    // bPool is a contract interface; function calls on it are external
+    // corePool is a contract interface; function calls on it are external
     function _pushUnderlying(address erc20, address to, uint amount) internal needsBPool {
         // Gets current Balance of token i, Bi, and weight of token i, Wi, from BPool.
-        uint tokenBalance = bPool.getBalance(erc20);
-        uint tokenWeight = bPool.getDenormalizedWeight(erc20);
-        bPool.rebind(erc20, tokenBalance - amount, tokenWeight);
+        uint tokenBalance = corePool.getBalance(erc20);
+        uint tokenWeight = corePool.getDenormalizedWeight(erc20);
+        corePool.rebind(erc20, tokenBalance - amount, tokenWeight);
 
         bool xfer = IERC20(erc20).transfer(to, amount);
         require(xfer, "ERR_ERC20_FALSE");

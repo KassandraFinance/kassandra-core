@@ -21,7 +21,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
     const numPoolTokens = '1000';
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let DAI;
@@ -49,7 +49,7 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         bap0 = await TToken.new('BAP Gen 0', 'BAP0', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -77,13 +77,13 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -117,8 +117,8 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
         it('Should configure the pool (min swap fee)', async () => {
             // Drop the fee to the minimum (cannot be 0)
             await crpPool.setSwapFee(minSwapFee);
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             const deployedSwapFee = await underlyingPool.getSwapFee();
             assert.equal(minSwapFee, deployedSwapFee);
@@ -161,8 +161,8 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                 await time.advanceBlock();
             }
 
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
             let tokenAmountIn;
 
             await dai.approve(underlyingPool.address, MAX, { from: user });
@@ -286,8 +286,8 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
             weightDai = await crpPool.getDenormalizedWeight(DAI);
 
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             blockRange = 50;
             // get current block number

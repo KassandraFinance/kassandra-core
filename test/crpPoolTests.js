@@ -40,8 +40,10 @@ contract('crpPoolTests', async (accounts) => {
         canChangeCap: false,
     };
 
-    let crpFactory; let bFactory; let bPool; let
-        crpPool;
+    let crpFactory;
+    let coreFactory;
+    let corePool;
+    let crpPool;
     let CRPPOOL;
     let CRPPOOL_ADDRESS;
     let WETH;
@@ -54,7 +56,7 @@ contract('crpPoolTests', async (accounts) => {
     let xxx;
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -81,13 +83,13 @@ contract('crpPoolTests', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -102,8 +104,8 @@ contract('crpPoolTests', async (accounts) => {
     });
 
     it('crpPool should have no BPool before creation', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        assert.equal(bPoolAddr, ZERO_ADDRESS);
+        const corePoolAddr = await crpPool.corePool();
+        assert.equal(corePoolAddr, ZERO_ADDRESS);
     });
 
     it('crpPool should have admin account as controller', async () => {
@@ -185,9 +187,9 @@ contract('crpPoolTests', async (accounts) => {
 
     it('crpPool should have a BPool after creation', async () => {
         await crpPool.createPool(toWei('100'));
-        const bPoolAddr = await crpPool.bPool();
-        assert.notEqual(bPoolAddr, ZERO_ADDRESS);
-        bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        assert.notEqual(corePoolAddr, ZERO_ADDRESS);
+        corePool = await BPool.at(corePoolAddr);
     });
 
     it('should not be able to createPool twice', async () => {
@@ -205,37 +207,37 @@ contract('crpPoolTests', async (accounts) => {
     });
 
     it('BPool should have matching swap fee', async () => {
-        const deployedSwapFee = await bPool.getSwapFee();
+        const deployedSwapFee = await corePool.getSwapFee();
         assert.equal(swapFee, deployedSwapFee);
     });
 
     it('BPool should have public swaps enabled', async () => {
-        const isPublicSwap = await bPool.isPublicSwap();
+        const isPublicSwap = await corePool.isPublicSwap();
         assert.equal(isPublicSwap, true);
     });
 
     it('BPool should have initial token balances', async () => {
-        const bPoolAddr = await crpPool.bPool();
+        const corePoolAddr = await crpPool.corePool();
 
         const adminXYZBalance = await xyz.balanceOf.call(admin);
-        const bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
+        const corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
         const adminWethBalance = await weth.balanceOf.call(admin);
-        const bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
+        const corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
         const adminDaiBalance = await dai.balanceOf.call(admin);
-        const bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        const corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         assert.equal(adminXYZBalance, toWei('20000'));
-        assert.equal(bPoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
         assert.equal(adminWethBalance, toWei('60'));
-        assert.equal(bPoolWethBalance, toWei('40'));
+        assert.equal(corePoolWethBalance, toWei('40'));
         assert.equal(adminDaiBalance, toWei('5000'));
-        assert.equal(bPoolDaiBalance, toWei('10000'));
+        assert.equal(corePoolDaiBalance, toWei('10000'));
     });
 
     it('BPool should have initial token weights', async () => {
-        const xyzWeight = await bPool.getDenormalizedWeight.call(xyz.address);
-        const wethWeight = await bPool.getDenormalizedWeight.call(weth.address);
-        const daiWeight = await bPool.getDenormalizedWeight.call(dai.address);
+        const xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
+        const wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
+        const daiWeight = await corePool.getDenormalizedWeight.call(dai.address);
 
         assert.equal(xyzWeight, toWei('12'));
         assert.equal(wethWeight, toWei('1.5'));
@@ -271,16 +273,16 @@ contract('crpPoolTests', async (accounts) => {
     });
 
     it('JoinPool should not revert if smart pool is finalized', async () => {
-        const bPoolAddr = await crpPool.bPool();
+        const corePoolAddr = await crpPool.corePool();
         let currentPoolBalance = await crpPool.balanceOf.call(admin);
         currentPoolBalance = Decimal(fromWei(currentPoolBalance));
         const previousPoolBalance = currentPoolBalance;
-        let previousbPoolXyzBalance = await xyz.balanceOf.call(bPoolAddr);
-        let previousbPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        let previousbPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
-        previousbPoolXyzBalance = Decimal(fromWei(previousbPoolXyzBalance));
-        previousbPoolWethBalance = Decimal(fromWei(previousbPoolWethBalance));
-        previousbPoolDaiBalance = Decimal(fromWei(previousbPoolDaiBalance));
+        let previouscorePoolXyzBalance = await xyz.balanceOf.call(corePoolAddr);
+        let previouscorePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        let previouscorePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
+        previouscorePoolXyzBalance = Decimal(fromWei(previouscorePoolXyzBalance));
+        previouscorePoolWethBalance = Decimal(fromWei(previouscorePoolWethBalance));
+        previouscorePoolDaiBalance = Decimal(fromWei(previouscorePoolDaiBalance));
 
         const poolAmountOut = '1';
         await crpPool.joinPool(toWei(poolAmountOut), [MAX, MAX, MAX]);
@@ -288,22 +290,22 @@ contract('crpPoolTests', async (accounts) => {
         currentPoolBalance = currentPoolBalance.add(Decimal(poolAmountOut));
 
         const balance = await crpPool.balanceOf.call(admin);
-        const bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        const bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        const bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        const corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        const corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        const corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         // Balances of all tokens increase proportionally to the pool balance
-        let balanceChange = (Decimal(poolAmountOut).div(previousPoolBalance)).mul(previousbPoolWethBalance);
-        const currentWethBalance = previousbPoolWethBalance.add(balanceChange);
-        balanceChange = (Decimal(poolAmountOut).div(previousPoolBalance)).mul(previousbPoolDaiBalance);
-        const currentDaiBalance = previousbPoolDaiBalance.add(balanceChange);
-        balanceChange = (Decimal(poolAmountOut).div(previousPoolBalance)).mul(previousbPoolXyzBalance);
-        const currentXyzBalance = previousbPoolXyzBalance.add(balanceChange);
+        let balanceChange = (Decimal(poolAmountOut).div(previousPoolBalance)).mul(previouscorePoolWethBalance);
+        const currentWethBalance = previouscorePoolWethBalance.add(balanceChange);
+        balanceChange = (Decimal(poolAmountOut).div(previousPoolBalance)).mul(previouscorePoolDaiBalance);
+        const currentDaiBalance = previouscorePoolDaiBalance.add(balanceChange);
+        balanceChange = (Decimal(poolAmountOut).div(previousPoolBalance)).mul(previouscorePoolXyzBalance);
+        const currentXyzBalance = previouscorePoolXyzBalance.add(balanceChange);
 
         assert.equal(fromWei(balance), currentPoolBalance);
-        assert.equal(bPoolXYZBalance, toWei(String(currentXyzBalance)));
-        assert.equal(bPoolWethBalance, toWei(String(currentWethBalance)));
-        assert.equal(bPoolDaiBalance, toWei(String(currentDaiBalance)));
+        assert.equal(corePoolXYZBalance, toWei(String(currentXyzBalance)));
+        assert.equal(corePoolWethBalance, toWei(String(currentWethBalance)));
+        assert.equal(corePoolDaiBalance, toWei(String(currentDaiBalance)));
     });
 
     it('Should get the RightsManager address', async () => {
@@ -403,17 +405,17 @@ contract('crpPoolTests', async (accounts) => {
     });
 
     it('should exitpool', async () => {
-        const bPoolAddr = await crpPool.bPool();
+        const corePoolAddr = await crpPool.corePool();
         const poolAmountIn = '99';
 
         let currentPoolBalance = await crpPool.balanceOf.call(admin);
-        let previousbPoolXyzBalance = await xyz.balanceOf.call(bPoolAddr);
-        let previousbPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        let previousbPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        let previouscorePoolXyzBalance = await xyz.balanceOf.call(corePoolAddr);
+        let previouscorePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        let previouscorePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
         currentPoolBalance = Decimal(fromWei(currentPoolBalance));
-        previousbPoolXyzBalance = Decimal(fromWei(previousbPoolXyzBalance));
-        previousbPoolWethBalance = Decimal(fromWei(previousbPoolWethBalance));
-        previousbPoolDaiBalance = Decimal(fromWei(previousbPoolDaiBalance));
+        previouscorePoolXyzBalance = Decimal(fromWei(previouscorePoolXyzBalance));
+        previouscorePoolWethBalance = Decimal(fromWei(previouscorePoolWethBalance));
+        previouscorePoolDaiBalance = Decimal(fromWei(previouscorePoolDaiBalance));
         const previousPoolBalance = Decimal(currentPoolBalance);
 
         await crpPool.exitPool(toWei(poolAmountIn), [toWei('0'), toWei('0'), toWei('0')]);
@@ -421,23 +423,23 @@ contract('crpPoolTests', async (accounts) => {
         currentPoolBalance = currentPoolBalance.sub(Decimal(poolAmountIn));
 
         const poolBalance = await crpPool.balanceOf.call(admin);
-        const bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        const bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        const bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        const corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        const corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        const corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         // Balances of all tokens increase proportionally to the pool balance
-        let balanceChange = (Decimal(poolAmountIn).div(previousPoolBalance)).mul(previousbPoolWethBalance);
-        const currentWethBalance = previousbPoolWethBalance.sub(balanceChange);
-        balanceChange = (Decimal(poolAmountIn).div(previousPoolBalance)).mul(previousbPoolDaiBalance);
-        const currentDaiBalance = previousbPoolDaiBalance.sub(balanceChange);
-        balanceChange = (Decimal(poolAmountIn).div(previousPoolBalance)).mul(previousbPoolXyzBalance);
-        const currentXyzBalance = previousbPoolXyzBalance.sub(balanceChange);
+        let balanceChange = (Decimal(poolAmountIn).div(previousPoolBalance)).mul(previouscorePoolWethBalance);
+        const currentWethBalance = previouscorePoolWethBalance.sub(balanceChange);
+        balanceChange = (Decimal(poolAmountIn).div(previousPoolBalance)).mul(previouscorePoolDaiBalance);
+        const currentDaiBalance = previouscorePoolDaiBalance.sub(balanceChange);
+        balanceChange = (Decimal(poolAmountIn).div(previousPoolBalance)).mul(previouscorePoolXyzBalance);
+        const currentXyzBalance = previouscorePoolXyzBalance.sub(balanceChange);
 
-        let relDif = calcRelativeDiff(currentXyzBalance, fromWei(bPoolXYZBalance));
+        let relDif = calcRelativeDiff(currentXyzBalance, fromWei(corePoolXYZBalance));
         assert.isAtMost(relDif.toNumber(), errorDelta);
-        relDif = calcRelativeDiff(currentDaiBalance, fromWei(bPoolDaiBalance));
+        relDif = calcRelativeDiff(currentDaiBalance, fromWei(corePoolDaiBalance));
         assert.isAtMost(relDif.toNumber(), errorDelta);
-        relDif = calcRelativeDiff(currentWethBalance, fromWei(bPoolWethBalance));
+        relDif = calcRelativeDiff(currentWethBalance, fromWei(corePoolWethBalance));
         assert.isAtMost(relDif.toNumber(), errorDelta);
         assert.equal(fromWei(poolBalance), currentPoolBalance);
     });

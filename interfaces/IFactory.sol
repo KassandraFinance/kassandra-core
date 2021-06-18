@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-interface IBPool {
+interface IPool {
     function rebind(address token, uint balance, uint denorm) external;
     function setSwapFee(uint swapFee) external;
     function setPublicSwap(bool publicSwap) external;
@@ -15,6 +15,10 @@ interface IBPool {
     function isPublicSwap() external view returns (bool);
     function getDenormalizedWeight(address token) external view returns (uint);
     function getTotalDenormalizedWeight() external view returns (uint);
+
+    function getCurrentTokens()
+        external view
+        returns (address[] memory tokens);
 
     function calcPoolOutGivenSingleIn(
         uint tokenBalanceIn,
@@ -59,16 +63,12 @@ interface IBPool {
     )
         external pure
         returns (uint poolAmountIn);
-
-    function getCurrentTokens()
-        external view
-        returns (address[] memory tokens);
 }
 
-interface IBFactory {
-    function newPool() external returns (IBPool);
+interface IFactory {
+    function newPool() external returns (IPool);
     function setController(address b) external;
-    function collect(IBPool pool) external;
+    function collect(IPool pool) external;
     function isPool(address b) external view returns (bool);
     function getController() external view returns (address);
 }

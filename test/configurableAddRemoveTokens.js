@@ -17,7 +17,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let CRPPOOL_ADDRESS;
@@ -59,7 +59,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         Admin approves CRP for MAX
         newCrp call with configurableAddRemoveTokens set to true
         */
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -92,13 +92,13 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -185,17 +185,17 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         await crpPool.commitAddToken(ABC, toWei('10000'), toWei('1.5'));
 
         // original has no ABC
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
-        const bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
+        const corePoolAbcBalance = await abc.balanceOf.call(corePoolAddr);
         const adminAbcBalance = await abc.balanceOf.call(admin);
 
         await truffleAssert.reverts(
-            bPool.getDenormalizedWeight.call(abc.address),
+            corePool.getDenormalizedWeight.call(abc.address),
             'ERR_NOT_BOUND',
         );
 
-        assert.equal(bPoolAbcBalance, toWei('0'));
+        assert.equal(corePoolAbcBalance, toWei('0'));
         assert.equal(adminAbcBalance, toWei('100000'));
     });
 
@@ -238,38 +238,38 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         const block = await web3.eth.getBlock('latest');
         assert(block.number > applyAddTokenValidBlock, 'Block Should Be Greater Than Valid Block At Start Of Test');
 
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
         let adminBPTBalance = await crpPool.balanceOf.call(admin);
         let adminAbcBalance = await abc.balanceOf.call(admin);
-        let bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
+        let corePoolAbcBalance = await abc.balanceOf.call(corePoolAddr);
 
         assert.equal(adminBPTBalance, toWei('100'));
         assert.equal(adminAbcBalance, toWei('100000'));
-        assert.equal(bPoolAbcBalance, toWei('0'));
+        assert.equal(corePoolAbcBalance, toWei('0'));
 
         await crpPool.applyAddToken();
 
         adminBPTBalance = await crpPool.balanceOf.call(admin);
         adminAbcBalance = await abc.balanceOf.call(admin);
-        bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
-        const bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        const bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        const bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        corePoolAbcBalance = await abc.balanceOf.call(corePoolAddr);
+        const corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        const corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        const corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         // BPT Balance should go from 100 to 110 since total weight went from 15 to 16.5
         assert.equal(adminBPTBalance, toWei('110'));
         assert.equal(adminAbcBalance, toWei('90000'));
-        assert.equal(bPoolAbcBalance, toWei('10000'));
-        assert.equal(bPoolXYZBalance, toWei('80000'));
-        assert.equal(bPoolWethBalance, toWei('40'));
-        assert.equal(bPoolDaiBalance, toWei('10000'));
+        assert.equal(corePoolAbcBalance, toWei('10000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolWethBalance, toWei('40'));
+        assert.equal(corePoolDaiBalance, toWei('10000'));
 
-        const xyzWeight = await bPool.getDenormalizedWeight.call(xyz.address);
-        const wethWeight = await bPool.getDenormalizedWeight.call(weth.address);
-        const daiWeight = await bPool.getDenormalizedWeight.call(dai.address);
-        const abcWeight = await bPool.getDenormalizedWeight.call(abc.address);
+        const xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
+        const wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
+        const daiWeight = await corePool.getDenormalizedWeight.call(dai.address);
+        const abcWeight = await corePool.getDenormalizedWeight.call(abc.address);
 
         assert.equal(xyzWeight, toWei('12'));
         assert.equal(wethWeight, toWei('1.5'));
@@ -327,48 +327,48 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     });
 
     it('Controller should be able to removeToken if token is bound', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
         let adminBPTBalance = await crpPool.balanceOf.call(admin);
         let adminDaiBalance = await dai.balanceOf.call(admin);
-        let bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
-        let bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        let bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        let bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        let corePoolAbcBalance = await abc.balanceOf.call(corePoolAddr);
+        let corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        let corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        let corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         assert.equal(adminBPTBalance, toWei('110'));
         assert.equal(adminDaiBalance, toWei('5000'));
-        assert.equal(bPoolAbcBalance, toWei('10000'));
-        assert.equal(bPoolXYZBalance, toWei('80000'));
-        assert.equal(bPoolWethBalance, toWei('40'));
-        assert.equal(bPoolDaiBalance, toWei('10000'));
+        assert.equal(corePoolAbcBalance, toWei('10000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolWethBalance, toWei('40'));
+        assert.equal(corePoolDaiBalance, toWei('10000'));
 
         await crpPool.removeToken(DAI);
 
         adminBPTBalance = await crpPool.balanceOf.call(admin);
         adminDaiBalance = await dai.balanceOf.call(admin);
-        bPoolAbcBalance = await abc.balanceOf.call(bPoolAddr);
-        bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        corePoolAbcBalance = await abc.balanceOf.call(corePoolAddr);
+        corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         // DAI Balance should go from 5000 to 15000 (since 10000 was given back from pool with DAI removal)
         // BPT Balance should go from 110 to 100 since total weight went from 16.5 to 15
         assert.equal(adminBPTBalance, toWei('100'));
         assert.equal(adminDaiBalance, toWei('15000'));
-        assert.equal(bPoolAbcBalance, toWei('10000'));
-        assert.equal(bPoolXYZBalance, toWei('80000'));
-        assert.equal(bPoolWethBalance, toWei('40'));
-        assert.equal(bPoolDaiBalance, toWei('0'));
+        assert.equal(corePoolAbcBalance, toWei('10000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolWethBalance, toWei('40'));
+        assert.equal(corePoolDaiBalance, toWei('0'));
 
         // Confirm all other weights and balances?
-        const xyzWeight = await bPool.getDenormalizedWeight.call(xyz.address);
-        const wethWeight = await bPool.getDenormalizedWeight.call(weth.address);
-        const abcWeight = await bPool.getDenormalizedWeight.call(abc.address);
+        const xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
+        const wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
+        const abcWeight = await corePool.getDenormalizedWeight.call(abc.address);
 
         await truffleAssert.reverts(
-            bPool.getDenormalizedWeight.call(dai.address),
+            corePool.getDenormalizedWeight.call(dai.address),
             'ERR_NOT_BOUND',
         );
 
@@ -384,16 +384,16 @@ contract('configurableAddRemoveTokens', async (accounts) => {
 
     it('Start weights should still be aligned, after removeToken', async () => {
         // Tokens are now ABC, WETH (swaps XYZ with ABC, then deletes XYZ)
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
         let i;
 
         console.log(`WETH = ${WETH}`);
         console.log(`ABC = ${ABC}`);
 
-        const poolTokens = await bPool.getCurrentTokens();
+        const poolTokens = await corePool.getCurrentTokens();
         for (i = 0; i < poolTokens.length; i++) {
-            const tokenWeight = await bPool.getDenormalizedWeight(poolTokens[i]);
+            const tokenWeight = await corePool.getDenormalizedWeight(poolTokens[i]);
             console.log(`Token[${i}] = ${poolTokens[i]}; weight ${fromWei(tokenWeight)}`);
         }
 

@@ -24,7 +24,7 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
     const numPoolTokens = '1000';
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let DAI;
@@ -58,7 +58,7 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         bap0 = await TToken.new('BAP Gen 0', 'BAP0', 18);
         bap1 = await TToken.new('BAP Gen 1', 'BAP1', 18);
@@ -91,13 +91,13 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -151,8 +151,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         it('Should configure the pool (min swap fee)', async () => {
             // Drop the fee to the minimum (cannot be 0)
             await crpPool.setSwapFee(minSwapFee);
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             const deployedSwapFee = await underlyingPool.getSwapFee();
             assert.equal(minSwapFee, deployedSwapFee);
@@ -185,8 +185,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 await time.advanceBlock();
             }
 
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
             let tokenAmountIn;
             let spotPriceAfter;
 
@@ -324,8 +324,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         }).timeout(0);
 
         it('Controller should recover remaining tokens and proceeds', async () => {
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             // Prevent trading
             await crpPool.setPublicSwap(false);
@@ -354,8 +354,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         });
 
         it('Should allow adding a new project token, then recovering the old one', async () => {
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             console.log(`DAI address = ${DAI}`);
             console.log(`BAP0 address = ${BAP0}`);
@@ -481,8 +481,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 await time.advanceBlock();
             }
 
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
             let tokenAmountIn;
             let spotPriceAfter;
 
@@ -568,8 +568,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         }).timeout(0);
 
         it('Controller should recover remaining tokens and proceeds from the second auction', async () => {
-            const bPoolAddr = await crpPool.bPool();
-            const underlyingPool = await BPool.at(bPoolAddr);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await BPool.at(corePoolAddr);
 
             // Prevent trading
             await crpPool.setPublicSwap(false);

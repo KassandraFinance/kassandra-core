@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IERC20.sol";
 import "../interfaces/IConfigurableRightsPool.sol";
-import "../contracts/IBFactory.sol";
+import "../interfaces/IFactory.sol";
 import "./KassandraSafeMath.sol";
 import "./SafeApprove.sol";
 
@@ -42,13 +42,13 @@ library SmartPoolManager {
      * @notice Update the weight of an existing token
      * @dev Refactored to library to make CRPFactory deployable
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param token - token to be reweighted
      * @param newWeight - new weight of the token
     */
     function updateWeight(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         address token,
         uint newWeight
     )
@@ -57,15 +57,15 @@ library SmartPoolManager {
         require(newWeight >= KassandraConstants.MIN_WEIGHT, "ERR_MIN_WEIGHT");
         require(newWeight <= KassandraConstants.MAX_WEIGHT, "ERR_MAX_WEIGHT");
 
-        uint currentWeight = bPool.getDenormalizedWeight(token);
+        uint currentWeight = corePool.getDenormalizedWeight(token);
         // Save gas; return immediately on NOOP
         if (currentWeight == newWeight) {
             return;
         }
 
-        uint currentBalance = bPool.getBalance(token);
+        uint currentBalance = corePool.getBalance(token);
         uint totalSupply = self.totalSupply();
-        uint totalWeight = bPool.getTotalDenormalizedWeight();
+        uint totalWeight = corePool.getTotalDenormalizedWeight();
         uint poolShares;
         uint deltaBalance;
         uint deltaWeight;
@@ -94,7 +94,7 @@ library SmartPoolManager {
             require(newBalance >= KassandraConstants.MIN_BALANCE, "ERR_MIN_BALANCE");
 
             // First get the tokens from this contract (Pool Controller) to msg.sender
-            bPool.rebind(token, newBalance, newWeight);
+            corePool.rebind(token, newBalance, newWeight);
 
             // Now with the tokens this contract can send them to msg.sender
             bool xfer = IERC20(token).transfer(msg.sender, deltaBalance);
@@ -129,7 +129,7 @@ library SmartPoolManager {
             require(xfer, "ERR_ERC20_FALSE");
 
             // Now with the tokens this contract can bind them to the pool it controls
-            bPool.rebind(token, currentBalance + deltaBalance, newWeight);
+            corePool.rebind(token, currentBalance + deltaBalance, newWeight);
 
             self.mintPoolShareFromLib(poolShares);
             self.pushPoolShareFromLib(msg.sender, poolShares);
@@ -138,11 +138,11 @@ library SmartPoolManager {
 
     /**
      * @notice External function called to make the contract update weights according to plan
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param gradualUpdate - gradual update parameters from the CRP
     */
     function pokeWeights(
-        IBPool bPool,
+        IPool corePool,
         GradualUpdateParams storage gradualUpdate
     )
         external
@@ -173,7 +173,7 @@ library SmartPoolManager {
         uint deltaPerBlock;
         uint newWeight;
 
-        address[] memory tokens = bPool.getCurrentTokens();
+        address[] memory tokens = corePool.getCurrentTokens();
 
         // This loop contains external calls
         // External calls are to math libraries or the underlying pool, so low risk
@@ -207,9 +207,9 @@ library SmartPoolManager {
                     newWeight = gradualUpdate.startWeights[i] + KassandraSafeMath.bmul(blocksElapsed, deltaPerBlock);
                 }
 
-                uint bal = bPool.getBalance(tokens[i]);
+                uint bal = corePool.getBalance(tokens[i]);
 
-                bPool.rebind(tokens[i], bal, newWeight);
+                corePool.rebind(tokens[i], bal, newWeight);
             }
         }
 
@@ -224,14 +224,14 @@ library SmartPoolManager {
     /**
      * @notice Schedule (commit) a token to be added; must call applyAddToken after a fixed
      *         number of blocks to actually add the token
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param token - the token to be added
      * @param balance - how much to be added
      * @param denormalizedWeight - the desired token weight
      * @param newToken - NewTokenParams struct used to hold the token data (in CRP storage)
      */
     function commitAddToken(
-        IBPool bPool,
+        IPool corePool,
         address token,
         uint balance,
         uint denormalizedWeight,
@@ -239,12 +239,12 @@ library SmartPoolManager {
     )
         external
     {
-        require(!bPool.isBound(token), "ERR_IS_BOUND");
+        require(!corePool.isBound(token), "ERR_IS_BOUND");
 
         require(denormalizedWeight <= KassandraConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
         require(denormalizedWeight >= KassandraConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
         require(
-            (bPool.getTotalDenormalizedWeight() + denormalizedWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
+            (corePool.getTotalDenormalizedWeight() + denormalizedWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
             "ERR_MAX_TOTAL_WEIGHT"
         );
         require(balance >= KassandraConstants.MIN_BALANCE, "ERR_BALANCE_BELOW_MIN");
@@ -259,13 +259,13 @@ library SmartPoolManager {
     /**
      * @notice Add the token previously committed (in commitAddToken) to the pool
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param addTokenTimeLockInBlocks -  Wait time between committing and applying a new token
      * @param newToken - NewTokenParams struct used to hold the token data (in CRP storage)
      */
     function applyAddToken(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         uint addTokenTimeLockInBlocks,
         NewTokenParams storage newToken
     )
@@ -281,7 +281,7 @@ library SmartPoolManager {
 
         // poolShares = totalSupply * newTokenWeight / totalWeight
         uint poolShares = KassandraSafeMath.bdiv(KassandraSafeMath.bmul(totalSupply, newToken.denorm),
-                                                bPool.getTotalDenormalizedWeight());
+                                                corePool.getTotalDenormalizedWeight());
 
         // Clear this to allow adding more tokens
         newToken.isCommitted = false;
@@ -291,12 +291,12 @@ library SmartPoolManager {
         require(returnValue, "ERR_ERC20_FALSE");
 
         // Now with the tokens this contract can bind them to the pool it controls
-        // Approves bPool to pull from this controller
+        // Approves corePool to pull from this controller
         // Approve unlimited, same as when creating the pool, so they can join pools later
-        returnValue = SafeApprove.safeApprove(IERC20(newToken.addr), address(bPool), KassandraConstants.MAX_UINT);
+        returnValue = SafeApprove.safeApprove(IERC20(newToken.addr), address(corePool), KassandraConstants.MAX_UINT);
         require(returnValue, "ERR_ERC20_FALSE");
 
-        bPool.bind(newToken.addr, newToken.balance, newToken.denorm);
+        corePool.bind(newToken.addr, newToken.balance, newToken.denorm);
 
         self.mintPoolShareFromLib(poolShares);
         self.pushPoolShareFromLib(msg.sender, poolShares);
@@ -310,12 +310,12 @@ library SmartPoolManager {
      *                        This can result in a non-viable pool with 0 or 1 tokens (by design),
      *                        meaning all swapping or binding operations would fail in this state
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param token - token to remove
      */
     function removeToken(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         address token
     )
         external
@@ -325,17 +325,17 @@ library SmartPoolManager {
         // poolShares = totalSupply * tokenWeight / totalWeight
         uint poolShares = KassandraSafeMath.bdiv(
             KassandraSafeMath.bmul(
-                totalSupply, bPool.getDenormalizedWeight(token)
+                totalSupply, corePool.getDenormalizedWeight(token)
             ),
-            bPool.getTotalDenormalizedWeight()
+            corePool.getTotalDenormalizedWeight()
         );
 
         // this is what will be unbound from the pool
         // Have to get it before unbinding
-        uint balance = bPool.getBalance(token);
+        uint balance = corePool.getBalance(token);
 
         // Unbind and get the tokens out of the pool
-        bPool.unbind(token);
+        corePool.unbind(token);
 
         // Now with the tokens this contract can send them to msg.sender
         bool xfer = IERC20(token).transfer(self.getController(), balance);
@@ -368,14 +368,14 @@ library SmartPoolManager {
     /**
      * @notice Update weights in a predetermined way, between startBlock and endBlock,
      *         through external cals to pokeWeights
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param newWeights - final weights we want to get to
      * @param startBlock - when weights should start to change
      * @param endBlock - when weights will be at their final values
      * @param minimumWeightChangeBlockPeriod - needed to validate the block period
     */
     function updateWeightsGradually(
-        IBPool bPool,
+        IPool corePool,
         GradualUpdateParams storage gradualUpdate,
         uint[] calldata newWeights,
         uint startBlock,
@@ -402,7 +402,7 @@ library SmartPoolManager {
             "ERR_WEIGHT_CHANGE_TIME_BELOW_MIN"
         );
 
-        address[] memory tokens = bPool.getCurrentTokens();
+        address[] memory tokens = corePool.getCurrentTokens();
 
         // Must specify weights for all tokens
         require(newWeights.length == tokens.length, "ERR_START_WEIGHTS_MISMATCH");
@@ -419,7 +419,7 @@ library SmartPoolManager {
             require(newWeights[i] >= KassandraConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
 
             weightsSum += newWeights[i];
-            gradualUpdate.startWeights[i] = bPool.getDenormalizedWeight(tokens[i]);
+            gradualUpdate.startWeights[i] = corePool.getDenormalizedWeight(tokens[i]);
         }
         require(weightsSum <= KassandraConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
 
@@ -430,14 +430,14 @@ library SmartPoolManager {
     /**
      * @notice Join a pool
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param poolAmountOut - number of pool tokens to receive
      * @param maxAmountsIn - Max amount of asset tokens to spend
      * @return actualAmountsIn - calculated values of the tokens to pull in
      */
     function joinPool(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         uint poolAmountOut,
         uint[] calldata maxAmountsIn
     )
@@ -445,7 +445,7 @@ library SmartPoolManager {
         view
         returns (uint[] memory actualAmountsIn)
     {
-        address[] memory tokens = bPool.getCurrentTokens();
+        address[] memory tokens = corePool.getCurrentTokens();
 
         require(maxAmountsIn.length == tokens.length, "ERR_AMOUNTS_MISMATCH");
 
@@ -463,7 +463,7 @@ library SmartPoolManager {
         // External calls are to math libraries or the underlying pool, so low risk
         for (uint i = 0; i < tokens.length; i++) {
             address t = tokens[i];
-            uint bal = bPool.getBalance(t);
+            uint bal = corePool.getBalance(t);
             // Add 1 to ensure any rounding errors favor the pool
             uint tokenAmountIn = KassandraSafeMath.bmul(ratio, bal + 1);
 
@@ -477,7 +477,7 @@ library SmartPoolManager {
     /**
      * @notice Exit a pool - redeem pool tokens for underlying assets
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountsOut - minimum amount of asset tokens to receive
      * @return exitFee - calculated exit fee
@@ -486,7 +486,7 @@ library SmartPoolManager {
      */
     function exitPool(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         uint poolAmountIn,
         uint[] calldata minAmountsOut
     )
@@ -494,7 +494,7 @@ library SmartPoolManager {
         view
         returns (uint exitFee, uint pAiAfterExitFee, uint[] memory actualAmountsOut)
     {
-        address[] memory tokens = bPool.getCurrentTokens();
+        address[] memory tokens = corePool.getCurrentTokens();
 
         require(minAmountsOut.length == tokens.length, "ERR_AMOUNTS_MISMATCH");
 
@@ -514,7 +514,7 @@ library SmartPoolManager {
         // External calls are to math libraries or the underlying pool, so low risk
         for (uint i = 0; i < tokens.length; i++) {
             address t = tokens[i];
-            uint bal = bPool.getBalance(t);
+            uint bal = corePool.getBalance(t);
             // Subtract 1 to ensure any rounding errors favor the pool
             uint tokenAmountOut = KassandraSafeMath.bmul(ratio, bal - 1);
 
@@ -529,7 +529,7 @@ library SmartPoolManager {
      * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
      *         System calculates the pool token amount
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param tokenIn - which token we're transferring in
      * @param tokenAmountIn - amount of deposit
      * @param minPoolAmountOut - minimum of pool tokens to receive
@@ -537,7 +537,7 @@ library SmartPoolManager {
      */
     function joinswapExternAmountIn(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         address tokenIn,
         uint tokenAmountIn,
         uint minPoolAmountOut
@@ -546,19 +546,19 @@ library SmartPoolManager {
         view
         returns (uint poolAmountOut)
     {
-        require(bPool.isBound(tokenIn), "ERR_NOT_BOUND");
+        require(corePool.isBound(tokenIn), "ERR_NOT_BOUND");
         require(
-            tokenAmountIn <= KassandraSafeMath.bmul(bPool.getBalance(tokenIn), KassandraConstants.MAX_IN_RATIO),
+            tokenAmountIn <= KassandraSafeMath.bmul(corePool.getBalance(tokenIn), KassandraConstants.MAX_IN_RATIO),
             "ERR_MAX_IN_RATIO"
         );
 
-        poolAmountOut = bPool.calcPoolOutGivenSingleIn(
-                            bPool.getBalance(tokenIn),
-                            bPool.getDenormalizedWeight(tokenIn),
+        poolAmountOut = corePool.calcPoolOutGivenSingleIn(
+                            corePool.getBalance(tokenIn),
+                            corePool.getDenormalizedWeight(tokenIn),
                             self.totalSupply(),
-                            bPool.getTotalDenormalizedWeight(),
+                            corePool.getTotalDenormalizedWeight(),
                             tokenAmountIn,
-                            bPool.getSwapFee()
+                            corePool.getSwapFee()
                         );
 
         require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT");
@@ -568,7 +568,7 @@ library SmartPoolManager {
      * @notice Join by swapping an external token in (must be present in the pool)
      *         To receive an exact amount of pool tokens out. System calculates the deposit amount
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param tokenIn - which token we're transferring in (system calculates amount required)
      * @param poolAmountOut - amount of pool tokens to be received
      * @param maxAmountIn - Maximum asset tokens that can be pulled to pay for the pool tokens
@@ -576,7 +576,7 @@ library SmartPoolManager {
      */
     function joinswapPoolAmountOut(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         address tokenIn,
         uint poolAmountOut,
         uint maxAmountIn
@@ -585,22 +585,22 @@ library SmartPoolManager {
         view
         returns (uint tokenAmountIn)
     {
-        require(bPool.isBound(tokenIn), "ERR_NOT_BOUND");
+        require(corePool.isBound(tokenIn), "ERR_NOT_BOUND");
 
-        tokenAmountIn = bPool.calcSingleInGivenPoolOut(
-                            bPool.getBalance(tokenIn),
-                            bPool.getDenormalizedWeight(tokenIn),
+        tokenAmountIn = corePool.calcSingleInGivenPoolOut(
+                            corePool.getBalance(tokenIn),
+                            corePool.getDenormalizedWeight(tokenIn),
                             self.totalSupply(),
-                            bPool.getTotalDenormalizedWeight(),
+                            corePool.getTotalDenormalizedWeight(),
                             poolAmountOut,
-                            bPool.getSwapFee()
+                            corePool.getSwapFee()
                         );
 
         require(tokenAmountIn != 0, "ERR_MATH_APPROX");
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
 
         require(
-            tokenAmountIn <= KassandraSafeMath.bmul(bPool.getBalance(tokenIn), KassandraConstants.MAX_IN_RATIO),
+            tokenAmountIn <= KassandraSafeMath.bmul(corePool.getBalance(tokenIn), KassandraConstants.MAX_IN_RATIO),
             "ERR_MAX_IN_RATIO"
         );
     }
@@ -609,7 +609,7 @@ library SmartPoolManager {
      * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
      *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param tokenOut - which token the caller wants to receive
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountOut - minimum asset tokens to receive
@@ -618,7 +618,7 @@ library SmartPoolManager {
      */
     function exitswapPoolAmountIn(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         address tokenOut,
         uint poolAmountIn,
         uint minAmountOut
@@ -627,20 +627,20 @@ library SmartPoolManager {
         view
         returns (uint exitFee, uint tokenAmountOut)
     {
-        require(bPool.isBound(tokenOut), "ERR_NOT_BOUND");
+        require(corePool.isBound(tokenOut), "ERR_NOT_BOUND");
 
-        tokenAmountOut = bPool.calcSingleOutGivenPoolIn(
-                            bPool.getBalance(tokenOut),
-                            bPool.getDenormalizedWeight(tokenOut),
+        tokenAmountOut = corePool.calcSingleOutGivenPoolIn(
+                            corePool.getBalance(tokenOut),
+                            corePool.getDenormalizedWeight(tokenOut),
                             self.totalSupply(),
-                            bPool.getTotalDenormalizedWeight(),
+                            corePool.getTotalDenormalizedWeight(),
                             poolAmountIn,
-                            bPool.getSwapFee()
+                            corePool.getSwapFee()
                         );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
         require(
-            tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
+            tokenAmountOut <= KassandraSafeMath.bmul(corePool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
             "ERR_MAX_OUT_RATIO"
         );
 
@@ -651,7 +651,7 @@ library SmartPoolManager {
      * @notice Exit a pool - redeem pool tokens for a specific amount of underlying assets
      *         Asset must be present in the pool
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param bPool - Core BPool the CRP is wrapping
+     * @param corePool - Core BPool the CRP is wrapping
      * @param tokenOut - which token the caller wants to receive
      * @param tokenAmountOut - amount of underlying asset tokens to receive
      * @param maxPoolAmountIn - maximum pool tokens to be redeemed
@@ -660,7 +660,7 @@ library SmartPoolManager {
      */
     function exitswapExternAmountOut(
         IConfigurableRightsPool self,
-        IBPool bPool,
+        IPool corePool,
         address tokenOut,
         uint tokenAmountOut,
         uint maxPoolAmountIn
@@ -669,18 +669,18 @@ library SmartPoolManager {
         view
         returns (uint exitFee, uint poolAmountIn)
     {
-        require(bPool.isBound(tokenOut), "ERR_NOT_BOUND");
+        require(corePool.isBound(tokenOut), "ERR_NOT_BOUND");
         require(
-            tokenAmountOut <= KassandraSafeMath.bmul(bPool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
+            tokenAmountOut <= KassandraSafeMath.bmul(corePool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
             "ERR_MAX_OUT_RATIO"
         );
-        poolAmountIn = bPool.calcPoolInGivenSingleOut(
-                            bPool.getBalance(tokenOut),
-                            bPool.getDenormalizedWeight(tokenOut),
+        poolAmountIn = corePool.calcPoolInGivenSingleOut(
+                            corePool.getBalance(tokenOut),
+                            corePool.getDenormalizedWeight(tokenOut),
                             self.totalSupply(),
-                            bPool.getTotalDenormalizedWeight(),
+                            corePool.getTotalDenormalizedWeight(),
                             tokenAmountOut,
-                            bPool.getSwapFee()
+                            corePool.getSwapFee()
                         );
 
         require(poolAmountIn != 0, "ERR_MATH_APPROX");

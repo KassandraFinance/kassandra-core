@@ -36,11 +36,11 @@ contract('crpPoolSwapOuts', async (accounts) => {
     };
 
     let crpFactory;
-    let bFactory;
-    let bPoolAddr;
-    let bPool;
-    let bPool2;
-    let bPool3;
+    let coreFactory;
+    let corePoolAddr;
+    let corePool;
+    let corePool2;
+    let corePool3;
     let crpPool;
     let crpPool2
     let crpPool3;
@@ -55,18 +55,18 @@ contract('crpPoolSwapOuts', async (accounts) => {
     let dai;
     let xyz;
     let adminXYZBalance;
-    let bPoolXYZBalance;
+    let corePoolXYZBalance;
     let adminWethBalance;
-    let bPoolWethBalance;
+    let corePoolWethBalance;
     let adminDaiBalance;
-    let bPoolDaiBalance;
+    let corePoolDaiBalance;
     let xyzWeight;
     let daiWeight;
     let wethWeight;
     let adminBPTBalance;
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -95,13 +95,13 @@ contract('crpPoolSwapOuts', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -115,13 +115,13 @@ contract('crpPoolSwapOuts', async (accounts) => {
         await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
         CRPPOOL2 = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -133,13 +133,13 @@ contract('crpPoolSwapOuts', async (accounts) => {
         await xyz.approve(crpPool2.address, MAX);
 
         CRPPOOL3 = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -153,79 +153,79 @@ contract('crpPoolSwapOuts', async (accounts) => {
 
     it('crpPools should have BPools after creation', async () => {
         await crpPool.createPool(toWei('100'));
-        bPoolAddr = await crpPool.bPool();
-        assert.notEqual(bPoolAddr, ZERO_ADDRESS);
-        bPool = await BPool.at(bPoolAddr);
+        corePoolAddr = await crpPool.corePool();
+        assert.notEqual(corePoolAddr, ZERO_ADDRESS);
+        corePool = await BPool.at(corePoolAddr);
 
         await crpPool2.createPool(toWei('100'));
-        bPoolAddr = await crpPool2.bPool();
-        assert.notEqual(bPoolAddr, ZERO_ADDRESS);
-        bPool2 = await BPool.at(bPoolAddr);
+        corePoolAddr = await crpPool2.corePool();
+        assert.notEqual(corePoolAddr, ZERO_ADDRESS);
+        corePool2 = await BPool.at(corePoolAddr);
 
         await crpPool3.createPool(toWei('100'));
-        bPoolAddr = await crpPool3.bPool();
-        assert.notEqual(bPoolAddr, ZERO_ADDRESS);
-        bPool3 = await BPool.at(bPoolAddr);
+        corePoolAddr = await crpPool3.corePool();
+        assert.notEqual(corePoolAddr, ZERO_ADDRESS);
+        corePool3 = await BPool.at(corePoolAddr);
     });
 
     it('BPools should have initial token balances', async () => {
-        bPoolAddr = await crpPool.bPool();
+        corePoolAddr = await crpPool.corePool();
 
         adminXYZBalance = await xyz.balanceOf.call(admin);
-        bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
+        corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
         adminWethBalance = await weth.balanceOf.call(admin);
-        bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
+        corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
         adminDaiBalance = await dai.balanceOf.call(admin);
-        bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         assert.equal(adminXYZBalance, toWei('60000')); // 20000x3
-        assert.equal(bPoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
         assert.equal(adminWethBalance, toWei('180')); // 60x3
-        assert.equal(bPoolWethBalance, toWei('40'));
+        assert.equal(corePoolWethBalance, toWei('40'));
         assert.equal(adminDaiBalance, toWei('15000')); // 5000x3
-        assert.equal(bPoolDaiBalance, toWei('10000'));
+        assert.equal(corePoolDaiBalance, toWei('10000'));
 
-        bPoolAddr = await crpPool2.bPool();
+        corePoolAddr = await crpPool2.corePool();
 
-        bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-        assert.equal(bPoolXYZBalance, toWei('80000'));
-        assert.equal(bPoolWethBalance, toWei('40'));
-        assert.equal(bPoolDaiBalance, toWei('10000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolWethBalance, toWei('40'));
+        assert.equal(corePoolDaiBalance, toWei('10000'));
 
-        bPoolAddr = await crpPool3.bPool();
+        corePoolAddr = await crpPool3.corePool();
 
-        bPoolXYZBalance = await xyz.balanceOf.call(bPoolAddr);
-        bPoolWethBalance = await weth.balanceOf.call(bPoolAddr);
-        bPoolDaiBalance = await dai.balanceOf.call(bPoolAddr);
+        corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-        assert.equal(bPoolXYZBalance, toWei('80000'));
-        assert.equal(bPoolWethBalance, toWei('40'));
-        assert.equal(bPoolDaiBalance, toWei('10000'));
+        assert.equal(corePoolXYZBalance, toWei('80000'));
+        assert.equal(corePoolWethBalance, toWei('40'));
+        assert.equal(corePoolDaiBalance, toWei('10000'));
     });
 
     it('BPool should have initial token weights', async () => {
-        xyzWeight = await bPool.getDenormalizedWeight.call(xyz.address);
-        wethWeight = await bPool.getDenormalizedWeight.call(weth.address);
-        daiWeight = await bPool.getDenormalizedWeight.call(dai.address);
+        xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
+        wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
+        daiWeight = await corePool.getDenormalizedWeight.call(dai.address);
 
         assert.equal(xyzWeight, toWei('12'));
         assert.equal(wethWeight, toWei('1.5'));
         assert.equal(daiWeight, toWei('1.5'));
 
-        xyzWeight = await bPool2.getDenormalizedWeight.call(xyz.address);
-        wethWeight = await bPool2.getDenormalizedWeight.call(weth.address);
-        daiWeight = await bPool2.getDenormalizedWeight.call(dai.address);
+        xyzWeight = await corePool2.getDenormalizedWeight.call(xyz.address);
+        wethWeight = await corePool2.getDenormalizedWeight.call(weth.address);
+        daiWeight = await corePool2.getDenormalizedWeight.call(dai.address);
 
         assert.equal(xyzWeight, toWei('12'));
         assert.equal(wethWeight, toWei('1.5'));
         assert.equal(daiWeight, toWei('1.5'));
 
-        xyzWeight = await bPool3.getDenormalizedWeight.call(xyz.address);
-        wethWeight = await bPool3.getDenormalizedWeight.call(weth.address);
-        daiWeight = await bPool3.getDenormalizedWeight.call(dai.address);
+        xyzWeight = await corePool3.getDenormalizedWeight.call(xyz.address);
+        wethWeight = await corePool3.getDenormalizedWeight.call(weth.address);
+        daiWeight = await corePool3.getDenormalizedWeight.call(dai.address);
 
         assert.equal(xyzWeight, toWei('12'));
         assert.equal(wethWeight, toWei('1.5'));
@@ -249,12 +249,12 @@ contract('crpPoolSwapOuts', async (accounts) => {
         let tokenAmountIn;
 
         // 1st Swap - WETH for DAI
-        await weth.approve(bPool.address, MAX, { from: user1 });
+        await weth.approve(corePool.address, MAX, { from: user1 });
 
-        let tokenInBalance = await weth.balanceOf.call(bPool.address); // 40
-        let tokenInWeight = await bPool.getDenormalizedWeight(WETH); // 1.5
-        let tokenOutBalance = await dai.balanceOf.call(bPool.address); // 10000
-        let tokenOutWeight = await bPool.getDenormalizedWeight(DAI); // 1.5
+        let tokenInBalance = await weth.balanceOf.call(corePool.address); // 40
+        let tokenInWeight = await corePool.getDenormalizedWeight(WETH); // 1.5
+        let tokenOutBalance = await dai.balanceOf.call(corePool.address); // 10000
+        let tokenOutWeight = await corePool.getDenormalizedWeight(DAI); // 1.5
 
         let expectedTotalIn = calcInGivenOut(
             fromWei(tokenInBalance),
@@ -266,7 +266,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
         );
 
         // Actually returns an array of tokenAmountIn, spotPriceAfter
-        tokenAmountIn = await bPool.swapExactAmountOut.call(
+        tokenAmountIn = await corePool.swapExactAmountOut.call(
             tokenIn,
             MAX, // maxAmountIn
             tokenOut,
@@ -278,15 +278,15 @@ contract('crpPoolSwapOuts', async (accounts) => {
         assert.isAtMost(relDif.toNumber(), errorDelta);
 
         // 2nd Swap - DAI for WETH
-        await dai.approve(bPool2.address, MAX, { from: user1 });
+        await dai.approve(corePool2.address, MAX, { from: user1 });
 
         tokenIn = DAI;
         tokenOut = WETH;
 
-        tokenInBalance = await dai.balanceOf.call(bPool2.address);
-        tokenInWeight = await bPool2.getDenormalizedWeight(DAI);
-        tokenOutBalance = await weth.balanceOf.call(bPool2.address);
-        tokenOutWeight = await bPool2.getDenormalizedWeight(WETH);
+        tokenInBalance = await dai.balanceOf.call(corePool2.address);
+        tokenInWeight = await corePool2.getDenormalizedWeight(DAI);
+        tokenOutBalance = await weth.balanceOf.call(corePool2.address);
+        tokenOutWeight = await corePool2.getDenormalizedWeight(WETH);
 
         expectedTotalIn = calcInGivenOut(
             fromWei(tokenInBalance),
@@ -297,7 +297,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
             fromWei(swapFee),
         );
 
-        tokenAmountIn = await bPool2.swapExactAmountOut.call(
+        tokenAmountIn = await corePool2.swapExactAmountOut.call(
             tokenIn,
             MAX, // maxAmountIn
             tokenOut,
@@ -309,15 +309,15 @@ contract('crpPoolSwapOuts', async (accounts) => {
         assert.isAtMost(relDif.toNumber(), errorDelta);
 
         // 3rd Swap XYZ for WETH
-        await xyz.approve(bPool3.address, MAX, { from: user1 });
+        await xyz.approve(corePool3.address, MAX, { from: user1 });
 
         tokenIn = XYZ;
         tokenOut = WETH;
 
-        tokenInBalance = await xyz.balanceOf.call(bPool3.address);
-        tokenInWeight = await bPool3.getDenormalizedWeight(XYZ);
-        tokenOutBalance = await weth.balanceOf.call(bPool3.address);
-        tokenOutWeight = await bPool3.getDenormalizedWeight(WETH);
+        tokenInBalance = await xyz.balanceOf.call(corePool3.address);
+        tokenInWeight = await corePool3.getDenormalizedWeight(XYZ);
+        tokenOutBalance = await weth.balanceOf.call(corePool3.address);
+        tokenOutWeight = await corePool3.getDenormalizedWeight(WETH);
 
         expectedTotalIn = calcInGivenOut(
             fromWei(tokenInBalance),
@@ -328,7 +328,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
             fromWei(swapFee),
         );
 
-        tokenAmountIn = await bPool3.swapExactAmountOut.call(
+        tokenAmountIn = await corePool3.swapExactAmountOut.call(
             tokenIn,
             MAX, // maxAmountIn
             tokenOut,

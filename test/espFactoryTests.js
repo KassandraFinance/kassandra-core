@@ -15,7 +15,7 @@ contract('ESPFactory', async (accounts) => {
     const swapFee = 10**15;
 
     let espFactory;
-    let bFactory;
+    let coreFactory;
     let espPool;
     let ESPPOOL;
     let ESPPOOL_ADDRESS;
@@ -41,7 +41,7 @@ contract('ESPFactory', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         espFactory = await ESPFactory.deployed();
         usdc = await TToken.new('USD Stablecoin', 'USDC', 6);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -66,13 +66,13 @@ contract('ESPFactory', async (accounts) => {
         }
 
         ESPPOOL = await espFactory.newEsp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await espFactory.newEsp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -113,7 +113,7 @@ contract('ESPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             espFactory.newEsp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -135,7 +135,7 @@ contract('ESPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             espFactory.newEsp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -154,7 +154,7 @@ contract('ESPFactory', async (accounts) => {
         }
 
         espFactory.newEsp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         )
@@ -172,7 +172,7 @@ contract('ESPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             espFactory.newEsp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),
@@ -194,7 +194,7 @@ contract('ESPFactory', async (accounts) => {
 
         await truffleAssert.reverts(
             espFactory.newEsp(
-                bFactory.address,
+                coreFactory.address,
                 poolParams,
                 permissions,
             ),

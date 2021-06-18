@@ -15,7 +15,7 @@ contract('configurableSwapFee', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
 
     let crpFactory;
-    let bFactory;
+    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let WETH;
@@ -45,7 +45,7 @@ contract('configurableSwapFee', async (accounts) => {
     };
 
     before(async () => {
-        bFactory = await BFactory.deployed();
+        coreFactory = await BFactory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -75,13 +75,13 @@ contract('configurableSwapFee', async (accounts) => {
         }
 
         CRPPOOL = await crpFactory.newCrp.call(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
 
         await crpFactory.newCrp(
-            bFactory.address,
+            coreFactory.address,
             poolParams,
             permissions,
         );
@@ -118,10 +118,10 @@ contract('configurableSwapFee', async (accounts) => {
     });
 
     it('Controller should be able to change swapFee', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
-        const deployedSwapFee = await bPool.getSwapFee();
+        const deployedSwapFee = await corePool.getSwapFee();
         assert.equal(swapFee, deployedSwapFee);
 
         const newSwapFee = toWei('0.001');
@@ -130,13 +130,13 @@ contract('configurableSwapFee', async (accounts) => {
         // Setting it to the same as the old value, so if it fails silently we wouldn't know
         // To guard against that, set it to something actually different in the next test, to
         // make sure it really changes it
-        const newSwapFeeCheck = await bPool.getSwapFee();
+        const newSwapFeeCheck = await corePool.getSwapFee();
         assert.equal(newSwapFee, newSwapFeeCheck);
 
         const differentSwapFee = toWei('0.003');
         await crpPool.setSwapFee(differentSwapFee);
 
-        const secondSwapFeeCheck = await bPool.getSwapFee();
+        const secondSwapFeeCheck = await corePool.getSwapFee();
         assert.equal(differentSwapFee, secondSwapFeeCheck);
     });
 
@@ -165,15 +165,15 @@ contract('configurableSwapFee', async (accounts) => {
     });
 
     it('Should not be able to bypass crpPool', async () => {
-        const bPoolAddr = await crpPool.bPool();
-        const bPool = await BPool.at(bPoolAddr);
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await BPool.at(corePoolAddr);
 
-        let oldSwapFee = await bPool.getSwapFee();
+        let oldSwapFee = await corePool.getSwapFee();
         await truffleAssert.reverts(
-            bPool.setSwapFee(toWei('0.007')),
+            corePool.setSwapFee(toWei('0.007')),
             'ERR_NOT_CONTROLLER'
         );
-        let newSwapFee = await bPool.getSwapFee();
+        let newSwapFee = await corePool.getSwapFee();
 
         assert.equal(newSwapFee - oldSwapFee, 0);
     });
