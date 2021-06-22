@@ -7,7 +7,7 @@ const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 const Decimal = require('decimal.js');
-const { calcRelativeDiff } = require('../lib/calc_comparisons');
+const { calcRelativeDiff } = require('../../lib/calc_comparisons');
 const { assert } = require('chai');
 
 const verbose = process.env.VERBOSE;

@@ -7,8 +7,8 @@ on:
   pull_request:
 
 jobs:
-  unit-tests:
-    name: Unit Tests
+  lint-contracts:
+    name: Contract linting
     runs-on: ubuntu-latest
 
     steps:
@@ -18,7 +18,95 @@ jobs:
           node-version: '16'
       - run: yarn
       - run: yarn lint:contracts
+      - run: yarn lint:libraries
       - run: yarn lint
+
+  core-unit-tests:
+    name: Core Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
       - run: yarn compile
       - run: yarn testrpc &
-      - run: yarn test
+      - run: yarn test test/core/*
+
+  crp-unit-tests-bankless:
+    name: CRP Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
+      - run: yarn compile
+      - run: yarn testrpc &
+      - run: yarn test test/banklessSimulation/*
+
+  crp-unit-tests-configurable:
+    name: CRP Unit Tests (Configurable)
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
+      - run: yarn compile
+      - run: yarn testrpc &
+      - run: yarn test test/configurable/*
+
+  crp-unit-tests-crpPool:
+    name: CRP Unit Tests (Pool)
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
+      - run: yarn compile
+      - run: yarn testrpc &
+      - run: yarn test test/crpPool/*
+
+  crp-unit-tests-extra:
+    name: CRP Unit Tests (Extra)
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
+      - run: yarn compile
+      - run: yarn testrpc &
+      - run: yarn test test/extra/*
+
+  crp-unit-tests-elastic:
+    name: CRP Unit Tests (Elastic Supply)
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
+      - run: yarn compile
+      - run: yarn testrpc &
+      - run: yarn test test/elastic/*

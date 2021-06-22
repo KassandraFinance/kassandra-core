@@ -5,13 +5,13 @@ const BPool = artifacts.require('Pool');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
-const { calcInGivenOut, calcRelativeDiff } = require('../lib/calc_comparisons');
+const { calcOutGivenIn, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
 /*
 Tests initial CRP Pool set-up including:
 BPool deployment, token binding, balance checks, BPT checks.
 */
-contract('crpPoolSwapOuts', async (accounts) => {
+contract('crpPoolSwapIns', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
 
@@ -19,6 +19,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const MAX = web3.utils.toTwosComplement(-1);
     const errorDelta = 10 ** -8;
+
     // These are the intial settings for newCrp:
     const swapFee = toWei('0.003');
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
@@ -42,7 +43,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
     let corePool2;
     let corePool3;
     let crpPool;
-    let crpPool2
+    let crpPool2;
     let crpPool3;
     let CRPPOOL;
     let CRPPOOL2;
@@ -246,7 +247,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
     it('Should perform swaps', async () => {
         let tokenIn = WETH;
         let tokenOut = DAI;
-        let tokenAmountIn;
+        let tokenAmountOut;
 
         // 1st Swap - WETH for DAI
         await weth.approve(corePool.address, MAX, { from: user1 });
@@ -256,25 +257,25 @@ contract('crpPoolSwapOuts', async (accounts) => {
         let tokenOutBalance = await dai.balanceOf.call(corePool.address); // 10000
         let tokenOutWeight = await corePool.getDenormalizedWeight(DAI); // 1.5
 
-        let expectedTotalIn = calcInGivenOut(
+        let expectedTotalOut = calcOutGivenIn(
             fromWei(tokenInBalance),
             fromWei(tokenInWeight),
             fromWei(tokenOutBalance),
             fromWei(tokenOutWeight),
-            '500',
+            '0.5',
             fromWei(swapFee),
         );
 
-        // Actually returns an array of tokenAmountIn, spotPriceAfter
-        tokenAmountIn = await corePool.swapExactAmountOut.call(
+        // Actually returns an array of tokenAmountOut, spotPriceAfter
+        tokenAmountOut = await corePool.swapExactAmountIn.call(
             tokenIn,
-            MAX, // maxAmountIn
+            toWei('0.5'), // tokenAmountIn
             tokenOut,
-            toWei('500'), // tokenAmountOut
-            MAX, // maxPrice
+            toWei('0'), // minAmountOut
+            MAX,
             { from: user1 },
         );
-        let relDif = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn[0]));
+        let relDif = calcRelativeDiff(expectedTotalOut, fromWei(tokenAmountOut[0]));
         assert.isAtMost(relDif.toNumber(), errorDelta);
 
         // 2nd Swap - DAI for WETH
@@ -288,24 +289,24 @@ contract('crpPoolSwapOuts', async (accounts) => {
         tokenOutBalance = await weth.balanceOf.call(corePool2.address);
         tokenOutWeight = await corePool2.getDenormalizedWeight(WETH);
 
-        expectedTotalIn = calcInGivenOut(
+        expectedTotalOut = calcOutGivenIn(
             fromWei(tokenInBalance),
             fromWei(tokenInWeight),
             fromWei(tokenOutBalance),
             fromWei(tokenOutWeight),
-            '5',
+            '500',
             fromWei(swapFee),
         );
 
-        tokenAmountIn = await corePool2.swapExactAmountOut.call(
+        tokenAmountOut = await corePool2.swapExactAmountIn.call(
             tokenIn,
-            MAX, // maxAmountIn
+            toWei('500'), // tokenAmountIn
             tokenOut,
-            toWei('5'), // tokenAmountOut
+            toWei('0'), // minAmountOut
             MAX,
             { from: user1 },
         );
-        relDif = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn[0]));
+        relDif = calcRelativeDiff(expectedTotalOut, fromWei(tokenAmountOut[0]));
         assert.isAtMost(relDif.toNumber(), errorDelta);
 
         // 3rd Swap XYZ for WETH
@@ -319,25 +320,25 @@ contract('crpPoolSwapOuts', async (accounts) => {
         tokenOutBalance = await weth.balanceOf.call(corePool3.address);
         tokenOutWeight = await corePool3.getDenormalizedWeight(WETH);
 
-        expectedTotalIn = calcInGivenOut(
+        expectedTotalOut = calcOutGivenIn(
             fromWei(tokenInBalance),
             fromWei(tokenInWeight),
             fromWei(tokenOutBalance),
             fromWei(tokenOutWeight),
-            '0.025',
+            '10',
             fromWei(swapFee),
         );
 
-        tokenAmountIn = await corePool3.swapExactAmountOut.call(
+        tokenAmountOut = await corePool3.swapExactAmountIn.call(
             tokenIn,
-            MAX, // maxAmountIn
+            toWei('10'), // tokenAmountIn
             tokenOut,
-            toWei('0.025'), // tokenAmountOut
+            toWei('0'), // minAmountOut
             MAX,
             { from: user1 },
         );
 
-        relDif = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn[0]));
+        relDif = calcRelativeDiff(expectedTotalOut, fromWei(tokenAmountOut[0]));
         assert.isAtMost(relDif.toNumber(), errorDelta);
     });
 });

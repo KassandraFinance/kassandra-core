@@ -8,7 +8,7 @@ const truffleAssert = require('truffle-assertions');
 const { assert } = require('chai');
 const BPool = artifacts.require('Pool')
 const { time } = require('@openzeppelin/test-helpers');
-const { calcInGivenOut, calcOutGivenIn, calcRelativeDiff } = require('../lib/calc_comparisons');
+const { calcInGivenOut, calcOutGivenIn, calcRelativeDiff } = require('../../lib/calc_comparisons');
 const Decimal = require('decimal.js');
 
 contract('Bankless Simulation (using LP)', async (accounts) => {

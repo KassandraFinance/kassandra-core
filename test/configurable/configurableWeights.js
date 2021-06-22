@@ -7,7 +7,7 @@ const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 const { time } = require('@openzeppelin/test-helpers');
-const { calcRelativeDiff } = require('../lib/calc_comparisons');
+const { calcRelativeDiff } = require('../../lib/calc_comparisons');
 const Decimal = require('decimal.js');
 
 // Helper function to calculate new weights.

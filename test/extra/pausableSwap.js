@@ -6,7 +6,7 @@ const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
-const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../lib/calc_comparisons');
+const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
 contract('pausableSwap', async (accounts) => {
     const admin = accounts[0];
