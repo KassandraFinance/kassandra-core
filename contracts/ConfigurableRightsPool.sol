@@ -53,6 +53,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     // State variables
 
+    address public weightUpdater;
+
     IFactory public coreFactory;
     IPool public corePool;
 
@@ -153,6 +155,11 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         corePool.setPublicSwap(false);
         _;
         corePool.setPublicSwap(origSwapState);
+    }
+
+    modifier canUpdateWeigths() {
+        require(msg.sender == this.getController() || msg.sender == weightUpdater, "ERR_NOT_CONTROLLER");
+        _;
     }
 
     // Function declarations
@@ -280,6 +287,17 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Set a contract/address that will be allowed to update the weights
+     * @dev If this smart pool has canUpdateWeigths enabled, not only can the
+     *      controller update the weights but another smart contract with defined
+     *      rules and formulas could update it.
+     * @param updaterAddr contract address that will be able to update weights
+     */
+    function setAllowedUpdater(address updaterAddr) external onlyOwner {
+        weightUpdater = updaterAddr;
+    }
+
+    /**
      * @notice Create a new Smart Pool - and set the block period time parameters
      * @dev Initialize the swap fee to the value provided in the CRP constructor
      *      Can be changed if the canChangeSwapFee permission is enabled
@@ -342,7 +360,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        onlyOwner
+        canUpdateWeigths
         needsBPool
         virtual
     {
@@ -378,7 +396,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        onlyOwner
+        canUpdateWeigths
         needsBPool
         virtual
     {
