@@ -8,10 +8,15 @@ import "./Pool.sol";
 
 import "../utils/Ownable.sol";
 
+import "../../interfaces/IcrpFactory.sol";
+
 /**
  * @title Pool Factory
  */
 contract Factory is Ownable {
+    // the CRPFactory and ESPFactory are contracts allowed to create pools
+    IcrpFactory public crpFactory;
+    IespFactory public espFactory;
     // map of all pools
     mapping(address=>bool) private _isPool;
 
@@ -43,9 +48,15 @@ contract Factory is Ownable {
      * @return Address of new Pool contract
      */
     function newPool()
-        external onlyOwner
+        external
         returns (Pool)
     {
+        // only the governance or the CRP and ESP pools can request to create core pools
+        require(
+            msg.sender == this.getController() || crpFactory.isCrp(msg.sender) || espFactory.isEsp(msg.sender),
+            "ERR_NOT_CONTROLLER"
+        );
+
         Pool pool = new Pool();
         _isPool[address(pool)] = true;
         emit LogNewPool(msg.sender, address(pool));
@@ -59,6 +70,16 @@ contract Factory is Ownable {
         uint collected = IERC20(pool).balanceOf(address(this));
         bool xfer = pool.transfer(this.getController(), collected);
         require(xfer, "ERR_ERC20_FAILED");
+    }
+
+    function setFactory(bool _type, address _factory)
+        external onlyOwner
+    {
+        if (_type) {
+            crpFactory = IcrpFactory(_factory);
+        } else {
+            espFactory = IespFactory(_factory);
+        }
     }
 
     /**

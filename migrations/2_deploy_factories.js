@@ -19,14 +19,16 @@ module.exports = async function (deployer, network, accounts) {
     deployer.link(RightsManager, CRPFactory);
     deployer.link(SmartPoolManager, CRPFactory);
 
-    await deployer.deploy(Factory);
-    await deployer.deploy(CRPFactory);
+    const factory = await deployer.deploy(Factory);
+    const crpFactory = await deployer.deploy(CRPFactory);
+    factory.setFactory(1, crpFactory.address);
 
     if (network === 'development' || network === 'coverage') {
         deployer.link(KassandraSafeMath, ESPFactory);
         deployer.link(RightsManager, ESPFactory);
         deployer.link(SmartPoolManager, ESPFactory);
 
-        await deployer.deploy(ESPFactory);
+        const espFactory = await deployer.deploy(ESPFactory);
+        factory.setFactory(0, espFactory.address);
     }
 };

@@ -20,7 +20,7 @@ import "./ElasticSupplyPool.sol";
  *      4: canWhitelistLPs - if set, only whitelisted addresses can join pools
  *                           (enables private pools with more than one LP)
  */
-contract ESPFactory {
+contract ESPFactory is Ownable {
     // State variables
 
     // Keep a list of all Elastic Supply Pools
@@ -48,7 +48,7 @@ contract ESPFactory {
         ConfigurableRightsPool.PoolParams calldata poolParams,
         RightsManager.Rights calldata rights
     )
-        external
+        external onlyOwner
         returns (ElasticSupplyPool)
     {
         require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");

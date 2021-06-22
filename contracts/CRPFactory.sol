@@ -21,7 +21,7 @@ import "./ConfigurableRightsPool.sol";
  *                           (enables private pools with more than one LP)
  *      5: canChangeCap - can change the BSP cap (max # of pool tokens)
  */
-contract CRPFactory {
+contract CRPFactory is Ownable {
     // State variables
 
     // Keep a list of all Configurable Rights Pools
@@ -49,7 +49,7 @@ contract CRPFactory {
         ConfigurableRightsPool.PoolParams calldata poolParams,
         RightsManager.Rights calldata rights
     )
-        external
+        external onlyOwner
         returns (ConfigurableRightsPool)
     {
         require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
@@ -79,7 +79,10 @@ contract CRPFactory {
      * @param addr - address to check
      * @return boolean indicating whether it is a CRP
      */
-    function isCrp(address addr) external view returns (bool) {
+    function isCrp(address addr)
+        external view
+        returns (bool)
+    {
         return _isCrp[addr];
     }
 }
