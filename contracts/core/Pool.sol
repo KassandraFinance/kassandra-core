@@ -234,9 +234,7 @@ contract Pool is Ownable, Token, Math {
             emit LogExit(msg.sender, t, tokenAmountOut);
             _pushUnderlying(t, msg.sender, tokenAmountOut);
         }
-
     }
-
 
     function swapExactAmountIn(
         address tokenIn,
@@ -263,34 +261,34 @@ contract Pool is Ownable, Token, Math {
         );
 
         uint spotPriceBefore = calcSpotPrice(
-                                    inRecord.balance,
-                                    inRecord.denorm,
-                                    outRecord.balance,
-                                    outRecord.denorm,
-                                    _swapFee
-                                );
+            inRecord.balance,
+            inRecord.denorm,
+            outRecord.balance,
+            outRecord.denorm,
+            _swapFee
+        );
         require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
 
         tokenAmountOut = calcOutGivenIn(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            outRecord.balance,
-                            outRecord.denorm,
-                            tokenAmountIn,
-                            _swapFee
-                        );
+            inRecord.balance,
+            inRecord.denorm,
+            outRecord.balance,
+            outRecord.denorm,
+            tokenAmountIn,
+            _swapFee
+        );
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
 
         inRecord.balance += tokenAmountIn;
         outRecord.balance -= tokenAmountOut;
 
         spotPriceAfter = calcSpotPrice(
-                                inRecord.balance,
-                                inRecord.denorm,
-                                outRecord.balance,
-                                outRecord.denorm,
-                                _swapFee
-                            );
+            inRecord.balance,
+            inRecord.denorm,
+            outRecord.balance,
+            outRecord.denorm,
+            _swapFee
+        );
         require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
         require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
         require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
@@ -326,34 +324,34 @@ contract Pool is Ownable, Token, Math {
         );
 
         uint spotPriceBefore = calcSpotPrice(
-                                    inRecord.balance,
-                                    inRecord.denorm,
-                                    outRecord.balance,
-                                    outRecord.denorm,
-                                    _swapFee
-                                );
+            inRecord.balance,
+            inRecord.denorm,
+            outRecord.balance,
+            outRecord.denorm,
+            _swapFee
+        );
         require(spotPriceBefore <= maxPrice, "ERR_BAD_LIMIT_PRICE");
 
         tokenAmountIn = calcInGivenOut(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            outRecord.balance,
-                            outRecord.denorm,
-                            tokenAmountOut,
-                            _swapFee
-                        );
+            inRecord.balance,
+            inRecord.denorm,
+            outRecord.balance,
+            outRecord.denorm,
+            tokenAmountOut,
+            _swapFee
+        );
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
 
         inRecord.balance += tokenAmountIn;
         outRecord.balance -= tokenAmountOut;
 
         spotPriceAfter = calcSpotPrice(
-                                inRecord.balance,
-                                inRecord.denorm,
-                                outRecord.balance,
-                                outRecord.denorm,
-                                _swapFee
-                            );
+            inRecord.balance,
+            inRecord.denorm,
+            outRecord.balance,
+            outRecord.denorm,
+            _swapFee
+        );
         require(spotPriceAfter >= spotPriceBefore, "ERR_MATH_APPROX");
         require(spotPriceAfter <= maxPrice, "ERR_LIMIT_PRICE");
         require(spotPriceBefore <= KassandraSafeMath.bdiv(tokenAmountIn, tokenAmountOut), "ERR_MATH_APPROX");
@@ -382,13 +380,13 @@ contract Pool is Ownable, Token, Math {
         Record storage inRecord = _records[tokenIn];
 
         poolAmountOut = calcPoolOutGivenSingleIn(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            tokenAmountIn,
-                            _swapFee
-                        );
+            inRecord.balance,
+            inRecord.denorm,
+            _totalSupply,
+            _totalWeight,
+            tokenAmountIn,
+            _swapFee
+        );
 
         require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT");
 
@@ -415,13 +413,13 @@ contract Pool is Ownable, Token, Math {
         Record storage inRecord = _records[tokenIn];
 
         tokenAmountIn = calcSingleInGivenPoolOut(
-                            inRecord.balance,
-                            inRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            poolAmountOut,
-                            _swapFee
-                        );
+            inRecord.balance,
+            inRecord.denorm,
+            _totalSupply,
+            _totalWeight,
+            poolAmountOut,
+            _swapFee
+        );
 
         require(tokenAmountIn != 0, "ERR_MATH_APPROX");
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
@@ -454,13 +452,13 @@ contract Pool is Ownable, Token, Math {
         Record storage outRecord = _records[tokenOut];
 
         tokenAmountOut = calcSingleOutGivenPoolIn(
-                            outRecord.balance,
-                            outRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            poolAmountIn,
-                            _swapFee
-                        );
+            outRecord.balance,
+            outRecord.denorm,
+            _totalSupply,
+            _totalWeight,
+            poolAmountIn,
+            _swapFee
+        );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
 
@@ -499,13 +497,13 @@ contract Pool is Ownable, Token, Math {
         Record storage outRecord = _records[tokenOut];
 
         poolAmountIn = calcPoolInGivenSingleOut(
-                            outRecord.balance,
-                            outRecord.denorm,
-                            _totalSupply,
-                            _totalWeight,
-                            tokenAmountOut,
-                            _swapFee
-                        );
+            outRecord.balance,
+            outRecord.denorm,
+            _totalSupply,
+            _totalWeight,
+            tokenAmountOut,
+            _swapFee
+        );
 
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
         require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");

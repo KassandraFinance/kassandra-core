@@ -553,13 +553,13 @@ library SmartPoolManager {
         );
 
         poolAmountOut = corePool.calcPoolOutGivenSingleIn(
-                            corePool.getBalance(tokenIn),
-                            corePool.getDenormalizedWeight(tokenIn),
-                            self.totalSupply(),
-                            corePool.getTotalDenormalizedWeight(),
-                            tokenAmountIn,
-                            corePool.getSwapFee()
-                        );
+            corePool.getBalance(tokenIn),
+            corePool.getDenormalizedWeight(tokenIn),
+            self.totalSupply(),
+            corePool.getTotalDenormalizedWeight(),
+            tokenAmountIn,
+            corePool.getSwapFee()
+        );
 
         require(poolAmountOut >= minPoolAmountOut, "ERR_LIMIT_OUT");
     }
@@ -588,13 +588,13 @@ library SmartPoolManager {
         require(corePool.isBound(tokenIn), "ERR_NOT_BOUND");
 
         tokenAmountIn = corePool.calcSingleInGivenPoolOut(
-                            corePool.getBalance(tokenIn),
-                            corePool.getDenormalizedWeight(tokenIn),
-                            self.totalSupply(),
-                            corePool.getTotalDenormalizedWeight(),
-                            poolAmountOut,
-                            corePool.getSwapFee()
-                        );
+            corePool.getBalance(tokenIn),
+            corePool.getDenormalizedWeight(tokenIn),
+            self.totalSupply(),
+            corePool.getTotalDenormalizedWeight(),
+            poolAmountOut,
+            corePool.getSwapFee()
+        );
 
         require(tokenAmountIn != 0, "ERR_MATH_APPROX");
         require(tokenAmountIn <= maxAmountIn, "ERR_LIMIT_IN");
@@ -630,13 +630,13 @@ library SmartPoolManager {
         require(corePool.isBound(tokenOut), "ERR_NOT_BOUND");
 
         tokenAmountOut = corePool.calcSingleOutGivenPoolIn(
-                            corePool.getBalance(tokenOut),
-                            corePool.getDenormalizedWeight(tokenOut),
-                            self.totalSupply(),
-                            corePool.getTotalDenormalizedWeight(),
-                            poolAmountIn,
-                            corePool.getSwapFee()
-                        );
+            corePool.getBalance(tokenOut),
+            corePool.getDenormalizedWeight(tokenOut),
+            self.totalSupply(),
+            corePool.getTotalDenormalizedWeight(),
+            poolAmountIn,
+            corePool.getSwapFee()
+        );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
         require(
@@ -675,13 +675,13 @@ library SmartPoolManager {
             "ERR_MAX_OUT_RATIO"
         );
         poolAmountIn = corePool.calcPoolInGivenSingleOut(
-                            corePool.getBalance(tokenOut),
-                            corePool.getDenormalizedWeight(tokenOut),
-                            self.totalSupply(),
-                            corePool.getTotalDenormalizedWeight(),
-                            tokenAmountOut,
-                            corePool.getSwapFee()
-                        );
+            corePool.getBalance(tokenOut),
+            corePool.getDenormalizedWeight(tokenOut),
+            self.totalSupply(),
+            corePool.getTotalDenormalizedWeight(),
+            tokenAmountOut,
+            corePool.getSwapFee()
+        );
 
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
         require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");

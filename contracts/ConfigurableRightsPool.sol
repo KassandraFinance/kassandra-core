@@ -547,11 +547,11 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // any of these pool functions. Since msg.sender can be anybody,
         // they must be internal
         uint[] memory actualAmountsIn = SmartPoolManager.joinPool(
-                                            IConfigurableRightsPool(address(this)),
-                                            corePool,
-                                            poolAmountOut,
-                                            maxAmountsIn
-                                        );
+            IConfigurableRightsPool(address(this)),
+            corePool,
+            poolAmountOut,
+            maxAmountsIn
+        );
 
         // After createPool, token list is maintained in the underlying BPool
         address[] memory poolTokens = corePool.getCurrentTokens();
@@ -640,12 +640,12 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         // Delegate to library to save space
         poolAmountOut = SmartPoolManager.joinswapExternAmountIn(
-                            IConfigurableRightsPool(address(this)),
-                            corePool,
-                            tokenIn,
-                            tokenAmountIn,
-                            minPoolAmountOut
-                        );
+            IConfigurableRightsPool(address(this)),
+            corePool,
+            tokenIn,
+            tokenAmountIn,
+            minPoolAmountOut
+        );
 
         emit LogJoin(msg.sender, tokenIn, tokenAmountIn);
 
@@ -681,12 +681,12 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         // Delegate to library to save space
         tokenAmountIn = SmartPoolManager.joinswapPoolAmountOut(
-                            IConfigurableRightsPool(address(this)),
-                            corePool,
-                            tokenIn,
-                            poolAmountOut,
-                            maxAmountIn
-                        );
+            IConfigurableRightsPool(address(this)),
+            corePool,
+            tokenIn,
+            poolAmountOut,
+            maxAmountIn
+        );
 
         emit LogJoin(msg.sender, tokenIn, tokenAmountIn);
 
