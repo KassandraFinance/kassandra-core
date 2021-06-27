@@ -1,21 +1,18 @@
 const truffleAssert = require('truffle-assertions');
 
-const Pool = artifacts.require('Pool');
 const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
 contract('Pool', async (accounts) => {
     const admin = accounts[0];
 
-    const { toWei } = web3.utils;
-    const { fromWei } = web3.utils;
+    const { toWei, fromWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let AAA; let BBB; let CCC; let DDD; let EEE; let FFF; let GGG; let HHH; let
-        ZZZ; // addresses
-    let aaa; let bbb; let ccc; let ddd; let eee; let fff; let ggg; let hhh; let
-        zzz; // TTokens
+    let AAA; let BBB; let CCC; let DDD; let EEE; let FFF; let GGG; let HHH; let ZZZ; // addresses
+    let aaa; let bbb; let ccc; let ddd; let eee; let fff; let ggg; let hhh; let zzz; // TTokens
     let factory; // Pool factory
     let FACTORY; // factory address
     let pool; // first pool w/ defaults

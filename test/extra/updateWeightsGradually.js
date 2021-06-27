@@ -1,11 +1,11 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
 const { time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
+
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const TToken = artifacts.require('TToken');
 
 contract('updateWeightsGradually', async (accounts) => {
     const admin = accounts[0];
@@ -26,10 +26,7 @@ contract('updateWeightsGradually', async (accounts) => {
     };
 
     describe('Factory (update gradually)', () => {
-        let bfactory;
-        let factory;
         let controller;
-        let CONTROLLER;
         let WETH;
         let XYZ;
         let weth;
@@ -41,8 +38,8 @@ contract('updateWeightsGradually', async (accounts) => {
         let blockRange;
 
         before(async () => {
-            bfactory = await BFactory.deployed();
-            factory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
             weth = await TToken.new('Wrapped Ether', 'WETH', 18);
 
@@ -59,17 +56,17 @@ contract('updateWeightsGradually', async (accounts) => {
                 constituentTokens: [XYZ, WETH],
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-                }
+                swapFee,
+            };
 
-            CONTROLLER = await factory.newCrp.call(
-                bfactory.address,
+            const CONTROLLER = await crpFactory.newCrp.call(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
-            await factory.newCrp(
-                bfactory.address,
+            await crpFactory.newCrp(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -117,32 +114,36 @@ contract('updateWeightsGradually', async (accounts) => {
                 for (i = 0; i < blockRange - 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock("latest");
-                    console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tWETH: ' +
-                        (weightWETH*2.5/10**18).toFixed(4) + '%');
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
                     await controller.pokeWeights();
                 }
 
                 // Call update with current weights to "freeze"
-                console.log("Freeze at current weight");
+                console.log('Freeze at current weight');
                 weightXYZ = await controller.getDenormalizedWeight(XYZ);
                 weightWETH = await controller.getDenormalizedWeight(WETH);
-                endWeights = [weightXYZ, weightWETH];
+                const endWeights = [weightXYZ, weightWETH];
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock + 10);
 
                 for (i = 0; i < blockRange + 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock("latest");
+                    block = await web3.eth.getBlock('latest');
 
-                    assert.isTrue(weightXYZ - endWeights[0] == 0);
-                    assert.isTrue(weightWETH - endWeights[1] == 0);
+                    assert.isTrue(weightXYZ - endWeights[0] === 0);
+                    assert.isTrue(weightWETH - endWeights[1] === 0);
 
-                    console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tWETH: ' +
-                        (weightWETH*2.5/10**18).toFixed(4) + '%');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
                     await controller.pokeWeights();
                 }
             });
@@ -152,7 +153,7 @@ contract('updateWeightsGradually', async (accounts) => {
                 // get current block number
                 let block = await web3.eth.getBlock('latest');
                 startBlock = block.number + 10;
-                const endBlock = startBlock + blockRange;
+                endBlock = startBlock + blockRange;
                 const endWeights = [toWei('1'), toWei('39')];
                 console.log(`Start block: ${startBlock}`);
                 console.log(`End   block: ${endBlock}`);
@@ -168,13 +169,18 @@ contract('updateWeightsGradually', async (accounts) => {
                     await time.advanceBlock();
                 }
 
-                for (i = 0; i < blockRange + 5; i++) {
+                let weightXYZ;
+                let weightWETH;
+
+                for (let i = 0; i < blockRange + 5; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock("latest");
-                    console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tWETH: ' +
-                        (weightWETH*2.5/10**18).toFixed(4) + '%');
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
                     await controller.pokeWeights();
                 }
 
@@ -182,8 +188,8 @@ contract('updateWeightsGradually', async (accounts) => {
                 weightWETH = await controller.getDenormalizedWeight(WETH);
 
                 // Verify the end weights match
-                assert.isTrue(weightXYZ - endWeights[0] == 0);
-                assert.isTrue(weightWETH - endWeights[1] == 0);
+                assert.isTrue(weightXYZ - endWeights[0] === 0);
+                assert.isTrue(weightWETH - endWeights[1] === 0);
             });
 
             describe('crack mode', () => {
@@ -191,9 +197,9 @@ contract('updateWeightsGradually', async (accounts) => {
                     startBlock = await web3.eth.getBlock('latest');
                     endBlock = startBlock.number + 20;
 
-                    for (i = 0; i < 20; i++) {
-                        let currXYZWeight = Math.floor((Math.random() * 20) + 1).toString();
-                        let currWETHWeight = Math.floor((Math.random() * 20) + 1).toString();
+                    for (let i = 0; i < 20; i++) {
+                        const currXYZWeight = Math.floor((Math.random() * 20) + 1).toString();
+                        const currWETHWeight = Math.floor((Math.random() * 20) + 1).toString();
 
                         startBlock = await web3.eth.getBlock('latest');
                         endBlock = startBlock.number + 20;
@@ -201,17 +207,19 @@ contract('updateWeightsGradually', async (accounts) => {
                         console.log(`XYZ target weight: ${currXYZWeight}`);
                         console.log(`WETH target weight: ${currWETHWeight}`);
 
-                        endWeights = [toWei(currXYZWeight), toWei(currWETHWeight)];
+                        const endWeights = [toWei(currXYZWeight), toWei(currWETHWeight)];
 
                         await controller.updateWeightsGradually(endWeights, startBlock.number, endBlock);
 
-                        for (j = 0; j < 5; j++) {
-                            weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                            weightWETH = await controller.getDenormalizedWeight(WETH);
-                            block = await web3.eth.getBlock("latest");
-                            console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                                (weightXYZ*2.5/10**18).toFixed(4) + '%\tWETH: ' +
-                                (weightWETH*2.5/10**18).toFixed(4) + '%');
+                        for (let j = 0; j < 5; j++) {
+                            const weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                            const weightWETH = await controller.getDenormalizedWeight(WETH);
+                            const block = await web3.eth.getBlock('latest');
+                            console.log(
+                                `Block: ${block.number}. `
+                                + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                                + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                            );
                             await controller.pokeWeights();
                         }
                     }

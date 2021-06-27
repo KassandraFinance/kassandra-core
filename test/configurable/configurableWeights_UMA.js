@@ -1,6 +1,6 @@
 /* eslint-env es6 */
 
-const BFactory = artifacts.require('Factory');
+const Factory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
@@ -25,10 +25,7 @@ contract('configurableWeightsUMA', async (accounts) => {
     };
 
     describe('Factory_UMA', () => {
-        let bfactory;
-        let factory;
         let controller;
-        let CONTROLLER;
         let WETH;
         let XYZ;
         let DAI;
@@ -42,8 +39,8 @@ contract('configurableWeightsUMA', async (accounts) => {
         let blockRange;
 
         before(async () => {
-            bfactory = await BFactory.deployed();
-            factory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
             weth = await TToken.new('Wrapped Ether', 'WETH', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -66,16 +63,16 @@ contract('configurableWeightsUMA', async (accounts) => {
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
                 swapFee: 10 ** 15,
-            }
+            };
 
-            CONTROLLER = await factory.newCrp.call(
-                bfactory.address,
+            const CONTROLLER = await crpFactory.newCrp.call(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
-            await factory.newCrp(
-                bfactory.address,
+            await crpFactory.newCrp(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -98,7 +95,8 @@ contract('configurableWeightsUMA', async (accounts) => {
 
                 truffleAssert.reverts(
                     controller.updateWeightsGradually(endWeights, block.number, block.number + 20),
-                    'ERR_START_WEIGHTS_MISMATCH');
+                    'ERR_START_WEIGHTS_MISMATCH',
+                );
             });
 
             it('Controller should be able to call updateWeightsGradually() with valid range', async () => {
@@ -161,10 +159,12 @@ contract('configurableWeightsUMA', async (accounts) => {
                 for (i = 0; i < blockRange + 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock("latest");
-                    console.log('Block: ' + block.number + '. Weights -> July: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tJune: ' +
-                        (weightWETH*2.5/10**18).toFixed(4) + '%');
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
                     await controller.pokeWeights();
                 }
             });
@@ -183,7 +183,7 @@ contract('configurableWeightsUMA', async (accounts) => {
             });
 
             it('Should revert because too early to pokeWeights()', async () => {
-                block = await web3.eth.getBlock("latest");
+                const block = await web3.eth.getBlock('latest');
                 console.log(`Block: ${block.number}`);
                 await truffleAssert.reverts(
                     controller.pokeWeights(),
@@ -195,28 +195,30 @@ contract('configurableWeightsUMA', async (accounts) => {
                 let i;
                 const endWeights = [toWei('1'), toWei('29')];
 
-                let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
-                while (block.number < startBlock) {
+                let currentBlock = await web3.eth.getBlock('latest');
+                console.log(`Block: ${currentBlock.number}`);
+                while (currentBlock.number < startBlock) {
                     // Wait for the start block
-                    block = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${block.number}`);
-                    await time.advanceBlock()
+                    currentBlock = await web3.eth.getBlock('latest');
+                    console.log(`Still waiting. Block: ${currentBlock.number}`);
+                    await time.advanceBlock();
                 }
 
-                for (i = 0; i < blockRange+10; i++) {
+                for (i = 0; i < blockRange + 10; i++) {
                     const weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     const weightWETH = await controller.getDenormalizedWeight(WETH);
                     const block = await web3.eth.getBlock('latest');
-                    console.log('Block: ' + block.number + '. Weights -> July: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tAugust: ' +
-                        (weightWETH*2.5/10**18).toFixed(4) + '%');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tAugust: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
                     await controller.pokeWeights();
 
                     // Try to adust weights with mismatched tokens
-                    if (1 == i) {
+                    if (i === 1) {
                         truffleAssert.reverts(
-                            controller.updateWeightsGradually(endWeights, i, i+50),
+                            controller.updateWeightsGradually(endWeights, i, i + 50),
                             'ERR_GRADUAL_UPDATE_TIME_TRAVEL',
                         );
                     }
@@ -232,14 +234,14 @@ contract('configurableWeightsUMA', async (accounts) => {
             // get current block number
             const block = await web3.eth.getBlock('latest');
             console.log(`Block of updateWeightsGradually() call: ${block.number}`);
-            const startBlock = block.number - 20;
-            const endBlock = startBlock + 10;
+            const blockStart = block.number - 20;
+            const blockEnd = blockStart + 10;
             // Here we are trying to updateWeightsGradually in the past: from 10-20 when we're on block 30
             const endWeights = [toWei('39'), toWei('1')];
 
             truffleAssert.reverts(
-                controller.updateWeightsGradually(endWeights, startBlock, endBlock),
-                'ERR_GRADUAL_UPDATE_TIME_TRAVEL'
+                controller.updateWeightsGradually(endWeights, blockStart, blockEnd),
+                'ERR_GRADUAL_UPDATE_TIME_TRAVEL',
             );
         });
     });

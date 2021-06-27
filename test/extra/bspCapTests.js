@@ -1,12 +1,12 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
+const Decimal = require('decimal.js');
 const truffleAssert = require('truffle-assertions');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
+
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const TToken = artifacts.require('TToken');
 
 contract('BSP Cap', async (accounts) => {
     const admin = accounts[0];
@@ -19,14 +19,11 @@ contract('BSP Cap', async (accounts) => {
     // There should be a better way to do this... (constant in geth corresponding to uint(-1) apparently)
     const MaxBig256 = '115792089237316195423570985008687907853269984665640564039457.584007913129639935';
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
     let DAI;
     let dai;
     let WETH;
-    let weth
+    let weth;
 
     // These are the intial settings for newCrp:
     const swapFee = 10 ** 15;
@@ -47,8 +44,8 @@ contract('BSP Cap', async (accounts) => {
     };
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
@@ -71,10 +68,10 @@ contract('BSP Cap', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -135,7 +132,7 @@ contract('BSP Cap', async (accounts) => {
     });
 
     it('Controller should be able to set the cap to an intermediate value', async () => {
-        const newCap = toWei('10000')
+        const newCap = toWei('10000');
         await crpPool.setCap(newCap);
 
         const currentCap = await crpPool.bspCap();
@@ -158,7 +155,7 @@ contract('BSP Cap', async (accounts) => {
 
     describe('Joining pools', () => {
         it('Should set the cap above the initial supply', async () => {
-            const newCap = toWei('200')
+            const newCap = toWei('200');
             await crpPool.setCap(newCap);
 
             const currentCap = await crpPool.bspCap();
@@ -173,9 +170,9 @@ contract('BSP Cap', async (accounts) => {
 
         it('Should allow LPs to join', async () => {
             // users have to allow the contract to pull dai
-            await dai.approve(crpPool.address, MAX, {from: user1});
-            await dai.approve(crpPool.address, MAX, {from: user2});
-            await dai.approve(crpPool.address, MAX, {from: user3});
+            await dai.approve(crpPool.address, MAX, { from: user1 });
+            await dai.approve(crpPool.address, MAX, { from: user2 });
+            await dai.approve(crpPool.address, MAX, { from: user3 });
 
             const users = [user1, user2, user3];
 
@@ -185,7 +182,7 @@ contract('BSP Cap', async (accounts) => {
             let balance;
             let expectedSupply = 100;
 
-            let userBalances = [0, 0, 0];
+            const userBalances = [0, 0, 0];
 
             // Join until we reach the cap
             while (expectedSupply < 200) {
@@ -201,23 +198,27 @@ contract('BSP Cap', async (accounts) => {
                     amountOut = newAmountOut;
                 }
 
-                const daiCost = await crpPool.joinswapPoolAmountOut.call(DAI, toWei(amountOut.toString()), MAX, {from: user});
-                console.log(`User ${userIdx+1} bought ${amountOut} shares for ${Decimal(fromWei(daiCost)).toFixed(2)} DAI`);
+                const daiCost = await crpPool.joinswapPoolAmountOut.call(
+                    DAI, toWei(amountOut.toString()), MAX, { from: user },
+                );
+                console.log(
+                    `User ${userIdx + 1} bought ${amountOut} shares for ${Decimal(fromWei(daiCost)).toFixed(2)} DAI`,
+                );
                 userBalances[userIdx] += amountOut;
                 expectedSupply += amountOut;
 
                 // Actually do the swap
-                await crpPool.joinswapPoolAmountOut(DAI, toWei(amountOut.toString()), MAX, {from: user});
+                await crpPool.joinswapPoolAmountOut(DAI, toWei(amountOut.toString()), MAX, { from: user });
 
                 supply = await crpPool.totalSupply();
                 console.log(`Total supply is now ${fromWei(supply)}`);
                 assert.equal(Decimal(fromWei(supply)), expectedSupply);
 
                 balance = await crpPool.balanceOf.call(user);
-                assert.equal(Decimal(fromWei(balance)), userBalances[userIdx])
+                assert.equal(Decimal(fromWei(balance)), userBalances[userIdx]);
 
                 // Next user
-                if (3 == ++userIdx) {
+                if (++userIdx === 3) {
                     userIdx = 0;
                 }
             }
@@ -225,7 +226,7 @@ contract('BSP Cap', async (accounts) => {
 
         it('Should not allow anyone else to join', async () => {
             await truffleAssert.reverts(
-                crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX, {from: user3}),
+                crpPool.joinswapPoolAmountOut.call(DAI, toWei('1'), MAX, { from: user3 }),
                 'ERR_CAP_LIMIT_REACHED',
             );
         });

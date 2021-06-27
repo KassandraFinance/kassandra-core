@@ -1,15 +1,15 @@
-const Pool = artifacts.require('Pool');
-const Factory = artifacts.require('Factory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
+
+const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 contract('Factory', async (accounts) => {
     const admin = accounts[0];
     const nonAdmin = accounts[1];
     const user2 = accounts[2];
-    const { toWei } = web3.utils;
-    const { fromWei } = web3.utils;
-    const { hexToUtf8 } = web3.utils;
+    const { toBN, toWei, fromWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
 
@@ -19,13 +19,17 @@ contract('Factory', async (accounts) => {
         let POOL;
         let WETH;
         let DAI;
-        let weth;
-        let dai;
+        let exitFee;
+        let one;
 
         before(async () => {
+            const constants = await KassandraConstants.deployed();
+            one = await constants.one();
+            exitFee = await constants.exitFee();
+
             factory = await Factory.deployed();
-            weth = await TToken.new('Wrapped Ether', 'WETH', 18);
-            dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
+            const weth = await TToken.new('Wrapped Ether', 'WETH', 18);
+            const dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
             WETH = weth.address;
             DAI = dai.address;
@@ -72,11 +76,20 @@ contract('Factory', async (accounts) => {
             await pool.joinPool(toWei('10'), [MAX, MAX], { from: nonAdmin });
             await pool.exitPool(toWei('10'), [toWei('0'), toWei('0')], { from: nonAdmin });
 
-            // Exit fee = 0 so this wont do anything
             await factory.collect(POOL);
 
             const adminBalance = await pool.balanceOf(admin);
-            assert.equal(fromWei(adminBalance), '100');
+            // start balance + fee from exitPool of 10 tokens above
+            assert.equal(
+                fromWei(adminBalance),
+                fromWei(
+                    exitFee
+                        .mul(toBN(toWei('10')))
+                        .div(one)
+                        .add(toBN(toWei('100')))
+                        .toString(),
+                ),
+            );
         });
 
         it('nonadmin cant set controller address', async () => {

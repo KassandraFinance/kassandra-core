@@ -1,10 +1,10 @@
 /* eslint-env es6 */
+const truffleAssert = require('truffle-assertions');
 
-const BFactory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
-const truffleAssert = require('truffle-assertions');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -17,11 +17,7 @@ contract('configurableLPNoWhitelist', async (accounts) => {
 
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
-    let WETH; let DAI; let XYZ;
     let weth; let dai; let xyz;
 
     // These are the intial settings for newCrp:
@@ -42,15 +38,15 @@ contract('configurableLPNoWhitelist', async (accounts) => {
     };
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
-        WETH = weth.address;
-        DAI = dai.address;
-        XYZ = xyz.address;
+        const WETH = weth.address;
+        const DAI = dai.address;
+        const XYZ = xyz.address;
 
         // admin balances
         await weth.mint(admin, toWei('100'));
@@ -65,10 +61,10 @@ contract('configurableLPNoWhitelist', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -134,11 +130,7 @@ contract('configurableLP', async (accounts) => {
 
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
-    let WETH; let DAI; let XYZ;
     let weth; let dai; let xyz;
 
     // These are the intial settings for newCrp:
@@ -157,15 +149,15 @@ contract('configurableLP', async (accounts) => {
     };
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
-        WETH = weth.address;
-        DAI = dai.address;
-        XYZ = xyz.address;
+        const WETH = weth.address;
+        const DAI = dai.address;
+        const XYZ = xyz.address;
 
         // admin balances
         await weth.mint(admin, toWei('100'));
@@ -180,10 +172,10 @@ contract('configurableLP', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -287,7 +279,7 @@ contract('configurableLP', async (accounts) => {
 
         it('Can remove from whitelist', async () => {
             await crpPool.removeWhitelistedLiquidityProvider(admin3);
-            hasPerm = await crpPool.canProvideLiquidity(admin3);
+            const hasPerm = await crpPool.canProvideLiquidity(admin3);
             assert.isFalse(hasPerm, 'Admin can provide liquidity');
         });
     });

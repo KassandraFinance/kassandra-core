@@ -3,11 +3,13 @@ const SmartPoolManager = artifacts.require('SmartPoolManager');
 const CRPFactory = artifacts.require('CRPFactory');
 const ESPFactory = artifacts.require('ESPFactory');
 const Factory = artifacts.require('Factory');
+const KassandraConstantsMock = artifacts.require('KassandraConstantsMock');
 const KassandraSafeMath = artifacts.require('KassandraSafeMath');
 const KassandraSafeMathMock = artifacts.require('KassandraSafeMathMock');
 
 module.exports = async function (deployer, network, accounts) {
     if (network === 'development' || network === 'coverage') {
+        await deployer.deploy(KassandraConstantsMock);
         await deployer.deploy(KassandraSafeMathMock);
     }
 

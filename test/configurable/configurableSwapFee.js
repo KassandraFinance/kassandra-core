@@ -1,12 +1,12 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 const { assert } = require('chai');
+
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 contract('configurableSwapFee', async (accounts) => {
     const admin = accounts[0];
@@ -14,13 +14,9 @@ contract('configurableSwapFee', async (accounts) => {
 
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
     let CRPPOOL;
     let WETH;
-    let DAI;
-    let XYZ;
     let ABC;
     let weth;
     let dai;
@@ -45,16 +41,16 @@ contract('configurableSwapFee', async (accounts) => {
     };
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
         abc = await TToken.new('ABC', 'ABC', 18);
 
         WETH = weth.address;
-        DAI = dai.address;
-        XYZ = xyz.address;
+        const DAI = dai.address;
+        const XYZ = xyz.address;
         ABC = abc.address;
 
         // admin balances
@@ -71,8 +67,8 @@ contract('configurableSwapFee', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
@@ -119,7 +115,7 @@ contract('configurableSwapFee', async (accounts) => {
 
     it('Controller should be able to change swapFee', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
         const deployedSwapFee = await corePool.getSwapFee();
         assert.equal(swapFee, deployedSwapFee);
@@ -166,14 +162,14 @@ contract('configurableSwapFee', async (accounts) => {
 
     it('Should not be able to bypass crpPool', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
-        let oldSwapFee = await corePool.getSwapFee();
+        const oldSwapFee = await corePool.getSwapFee();
         await truffleAssert.reverts(
             corePool.setSwapFee(toWei('0.007')),
-            'ERR_NOT_CONTROLLER'
+            'ERR_NOT_CONTROLLER',
         );
-        let newSwapFee = await corePool.getSwapFee();
+        const newSwapFee = await corePool.getSwapFee();
 
         assert.equal(newSwapFee - oldSwapFee, 0);
     });

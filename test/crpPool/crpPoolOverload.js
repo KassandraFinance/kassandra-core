@@ -1,20 +1,19 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 /*
 Tests initial CRP Pool set-up including:
-BPool deployment, token binding, balance checks, BPT checks.
+Pool deployment, token binding, balance checks, tokens checks.
 */
 contract('crpPoolOverloadTests', async (accounts) => {
     const admin = accounts[0];
-    const { toWei, fromWei } = web3.utils;
+    const { toWei } = web3.utils;
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const MAX = web3.utils.toTwosComplement(-1);
     // These are the intial settings for newCrp:
@@ -33,9 +32,6 @@ contract('crpPoolOverloadTests', async (accounts) => {
         canChangeCap: false,
     };
 
-    let crpFactory;
-    let coreFactory;
-    let corePool;
     let crpPool;
     let CRPPOOL;
     let CRPPOOL_ADDRESS;
@@ -45,15 +41,13 @@ contract('crpPoolOverloadTests', async (accounts) => {
     let weth;
     let dai;
     let xyz;
-    let xxx;
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
-        xxx = await TToken.new('XXX', 'XXX', 18);
 
         WETH = weth.address;
         DAI = dai.address;
@@ -70,8 +64,8 @@ contract('crpPoolOverloadTests', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
@@ -94,20 +88,20 @@ contract('crpPoolOverloadTests', async (accounts) => {
         await xyz.approve(CRPPOOL_ADDRESS, MAX);
     });
 
-    /* Removed minimums
-    it('crpPool should not create pool with invalid minimumWeightChangeBlockPeriod', async () => {
+    // Removed minimums
+    it.skip('crpPool should not create pool with invalid minimumWeightChangeBlockPeriod', async () => {
         await truffleAssert.reverts(
             crpPool.createPool(toWei('100'), 5, 10),
             'ERR_INVALID_BLOCK_PERIOD',
         );
     });
 
-    it('crpPool should not create pool with invalid addTokenTimeLockInBlocks', async () => {
+    it.skip('crpPool should not create pool with invalid addTokenTimeLockInBlocks', async () => {
         await truffleAssert.reverts(
             crpPool.createPool(toWei('100'), 10, 5),
             'ERR_INVALID_TOKEN_TIME_LOCK',
         );
-    });*/
+    });
 
     it('crpPool should not create pool with inconsistent time parameters', async () => {
         await truffleAssert.reverts(
@@ -122,10 +116,10 @@ contract('crpPoolOverloadTests', async (accounts) => {
         );
     });
 
-    it('crpPool should have a BPool after creation', async () => {
+    it('crpPool should have a core Pool after creation', async () => {
         await crpPool.createPool(toWei('100'), 0, 0);
         const corePoolAddr = await crpPool.corePool();
         assert.notEqual(corePoolAddr, ZERO_ADDRESS);
-        corePool = await BPool.at(corePoolAddr);
+        await Pool.at(corePoolAddr);
     });
 });

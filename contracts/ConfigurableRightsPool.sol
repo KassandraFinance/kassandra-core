@@ -966,9 +966,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Deploy new BPool (coreFactory and corePool are interfaces; all calls are external)
         corePool = coreFactory.newPool();
 
-        // EXIT_FEE must always be zero, or ConfigurableRightsPool._pushUnderlying will fail
-        require(KassandraConstants.EXIT_FEE == 0, "ERR_NONZERO_EXIT_FEE");
-
         for (uint i = 0; i < _initialTokens.length; i++) {
             address t = _initialTokens[i];
             uint bal = _initialBalances[i];

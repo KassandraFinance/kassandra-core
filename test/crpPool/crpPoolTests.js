@@ -1,20 +1,20 @@
 /* eslint-env es6 */
+const Decimal = require('decimal.js');
+const truffleAssert = require('truffle-assertions');
+const { assert } = require('chai');
+const { calcRelativeDiff } = require('../../lib/calc_comparisons');
 
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
-const truffleAssert = require('truffle-assertions');
-const Decimal = require('decimal.js');
-const { calcRelativeDiff } = require('../../lib/calc_comparisons');
-const { assert } = require('chai');
 
 const verbose = process.env.VERBOSE;
 
 /*
 Tests initial CRP Pool set-up including:
-BPool deployment, token binding, balance checks, BPT checks.
+Pool deployment, token binding, balance checks, tokens checks.
 */
 contract('crpPoolTests', async (accounts) => {
     const admin = accounts[0];
@@ -28,8 +28,8 @@ contract('crpPoolTests', async (accounts) => {
     const swapFee = toWei('0.003');
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
-    const SYMBOL = (Math.random() + 1).toString(36).substring(7); // 'BSP';
-    const NAME = "Kassandra Smart Pool Custom Name";
+    const SYMBOL = (Math.random() + 1).toString(36).substring(7); // 'KSP';
+    const NAME = 'Kassandra Smart Pool Custom Name';
 
     const permissions = {
         canPauseSwapping: true,
@@ -40,12 +40,8 @@ contract('crpPoolTests', async (accounts) => {
         canChangeCap: false,
     };
 
-    let crpFactory;
-    let coreFactory;
     let corePool;
     let crpPool;
-    let CRPPOOL;
-    let CRPPOOL_ADDRESS;
     let WETH;
     let DAI;
     let XYZ;
@@ -56,8 +52,8 @@ contract('crpPoolTests', async (accounts) => {
     let xxx;
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -79,10 +75,10 @@ contract('crpPoolTests', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -96,14 +92,14 @@ contract('crpPoolTests', async (accounts) => {
 
         crpPool = await ConfigurableRightsPool.at(CRPPOOL);
 
-        CRPPOOL_ADDRESS = crpPool.address;
+        const CRPPOOL_ADDRESS = crpPool.address;
 
         await weth.approve(CRPPOOL_ADDRESS, MAX);
         await dai.approve(CRPPOOL_ADDRESS, MAX);
         await xyz.approve(CRPPOOL_ADDRESS, MAX);
     });
 
-    it('crpPool should have no BPool before creation', async () => {
+    it('crpPool should have no core Pool before creation', async () => {
         const corePoolAddr = await crpPool.corePool();
         assert.equal(corePoolAddr, ZERO_ADDRESS);
     });
@@ -113,21 +109,21 @@ contract('crpPoolTests', async (accounts) => {
         assert.equal(controllerAddr, admin);
     });
 
-    if('crpPool should not allow changing controller from non-admin', async () => {
+    it.skip('crpPool should not allow changing controller from non-admin', async () => {
         await truffleAssert.reverts(
-            crpPool.setController(user1, {from: user1}),
-            "ERR_NOT_CONTROLLER"
+            crpPool.setController(user1, { from: user1 }),
+            'ERR_NOT_CONTROLLER',
         );
     });
 
-    if('crpPool should not allow changing controller to zero', async () => {
+    it.skip('crpPool should not allow changing controller to zero', async () => {
         await truffleAssert.reverts(
             crpPool.setController(ZERO_ADDRESS),
-            "ERR_ZERO_ADDRESS"
+            'ERR_ZERO_ADDRESS',
         );
     });
 
-    if('crpPool should allow changing controller by admin', async () => {
+    it.skip('crpPool should allow changing controller by admin', async () => {
         await crpPool.setController(user1);
         let controllerAddr = await crpPool.getController.call();
         assert.equal(controllerAddr, user1);
@@ -145,26 +141,26 @@ contract('crpPoolTests', async (accounts) => {
         }
     });
 
-    it('Admin should have no initial BPT', async () => {
-        const adminBPTBalance = await crpPool.balanceOf.call(admin);
-        assert.equal(adminBPTBalance, toWei('0'));
+    it('Admin should have no initial Tokens', async () => {
+        const adminTokensBalance = await crpPool.balanceOf.call(admin);
+        assert.equal(adminTokensBalance, toWei('0'));
     });
 
-    it('crpPool should not createPool with 0 BPT Initial Supply', async () => {
+    it('crpPool should not createPool with 0 Tokens Initial Supply', async () => {
         await truffleAssert.reverts(
             crpPool.createPool(toWei('0')),
             'ERR_INIT_SUPPLY_MIN',
         );
     });
 
-    it('crpPool should not createPool with BPT Initial Supply < MIN', async () => {
+    it('crpPool should not createPool with Tokens Initial Supply < MIN', async () => {
         await truffleAssert.reverts(
             crpPool.createPool(toWei('10')),
             'ERR_INIT_SUPPLY_MIN',
         );
     });
 
-    it('crpPool should not createPool with BPT Initial Supply > MAX', async () => {
+    it('crpPool should not createPool with Tokens Initial Supply > MAX', async () => {
         await truffleAssert.reverts(
             crpPool.createPool(toWei('1000000001')),
             'ERR_INIT_SUPPLY_MAX',
@@ -173,23 +169,23 @@ contract('crpPoolTests', async (accounts) => {
 
     it('Non controller should not be able to createPool', async () => {
         await truffleAssert.reverts(
-            crpPool.createPool(toWei('100'), {from: user1}),
+            crpPool.createPool(toWei('100'), { from: user1 }),
             'ERR_NOT_CONTROLLER',
         );
     });
 
     it('Non controller should not be able to createPool (with time params)', async () => {
         await truffleAssert.reverts(
-            crpPool.createPool(toWei('100', 0, 0), {from: user1}),
+            crpPool.createPool(toWei('100', 0, 0), { from: user1 }),
             'ERR_NOT_CONTROLLER',
         );
     });
 
-    it('crpPool should have a BPool after creation', async () => {
+    it('crpPool should have a core Pool after creation', async () => {
         await crpPool.createPool(toWei('100'));
         const corePoolAddr = await crpPool.corePool();
         assert.notEqual(corePoolAddr, ZERO_ADDRESS);
-        corePool = await BPool.at(corePoolAddr);
+        corePool = await Pool.at(corePoolAddr);
     });
 
     it('should not be able to createPool twice', async () => {
@@ -206,17 +202,17 @@ contract('crpPoolTests', async (accounts) => {
         );
     });
 
-    it('BPool should have matching swap fee', async () => {
+    it('Core Pool should have matching swap fee', async () => {
         const deployedSwapFee = await corePool.getSwapFee();
         assert.equal(swapFee, deployedSwapFee);
     });
 
-    it('BPool should have public swaps enabled', async () => {
+    it('Core Pool should have public swaps enabled', async () => {
         const isPublicSwap = await corePool.isPublicSwap();
         assert.equal(isPublicSwap, true);
     });
 
-    it('BPool should have initial token balances', async () => {
+    it('Core Pool should have initial token balances', async () => {
         const corePoolAddr = await crpPool.corePool();
 
         const adminXYZBalance = await xyz.balanceOf.call(admin);
@@ -234,7 +230,7 @@ contract('crpPoolTests', async (accounts) => {
         assert.equal(corePoolDaiBalance, toWei('10000'));
     });
 
-    it('BPool should have initial token weights', async () => {
+    it('Core Pool should have initial token weights', async () => {
         const xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
         const wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
         const daiWeight = await corePool.getDenormalizedWeight.call(dai.address);
@@ -244,9 +240,9 @@ contract('crpPoolTests', async (accounts) => {
         assert.equal(daiWeight, toWei('1.5'));
     });
 
-    it('Admin should have initial BPT', async () => {
-        const adminBPTBalance = await crpPool.balanceOf.call(admin);
-        assert.equal(adminBPTBalance, toWei('100'));
+    it('Admin should have initial Tokens', async () => {
+        const adminTokensBalance = await crpPool.balanceOf.call(admin);
+        assert.equal(adminTokensBalance, toWei('100'));
     });
 
     it('Should not allow joining with partial token list', async () => {
@@ -268,7 +264,7 @@ contract('crpPoolTests', async (accounts) => {
 
         assert.sameMembers(
             [flags[0], flags[1], flags[2], flags[3], flags[4], flags[5]],
-            [    true,     true,     true,     true,    false,    false]
+            [true, true, true, true, false, false],
         );
     });
 
@@ -312,14 +308,18 @@ contract('crpPoolTests', async (accounts) => {
         const rightsManager = await crpPool.getRightsManagerVersion();
         assert.isTrue(rightsManager !== 0);
 
-        console.log(rightsManager);
+        if (verbose) {
+            console.log(rightsManager);
+        }
     });
 
     it('Should get the SmartPoolManager address', async () => {
         const smartPoolManager = await crpPool.getSmartPoolManagerVersion();
         assert.isTrue(smartPoolManager !== 0);
 
-        console.log(smartPoolManager);
+        if (verbose) {
+            console.log(smartPoolManager);
+        }
     });
 
     it('JoinPool should revert if user does not have allowance to join pool', async () => {

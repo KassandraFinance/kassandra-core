@@ -1,14 +1,15 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
+const Decimal = require('decimal.js');
 const truffleAssert = require('truffle-assertions');
 const { time } = require('@openzeppelin/test-helpers');
+
 const { calcRelativeDiff } = require('../../lib/calc_comparisons');
-const Decimal = require('decimal.js');
+
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 // Helper function to calculate new weights.
 function newWeight(block, startBlock, endBlock, startWeight, endWeight) {
@@ -36,10 +37,7 @@ contract('configurableWeights', async (accounts) => {
     const errorDelta = 10 ** -8;
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
     let WETH;
     let DAI;
     let XYZ;
@@ -78,8 +76,8 @@ contract('configurableWeights', async (accounts) => {
 
     describe('Weights permissions, etc', () => {
         before(async () => {
-            coreFactory = await BFactory.deployed();
-            crpFactory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
             weth = await TToken.new('Wrapped Ether', 'WETH', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -104,10 +102,10 @@ contract('configurableWeights', async (accounts) => {
                 constituentTokens: tokenAddresses,
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-            }
+                swapFee,
+            };
 
-            CRPPOOL = await crpFactory.newCrp.call(
+            const CRPPOOL = await crpFactory.newCrp.call(
                 coreFactory.address,
                 poolParams,
                 permissions,
@@ -173,15 +171,15 @@ contract('configurableWeights', async (accounts) => {
 
         it('Controller should be able to change weights with updateWeight()', async () => {
             const corePoolAddr = await crpPool.corePool();
-            const corePool = await BPool.at(corePoolAddr);
+            const corePool = await Pool.at(corePoolAddr);
 
-            let adminBPTBalance = await crpPool.balanceOf.call(admin);
+            let adminKSPBalance = await crpPool.balanceOf.call(admin);
             let adminWethBalance = await weth.balanceOf.call(admin);
             let corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
             let corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
             let corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-            assert.equal(adminBPTBalance, toWei('100'));
+            assert.equal(adminKSPBalance, toWei('100'));
             assert.equal(adminWethBalance, toWei('60'));
             assert.equal(corePoolXYZBalance, toWei('80000'));
             assert.equal(corePoolWethBalance, toWei('40'));
@@ -201,15 +199,15 @@ contract('configurableWeights', async (accounts) => {
 
             await crpPool.updateWeight(WETH, toWei(updatedWethWeight)); // This should double WETH weight from 1.5 to 3.
 
-            adminBPTBalance = await crpPool.balanceOf.call(admin);
+            adminKSPBalance = await crpPool.balanceOf.call(admin);
             adminWethBalance = await weth.balanceOf.call(admin);
             corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
             corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
             corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-            // BPT Balance should go from 100 to 110 since total weight went from 15 to 16.5
+            // KSP Balance should go from 100 to 110 since total weight went from 15 to 16.5
             // WETH Balance should go from 60 to 20 (since 40 WETH are deposited to pool to get if from 40 to 80 WETH)
-            assert.equal(adminBPTBalance, toWei('110'));
+            assert.equal(adminKSPBalance, toWei('110'));
             assert.equal(adminWethBalance, toWei('20'));
             assert.equal(corePoolXYZBalance, toWei('80000'));
             assert.equal(corePoolWethBalance, toWei('80'));
@@ -250,9 +248,9 @@ contract('configurableWeights', async (accounts) => {
     });
 
     describe('updateWeight', () => {
-        beforeEach(async () => {
-            coreFactory = await BFactory.deployed();
-            crpFactory = await CRPFactory.deployed();
+        beforeEach(async () => { // eslint-disable-line no-undef
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
             weth = await TToken.new('Wrapped Ether', 'WETH', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -277,10 +275,10 @@ contract('configurableWeights', async (accounts) => {
                 constituentTokens: tokenAddresses,
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-                }
+                swapFee,
+            };
 
-            CRPPOOL = await crpFactory.newCrp.call(
+            const CRPPOOL = await crpFactory.newCrp.call(
                 coreFactory.address,
                 poolParams,
                 permissions,
@@ -305,15 +303,15 @@ contract('configurableWeights', async (accounts) => {
 
         it('Controller should be able to change weights (down) with updateWeight()', async () => {
             const corePoolAddr = await crpPool.corePool();
-            const corePool = await BPool.at(corePoolAddr);
+            const corePool = await Pool.at(corePoolAddr);
 
-            let adminBPTBalance = await crpPool.balanceOf.call(admin);
+            let adminKSPBalance = await crpPool.balanceOf.call(admin);
             let adminXyzBalance = await xyz.balanceOf.call(admin);
             let corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
             let corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
             let corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-            assert.equal(adminBPTBalance, toWei('100'));
+            assert.equal(adminKSPBalance, toWei('100'));
             assert.equal(adminXyzBalance, toWei('20000'));
             assert.equal(corePoolXYZBalance, toWei('80000'));
             assert.equal(corePoolWethBalance, toWei('40'));
@@ -336,15 +334,15 @@ contract('configurableWeights', async (accounts) => {
             // This should double XYZ weight from 12 to 6.
             await crpPool.updateWeight(XYZ, toWei(updatedXyzWeight));
 
-            adminBPTBalance = await crpPool.balanceOf.call(admin);
+            adminKSPBalance = await crpPool.balanceOf.call(admin);
             adminXyzBalance = await xyz.balanceOf.call(admin);
             corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
             corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
             corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-            // BPT Balance should go from 100 to 60 since total weight went from 15 to 9
+            // KSP Balance should go from 100 to 60 since total weight went from 15 to 9
             // XYZ Balance should go from 20000 to 60000 (40000 (half of original balance) returned from pool)
-            assert.equal(adminBPTBalance, toWei('60'));
+            assert.equal(adminKSPBalance, toWei('60'));
             assert.equal(adminXyzBalance, toWei('60000'));
             assert.equal(corePoolXYZBalance, toWei('40000'));
             assert.equal(corePoolWethBalance, toWei('40'));
@@ -369,15 +367,15 @@ contract('configurableWeights', async (accounts) => {
 
         it('Controller should be able to change weights with updateWeight()', async () => {
             const corePoolAddr = await crpPool.corePool();
-            const corePool = await BPool.at(corePoolAddr);
+            const corePool = await Pool.at(corePoolAddr);
 
-            let adminBPTBalance = await crpPool.balanceOf.call(admin);
+            let adminKSPBalance = await crpPool.balanceOf.call(admin);
             let adminWethBalance = await weth.balanceOf.call(admin);
             let corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
             let corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
             let corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-            assert.equal(adminBPTBalance, toWei('100'));
+            assert.equal(adminKSPBalance, toWei('100'));
             assert.equal(adminWethBalance, toWei('60'));
             assert.equal(corePoolXYZBalance, toWei('80000'));
             assert.equal(corePoolWethBalance, toWei('40'));
@@ -398,15 +396,15 @@ contract('configurableWeights', async (accounts) => {
             // This should double WETH weight from 1.5 to 3.
             await crpPool.updateWeight(WETH, toWei(updatedWethWeight));
 
-            adminBPTBalance = await crpPool.balanceOf.call(admin);
+            adminKSPBalance = await crpPool.balanceOf.call(admin);
             adminWethBalance = await weth.balanceOf.call(admin);
             corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
             corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
             corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
-            // BPT Balance should go from 100 to 110 since total weight went from 15 to 16.5
+            // KSP Balance should go from 100 to 110 since total weight went from 15 to 16.5
             // WETH Balance should go from 60 to 20 (since 40 WETH are deposited to pool to get if from 40 to 80 WETH)
-            assert.equal(adminBPTBalance, toWei('110'));
+            assert.equal(adminKSPBalance, toWei('110'));
             assert.equal(adminWethBalance, toWei('20'));
             assert.equal(corePoolXYZBalance, toWei('80000'));
             assert.equal(corePoolWethBalance, toWei('80'));
@@ -485,7 +483,10 @@ contract('configurableWeights', async (accounts) => {
             const endBlock = startBlock + minimumWeightChangeBlockPeriod;
             validEndBlock = endBlock;
             validStartBlock = startBlock;
-            console.log(`Gradual Update: ${startingXyzWeight}->${endXyzWeight}, ${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`);
+            console.log(
+                `Gradual Update: ${startingXyzWeight}->${endXyzWeight}, `
+                + `${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`,
+            );
             console.log(`Latest Block: ${block.number}, Start Update: ${startBlock} End Update: ${endBlock}`);
             const endWeights = [toWei(endXyzWeight), toWei(endWethWeight), toWei(endDaiWeight)];
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
@@ -534,9 +535,16 @@ contract('configurableWeights', async (accounts) => {
                     Number(startingXyzWeight),
                     Number(endXyzWeight),
                 );
-                const newWethW = newWeight(block, validStartBlock, validEndBlock, Number(updatedWethWeight), Number(endWethWeight));
-                const newDaiW = newWeight(block, validStartBlock, validEndBlock, Number(startingDaiWeight), Number(endDaiWeight));
-                console.log(`${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, ${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`);
+                const newWethW = newWeight(
+                    block, validStartBlock, validEndBlock, Number(updatedWethWeight), Number(endWethWeight),
+                );
+                const newDaiW = newWeight(
+                    block, validStartBlock, validEndBlock, Number(startingDaiWeight), Number(endDaiWeight),
+                );
+                console.log(
+                    `${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, `
+                    + `${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`,
+                );
 
                 let relDif = calcRelativeDiff(newXyzW, fromWei(xyzWeight));
                 assert.isAtMost(relDif.toNumber(), errorDelta);
@@ -576,7 +584,10 @@ contract('configurableWeights', async (accounts) => {
             endWethWeight = '6.1';
             endDaiWeight = '17';
 
-            console.log(`Gradual Update: ${startingXyzWeight}->${endXyzWeight}, ${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`);
+            console.log(
+                `Gradual Update: ${startingXyzWeight}->${endXyzWeight}, `
+                + `${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`,
+            );
             console.log(`Latest Block: ${block.number}, Start Update: ${startBlock} End Update: ${endBlock}`);
 
             const endWeights = [toWei(endXyzWeight), toWei(endWethWeight), toWei(endDaiWeight)];
@@ -588,7 +599,7 @@ contract('configurableWeights', async (accounts) => {
             block = await web3.eth.getBlock('latest');
             console.log(
                 `${block.number} Weights: ${fromWei(xyzWeight)}
-                ${fromWei(wethWeight)} ${fromWei(daiWeight)}`
+                ${fromWei(wethWeight)} ${fromWei(daiWeight)}`,
             );
 
             // Starting weights
@@ -611,10 +622,19 @@ contract('configurableWeights', async (accounts) => {
 
                 block = await web3.eth.getBlock('latest');
 
-                const newXyzW = newWeight(block, startBlock, endBlock, Number(startingXyzWeight), Number(endXyzWeight));
-                const newWethW = newWeight(block, startBlock, endBlock, Number(startingWethWeight), Number(endWethWeight));
-                const newDaiW = newWeight(block, startBlock, endBlock, Number(startingDaiWeight), Number(endDaiWeight));
-                console.log(`${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, ${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`);
+                const newXyzW = newWeight(
+                    block, startBlock, endBlock, Number(startingXyzWeight), Number(endXyzWeight),
+                );
+                const newWethW = newWeight(
+                    block, startBlock, endBlock, Number(startingWethWeight), Number(endWethWeight),
+                );
+                const newDaiW = newWeight(
+                    block, startBlock, endBlock, Number(startingDaiWeight), Number(endDaiWeight),
+                );
+                console.log(
+                    `${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, `
+                    + `${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`,
+                );
 
                 let relDif = calcRelativeDiff(newXyzW, fromWei(xyzWeight));
                 assert.isAtMost(relDif.toNumber(), errorDelta);
@@ -645,7 +665,10 @@ contract('configurableWeights', async (accounts) => {
             endWethWeight = '1';
             endDaiWeight = '1';
 
-            console.log(`Gradual Update: ${startingXyzWeight}->${endXyzWeight}, ${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`);
+            console.log(
+                `Gradual Update: ${startingXyzWeight}->${endXyzWeight}, `
+                + `${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`,
+            );
             console.log(`Latest Block: ${block.number}, Start Update: ${startBlock} End Update: ${endBlock}`);
             const endWeights = [toWei(endXyzWeight), toWei(endWethWeight), toWei(endDaiWeight)];
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
@@ -659,7 +682,10 @@ contract('configurableWeights', async (accounts) => {
             let daiWeight = await crpPool.getDenormalizedWeight(DAI);
             block = await web3.eth.getBlock('latest');
             console.log('Poking...');
-            console.log(`${block.number} Weights: ${Decimal(fromWei(xyzWeight)).toFixed(4)} ${Decimal(fromWei(wethWeight)).toFixed(4)} ${Decimal(fromWei(daiWeight)).toFixed(4)}`);
+            console.log(
+                `${block.number} Weights: ${Decimal(fromWei(xyzWeight)).toFixed(4)} `
+                + `${Decimal(fromWei(wethWeight)).toFixed(4)} ${Decimal(fromWei(daiWeight)).toFixed(4)}`,
+            );
 
             // Starting weights
             assert.equal(xyzWeight, toWei(startingXyzWeight));
@@ -680,10 +706,19 @@ contract('configurableWeights', async (accounts) => {
                 daiWeight = await crpPool.getDenormalizedWeight(DAI);
 
                 block = await web3.eth.getBlock('latest');
-                const newXyzW = newWeight(block, realStartingBlock, endBlock, Number(startingXyzWeight), Number(endXyzWeight));
-                const newWethW = newWeight(block, realStartingBlock, endBlock, Number(startingWethWeight), Number(endWethWeight));
-                const newDaiW = newWeight(block, realStartingBlock, endBlock, Number(startingDaiWeight), Number(endDaiWeight));
-                console.log(`${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, ${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`);
+                const newXyzW = newWeight(
+                    block, realStartingBlock, endBlock, Number(startingXyzWeight), Number(endXyzWeight),
+                );
+                const newWethW = newWeight(
+                    block, realStartingBlock, endBlock, Number(startingWethWeight), Number(endWethWeight),
+                );
+                const newDaiW = newWeight(
+                    block, realStartingBlock, endBlock, Number(startingDaiWeight), Number(endDaiWeight),
+                );
+                console.log(
+                    `${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, `
+                    + `${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`,
+                );
 
                 let relDif = calcRelativeDiff(newXyzW, fromWei(xyzWeight));
                 assert.isAtMost(relDif.toNumber(), errorDelta);
@@ -712,7 +747,10 @@ contract('configurableWeights', async (accounts) => {
             endWethWeight = '12.7';
             endDaiWeight = '9.5';
 
-            console.log(`Gradual Update: ${startingXyzWeight}->${endXyzWeight}, ${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`);
+            console.log(
+                `Gradual Update: ${startingXyzWeight}->${endXyzWeight}, `
+                + `${startingWethWeight}->${endWethWeight}, ${startingDaiWeight}->${endDaiWeight}`,
+            );
             console.log(`Latest Block: ${block.number}, Start Update: ${startBlock} End Update: ${endBlock}`);
             const endWeights = [toWei(endXyzWeight), toWei(endWethWeight), toWei(endDaiWeight)];
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
@@ -749,10 +787,19 @@ contract('configurableWeights', async (accounts) => {
                 daiWeight = await crpPool.getDenormalizedWeight(DAI);
 
                 block = await web3.eth.getBlock('latest');
-                const newXyzW = newWeight(block, startBlock, endBlock, Number(startingXyzWeight), Number(endXyzWeight));
-                const newWethW = newWeight(block, startBlock, endBlock, Number(startingWethWeight), Number(endWethWeight));
-                const newDaiW = newWeight(block, startBlock, endBlock, Number(startingDaiWeight), Number(endDaiWeight));
-                console.log(`${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, ${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`);
+                const newXyzW = newWeight(
+                    block, startBlock, endBlock, Number(startingXyzWeight), Number(endXyzWeight),
+                );
+                const newWethW = newWeight(
+                    block, startBlock, endBlock, Number(startingWethWeight), Number(endWethWeight),
+                );
+                const newDaiW = newWeight(
+                    block, startBlock, endBlock, Number(startingDaiWeight), Number(endDaiWeight),
+                );
+                console.log(
+                    `${block.number} Weights: ${newXyzW}/${fromWei(xyzWeight)}, `
+                    + `${newWethW}/${fromWei(wethWeight)}, ${newDaiW}/${fromWei(daiWeight)}`,
+                );
 
                 let relDif = calcRelativeDiff(newXyzW, fromWei(xyzWeight));
                 assert.isAtMost(relDif.toNumber(), errorDelta);

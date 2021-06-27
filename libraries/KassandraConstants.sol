@@ -24,7 +24,7 @@ library KassandraConstants {
     uint public constant MAX_POOL_SUPPLY   = ONE * 10**9;
 
     // EXIT_FEE must always be zero, or ConfigurableRightsPool._pushUnderlying will fail
-    uint public constant EXIT_FEE          = 0;
+    uint public constant EXIT_FEE          = ONE * 3 / 100;
     uint public constant MIN_FEE           = ONE / 10**6;
     uint public constant MAX_FEE           = ONE / 10;
 

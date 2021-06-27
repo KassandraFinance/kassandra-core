@@ -1,12 +1,9 @@
 /* eslint-env es6 */
 
-const BFactory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
-const BPool = artifacts.require('Pool');
-const truffleAssert = require('truffle-assertions');
-const { time } = require('@openzeppelin/test-helpers');
 
 contract('Remove all tokens', async (accounts) => {
     const admin = accounts[0];
@@ -14,28 +11,20 @@ contract('Remove all tokens', async (accounts) => {
 
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
-    let CRPPOOL_ADDRESS;
     let WETH;
     let DAI;
     let XYZ;
-    let ABC;
-    let ASD;
     let weth;
     let dai;
     let xyz;
     let abc;
     let asd;
-    let applyAddTokenValidBlock;
 
     // These are the intial settings for newCrp:
     const swapFee = 10 ** 15;
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
-    const addTokenTimeLockInBlocks = 10;
     const SYMBOL = 'KSP';
     const NAME = 'Kassandra Pool Token';
 
@@ -50,15 +39,15 @@ contract('Remove all tokens', async (accounts) => {
 
     before(async () => {
         /*
-        Uses deployed BFactory & CRPFactory.
+        Uses deployed core Factory & CRPFactory.
         Deploys new test tokens - XYZ, WETH, DAI, ABC, ASD
         Mints test tokens for Admin user (account[0])
         CRPFactory creates new CRP.
         Admin approves CRP for MAX
         newCrp call with configurableAddRemoveTokens set to true
         */
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -68,8 +57,6 @@ contract('Remove all tokens', async (accounts) => {
         WETH = weth.address;
         DAI = dai.address;
         XYZ = xyz.address;
-        ABC = abc.address;
-        ASD = asd.address;
 
         // admin balances
         await weth.mint(admin, toWei('100'));
@@ -86,10 +73,10 @@ contract('Remove all tokens', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -103,7 +90,7 @@ contract('Remove all tokens', async (accounts) => {
 
         crpPool = await ConfigurableRightsPool.at(CRPPOOL);
 
-        CRPPOOL_ADDRESS = crpPool.address;
+        const CRPPOOL_ADDRESS = crpPool.address;
 
         await weth.approve(CRPPOOL_ADDRESS, MAX);
         await dai.approve(CRPPOOL_ADDRESS, MAX);

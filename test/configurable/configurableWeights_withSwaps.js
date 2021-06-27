@@ -1,13 +1,13 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
+
 const { calcOutGivenIn, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 contract('configurableWeights_withSwaps', async (accounts) => {
     const admin = accounts[0];
@@ -33,8 +33,6 @@ contract('configurableWeights_withSwaps', async (accounts) => {
     };
 
     describe('CWS Factory', () => {
-        let bfactory;
-        let factory;
         let controller;
         let CONTROLLER;
         let WETH;
@@ -47,8 +45,8 @@ contract('configurableWeights_withSwaps', async (accounts) => {
         let blockRange;
 
         before(async () => {
-            bfactory = await BFactory.deployed();
-            factory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
             weth = await TToken.new('Wrapped Ether', 'WETH', 18);
             abc = await TToken.new('ABC', 'ABC', 18);
@@ -76,17 +74,17 @@ contract('configurableWeights_withSwaps', async (accounts) => {
                 constituentTokens: [XYZ, WETH],
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-            }
+                swapFee,
+            };
 
-            CONTROLLER = await factory.newCrp.call(
-                bfactory.address,
+            CONTROLLER = await crpFactory.newCrp.call(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
-            await factory.newCrp(
-                bfactory.address,
+            await crpFactory.newCrp(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -128,7 +126,7 @@ contract('configurableWeights_withSwaps', async (accounts) => {
             let weightWETH;
             let block;
             const corePoolAddr = await controller.corePool();
-            const underlyingPool = await BPool.at(corePoolAddr);
+            const underlyingPool = await Pool.at(corePoolAddr);
 
             // Pool was created by CRP
             const owner = await underlyingPool.getController();
@@ -169,25 +167,26 @@ contract('configurableWeights_withSwaps', async (accounts) => {
                 weightXYZ = await controller.getDenormalizedWeight(XYZ);
                 weightWETH = await controller.getDenormalizedWeight(WETH);
                 block = await web3.eth.getBlock('latest');
-                console.log('Block: ' + block.number + '. Weights -> July: ' +
-                    (weightXYZ*2.5/10**18).toFixed(4) + '%\tJune: ' +
-                    (weightWETH*2.5/10**18).toFixed(4) + '%');
+                console.log(
+                    `Block: ${block.number}. `
+                    + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                    + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                );
                 await controller.pokeWeights();
 
-                if (i % 3 == 0) {
+                if (i % 3 === 0) {
                     // Randomly transfer tokens to the pool
-                    xferAmount = Math.floor((Math.random() * 3) + 1).toString();
+                    const xferAmount = Math.floor((Math.random() * 3) + 1).toString();
                     if (Math.random() > 0.5) {
-                        console.log(`Randomly transferring ${xferAmount} WETH into pool`)
-                        weth.transfer(underlyingPool.address, toWei(xferAmount), {from: user1});
-                    }
-                    else {
-                        console.log(`Randomly transferring ${xferAmount} XYZ into pool`)
-                        xyz.transfer(underlyingPool.address, toWei(xferAmount), {from: user2});
+                        console.log(`Randomly transferring ${xferAmount} WETH into pool`);
+                        weth.transfer(underlyingPool.address, toWei(xferAmount), { from: user1 });
+                    } else {
+                        console.log(`Randomly transferring ${xferAmount} XYZ into pool`);
+                        xyz.transfer(underlyingPool.address, toWei(xferAmount), { from: user2 });
                     }
 
                     // Transferring tokens randomly into the pool causes
-                    //   _records[token].balance (used by the BPool methods like swapExactAmountIn)
+                    //   _records[token].balance (used by the core Pool methods like swapExactAmountIn)
                     //   to get out of sync with the ERC20.balanceOf figure
                     //
                     await underlyingPool.gulp(XYZ);

@@ -1,13 +1,13 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
+const Decimal = require('decimal.js');
 const { time } = require('@openzeppelin/test-helpers');
 const { assert } = require('chai');
-const Decimal = require('decimal.js');
+
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 // Refer to this article for background:
 // https://medium.com/balancer-protocol/building-liquidity-into-token-distribution-a49d4286e0d4
@@ -30,10 +30,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
     };
 
     describe('Factory_LBP (linear)', () => {
-        let coreFactory;
-        let crpFactory;
         let controller;
-        let CONTROLLER;
         let XYZ;
         let DAI;
         let dai;
@@ -66,12 +63,12 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
         const startWeights = [toWei('32'), toWei('8')];
         const startBalances = [toWei('4000'), toWei('1000')];
-        const swapFee = 10**15;
+        const swapFee = 10 ** 15;
         let blockRange;
 
         before(async () => {
-            coreFactory = await BFactory.deployed();
-            crpFactory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'Example Project Token', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
@@ -90,10 +87,10 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 constituentTokens: [XYZ, DAI],
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-            }
+                swapFee,
+            };
 
-            CONTROLLER = await crpFactory.newCrp.call(
+            const CONTROLLER = await crpFactory.newCrp.call(
                 coreFactory.address,
                 poolParams,
                 permissions,
@@ -150,10 +147,12 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 for (i = 0; i < blockRange + 3; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightDAI = await controller.getDenormalizedWeight(DAI);
-                    block = await web3.eth.getBlock("latest");
-                    console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                        (fromWei(weightXYZ)*2.5).toFixed(4) + '%\tDAI: ' +
-                        (fromWei(weightDAI)*2.5).toFixed(4) + '%');
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
+                        + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
+                    );
 
                     // Cause the weights to change
                     // Since a smart contract can do nothing on its own, an external caller
@@ -177,7 +176,6 @@ contract('Liquidity Bootstrapping', async (accounts) => {
     */
     describe('Factory_LBP (nonlinear)', () => {
         let controller;
-        let CONTROLLER;
         let XYZ;
         let DAI;
         let dai;
@@ -185,11 +183,11 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
         const startWeights = [toWei('32'), toWei('8')];
         const startBalances = [toWei('4000'), toWei('1000')];
-        const swapFee = 10**15;
+        const swapFee = 10 ** 15;
 
         before(async () => {
-            coreFactory = await BFactory.deployed();
-            crpFactory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'Example Project Token', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
@@ -208,10 +206,10 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 constituentTokens: [XYZ, DAI],
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-                }
+                swapFee,
+            };
 
-            CONTROLLER = await crpFactory.newCrp.call(
+            const CONTROLLER = await crpFactory.newCrp.call(
                 coreFactory.address,
                 poolParams,
                 permissions,
@@ -242,7 +240,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 const startWeightXYZ = weightXYZ;
                 const startWeightDAI = weightDAI;
 
-                let total = Decimal(fromWei(weightXYZ)).plus(Decimal(fromWei(weightDAI)));
+                const total = Decimal(fromWei(weightXYZ)).plus(Decimal(fromWei(weightDAI)));
                 let pctXYZ = Decimal(fromWei(weightXYZ)).div(total);
                 let pctDAI = Decimal(fromWei(weightDAI)).div(total);
                 assert.equal(pctXYZ.toString(), '0.8');
@@ -251,7 +249,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 const b = 1;
 
                 const corePoolAddr = await controller.corePool();
-                const underlyingPool = await BPool.at(corePoolAddr);
+                const underlyingPool = await Pool.at(corePoolAddr);
 
                 /* Exponential curve formula (for 80/20%)
                    "b" parameterizes the "steepness" of the curve
@@ -269,23 +267,26 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                    For the first 10 blocks, set the weights manually, since they're not linear
                    For the last 15 blocks, the curve is close enough to the asymptote to be nearly linear,
                    So make it easier and use the updateWeightsGradually call */
+                let block;
 
                 for (i = 1; i <= 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightDAI = await controller.getDenormalizedWeight(DAI);
-                    block = await web3.eth.getBlock("latest");
-                    console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                        (fromWei(weightXYZ)*2.5).toFixed(4) + '%\tDAI: ' +
-                        (fromWei(weightDAI)*2.5).toFixed(4) + '%');
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
+                        + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
+                    );
                     await time.advanceBlock();
 
                     // Calculate the percentages (rounded to 3 decimals to avoid numeric issues)
-                    pctXYZ = Math.floor((0.2 + 0.6**(b*i)) * 1000)/1000;
-                    pctDAI = Math.floor((0.8 - 0.6**(b*i)) * 1000)/1000;
+                    pctXYZ = Math.floor((0.2 + 0.6 ** (b * i)) * 1000) / 1000;
+                    pctDAI = Math.floor((0.8 - 0.6 ** (b * i)) * 1000) / 1000;
 
                     // Convert the percentages to denormalized weights
-                    normXYZ = Math.floor(pctXYZ*40*1000)/1000;
-                    normDAI = Math.floor(pctDAI*40*1000)/1000;
+                    const normXYZ = Math.floor(pctXYZ * 40 * 1000) / 1000;
+                    const normDAI = Math.floor(pctDAI * 40 * 1000) / 1000;
 
                     console.log(`\nNew weights: XYZ weight: ${normXYZ}; DAI weight: ${normDAI}`);
 
@@ -295,24 +296,32 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
                     const adminXYZ = await xyz.balanceOf.call(admin);
                     const adminDAI = await dai.balanceOf.call(admin);
-                    console.log(`Admin balances after: ${Decimal(fromWei(adminXYZ)).toFixed(2)} XYZ; ${Decimal(fromWei(adminDAI)).toFixed(2)} DAI`);
+                    console.log(
+                        `Admin balances after: ${Decimal(fromWei(adminXYZ)).toFixed(2)} XYZ; `
+                        + `${Decimal(fromWei(adminDAI)).toFixed(2)} DAI`,
+                    );
                     const poolXYZ = await xyz.balanceOf.call(underlyingPool.address);
                     const poolDAI = await dai.balanceOf.call(underlyingPool.address);
-                    console.log(`Pool balances after: ${Decimal(fromWei(poolXYZ)).toFixed(2)} XYZ; ${Decimal(fromWei(poolDAI)).toFixed(2)} DAI`);
+                    console.log(
+                        `Pool balances after: ${Decimal(fromWei(poolXYZ)).toFixed(2)} XYZ; `
+                        + `${Decimal(fromWei(poolDAI)).toFixed(2)} DAI`,
+                    );
                 }
 
                 // End weights are the reverse of the starting weights
-                const endWeights = [startWeightDAI, startWeightXYZ]
+                const endWeights = [startWeightDAI, startWeightXYZ];
                 // Do linear for the rest of the curve
                 await controller.updateWeightsGradually(endWeights, block.number, block.number + 15);
 
                 for (i = 1; i <= 15; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightDAI = await controller.getDenormalizedWeight(DAI);
-                    block = await web3.eth.getBlock("latest");
-                    console.log('Block: ' + block.number + '. Weights -> XYZ: ' +
-                        (fromWei(weightXYZ)*2.5).toFixed(4) + '%\tDAI: ' +
-                        (fromWei(weightDAI)*2.5).toFixed(4) + '%');
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
+                        + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
+                    );
 
                     await controller.pokeWeights();
                 }

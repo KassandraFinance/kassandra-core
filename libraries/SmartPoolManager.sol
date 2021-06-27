@@ -502,8 +502,13 @@ library SmartPoolManager {
 
         // Calculate exit fee and the final amount in
         exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
-        pAiAfterExitFee = poolAmountIn - exitFee;
 
+        // governance doesn't pay to itself
+        if (msg.sender == self.getController()) {
+            exitFee = 0;
+        }
+
+        pAiAfterExitFee = poolAmountIn - exitFee;
         uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal + 1);
 
         require(ratio != 0, "ERR_MATH_APPROX");
@@ -686,7 +691,11 @@ library SmartPoolManager {
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
         require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
 
-        exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        exitFee = 0;
+
+        if (msg.sender != self.getController()) {
+            exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        }
     }
 
     // Internal functions

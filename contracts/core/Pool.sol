@@ -150,7 +150,6 @@ contract Pool is Ownable, Token, Math {
         require(!_finalized, "ERR_IS_FINALIZED");
 
         uint tokenBalance = _records[token].balance;
-        uint tokenExitFee = KassandraSafeMath.bmul(tokenBalance, KassandraConstants.EXIT_FEE);
 
         _totalWeight -= _records[token].denorm;
 
@@ -168,8 +167,7 @@ contract Pool is Ownable, Token, Math {
             balance: 0
         });
 
-        _pushUnderlying(token, msg.sender, tokenBalance - tokenExitFee);
-        _pushUnderlying(token, _factory, tokenExitFee);
+        _pushUnderlying(token, msg.sender, tokenBalance);
     }
 
     // Absorb any tokens that have been sent to this contract into the pool
@@ -362,13 +360,11 @@ contract Pool is Ownable, Token, Math {
         return (tokenAmountIn, spotPriceAfter);
     }
 
-
     function joinswapExternAmountIn(address tokenIn, uint tokenAmountIn, uint minPoolAmountOut)
         external
         _logs_
         _lock_
         returns (uint poolAmountOut)
-
     {
         require(_finalized, "ERR_NOT_FINALIZED");
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
@@ -663,14 +659,11 @@ contract Pool is Ownable, Token, Math {
         // Adjust the balance record and actual token balance
         uint oldBalance = _records[token].balance;
         _records[token].balance = balance;
+
         if (balance > oldBalance) {
             _pullUnderlying(token, msg.sender, balance - oldBalance);
         } else if (balance < oldBalance) {
-            // In this case liquidity is being withdrawn, so charge EXIT_FEE
-            uint tokenBalanceWithdrawn = oldBalance - balance;
-            uint tokenExitFee = KassandraSafeMath.bmul(tokenBalanceWithdrawn, KassandraConstants.EXIT_FEE);
-            _pushUnderlying(token, msg.sender, tokenBalanceWithdrawn - tokenExitFee);
-            _pushUnderlying(token, _factory, tokenExitFee);
+            _pushUnderlying(token, msg.sender, oldBalance - balance);
         }
     }
 

@@ -1,12 +1,13 @@
 /* eslint-env es6 */
+const truffleAssert = require('truffle-assertions');
 
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
+const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
+
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
-const truffleAssert = require('truffle-assertions');
-const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
 contract('pausableSwap', async (accounts) => {
     const admin = accounts[0];
@@ -16,10 +17,7 @@ contract('pausableSwap', async (accounts) => {
     const MAX = web3.utils.toTwosComplement(-1);
     const errorDelta = 10 ** -8;
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
     let WETH; let DAI; let XYZ;
     let weth; let dai; let xyz;
 
@@ -48,15 +46,15 @@ contract('pausableSwap', async (accounts) => {
 
     before(async () => {
         /*
-        Uses deployed BFactory & CRPFactory.
+        Uses deployed core Factory & CRPFactory.
         Deploys new test tokens - XYZ, WETH, DAI, ABC, ASD
         Mints test tokens for Admin user (account[0])
         CRPFactory creates new CRP.
         Admin approves CRP for MAX
         newCrp call with pausableSwap set to true
         */
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -83,10 +81,10 @@ contract('pausableSwap', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -124,7 +122,7 @@ contract('pausableSwap', async (accounts) => {
 
     it('ConfigurableRightsPool isPublicSwap should be true after creation', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
         const isPublicSwap = await crpPool.isPublicSwap.call();
         assert.equal(isPublicSwap, true);
         const isPublicSwapCheck = await corePool.isPublicSwap.call();
@@ -140,7 +138,7 @@ contract('pausableSwap', async (accounts) => {
 
     it('Controller should be able to pause trades', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
         await crpPool.setPublicSwap(false);
 
@@ -159,7 +157,7 @@ contract('pausableSwap', async (accounts) => {
 
     it('Should not allow swaps while paused', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
         await truffleAssert.reverts(
             corePool.swapExactAmountIn(
@@ -184,7 +182,7 @@ contract('pausableSwap', async (accounts) => {
 
     it('Controller should be able to restart trades', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
         await crpPool.setPublicSwap(true);
 
@@ -196,7 +194,7 @@ contract('pausableSwap', async (accounts) => {
 
     it('Should allow swap in now', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
         await weth.approve(corePool.address, MAX, { from: user });
 
@@ -229,7 +227,7 @@ contract('pausableSwap', async (accounts) => {
 
     it('Should now allow swap outs', async () => {
         const corePoolAddr = await crpPool.corePool();
-        const corePool = await BPool.at(corePoolAddr);
+        const corePool = await Pool.at(corePoolAddr);
 
         await weth.approve(corePool.address, MAX, { from: user });
 

@@ -1,15 +1,15 @@
 /* eslint-env es6 */
+const { calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
-const { calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
 /*
 Tests initial CRP Pool set-up including:
-BPool deployment, token binding, balance checks, BPT checks.
+Pool deployment, token binding, balance checks, tokens checks.
 */
 contract('crpPoolSwapOuts', async (accounts) => {
     const admin = accounts[0];
@@ -35,39 +35,23 @@ contract('crpPoolSwapOuts', async (accounts) => {
         canChangeCap: false,
     };
 
-    let crpFactory;
-    let coreFactory;
     let corePoolAddr;
     let corePool;
     let corePool2;
     let corePool3;
     let crpPool;
-    let crpPool2
+    let crpPool2;
     let crpPool3;
-    let CRPPOOL;
-    let CRPPOOL2;
-    let CRPPOOL3;
-    let CRPPOOL_ADDRESS;
     let WETH;
     let DAI;
     let XYZ;
     let weth;
     let dai;
     let xyz;
-    let adminXYZBalance;
-    let corePoolXYZBalance;
-    let adminWethBalance;
-    let corePoolWethBalance;
-    let adminDaiBalance;
-    let corePoolDaiBalance;
-    let xyzWeight;
-    let daiWeight;
-    let wethWeight;
-    let adminBPTBalance;
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
-        crpFactory = await CRPFactory.deployed();
+        const coreFactory = await Factory.deployed();
+        const crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -91,10 +75,10 @@ contract('crpPoolSwapOuts', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -108,13 +92,13 @@ contract('crpPoolSwapOuts', async (accounts) => {
 
         crpPool = await ConfigurableRightsPool.at(CRPPOOL);
 
-        CRPPOOL_ADDRESS = crpPool.address;
+        const CRPPOOL_ADDRESS = crpPool.address;
 
         await weth.approve(CRPPOOL_ADDRESS, MAX);
         await dai.approve(CRPPOOL_ADDRESS, MAX);
         await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
-        CRPPOOL2 = await crpFactory.newCrp.call(
+        const CRPPOOL2 = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -132,7 +116,7 @@ contract('crpPoolSwapOuts', async (accounts) => {
         await dai.approve(crpPool2.address, MAX);
         await xyz.approve(crpPool2.address, MAX);
 
-        CRPPOOL3 = await crpFactory.newCrp.call(
+        const CRPPOOL3 = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -151,32 +135,32 @@ contract('crpPoolSwapOuts', async (accounts) => {
         await xyz.approve(crpPool3.address, MAX);
     });
 
-    it('crpPools should have BPools after creation', async () => {
+    it('crpPools should have core Pools after creation', async () => {
         await crpPool.createPool(toWei('100'));
         corePoolAddr = await crpPool.corePool();
         assert.notEqual(corePoolAddr, ZERO_ADDRESS);
-        corePool = await BPool.at(corePoolAddr);
+        corePool = await Pool.at(corePoolAddr);
 
         await crpPool2.createPool(toWei('100'));
         corePoolAddr = await crpPool2.corePool();
         assert.notEqual(corePoolAddr, ZERO_ADDRESS);
-        corePool2 = await BPool.at(corePoolAddr);
+        corePool2 = await Pool.at(corePoolAddr);
 
         await crpPool3.createPool(toWei('100'));
         corePoolAddr = await crpPool3.corePool();
         assert.notEqual(corePoolAddr, ZERO_ADDRESS);
-        corePool3 = await BPool.at(corePoolAddr);
+        corePool3 = await Pool.at(corePoolAddr);
     });
 
-    it('BPools should have initial token balances', async () => {
+    it('Core Pools should have initial token balances', async () => {
         corePoolAddr = await crpPool.corePool();
 
-        adminXYZBalance = await xyz.balanceOf.call(admin);
-        corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
-        adminWethBalance = await weth.balanceOf.call(admin);
-        corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
-        adminDaiBalance = await dai.balanceOf.call(admin);
-        corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
+        const adminXYZBalance = await xyz.balanceOf.call(admin);
+        let corePoolXYZBalance = await xyz.balanceOf.call(corePoolAddr);
+        const adminWethBalance = await weth.balanceOf.call(admin);
+        let corePoolWethBalance = await weth.balanceOf.call(corePoolAddr);
+        const adminDaiBalance = await dai.balanceOf.call(admin);
+        let corePoolDaiBalance = await dai.balanceOf.call(corePoolAddr);
 
         assert.equal(adminXYZBalance, toWei('60000')); // 20000x3
         assert.equal(corePoolXYZBalance, toWei('80000'));
@@ -206,10 +190,10 @@ contract('crpPoolSwapOuts', async (accounts) => {
         assert.equal(corePoolDaiBalance, toWei('10000'));
     });
 
-    it('BPool should have initial token weights', async () => {
-        xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
-        wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
-        daiWeight = await corePool.getDenormalizedWeight.call(dai.address);
+    it('Core Pool should have initial token weights', async () => {
+        let xyzWeight = await corePool.getDenormalizedWeight.call(xyz.address);
+        let wethWeight = await corePool.getDenormalizedWeight.call(weth.address);
+        let daiWeight = await corePool.getDenormalizedWeight.call(dai.address);
 
         assert.equal(xyzWeight, toWei('12'));
         assert.equal(wethWeight, toWei('1.5'));
@@ -232,15 +216,15 @@ contract('crpPoolSwapOuts', async (accounts) => {
         assert.equal(daiWeight, toWei('1.5'));
     });
 
-    it('Admin should have initial BPT', async () => {
-        adminBPTBalance = await crpPool.balanceOf.call(admin);
-        assert.equal(adminBPTBalance, toWei('100'));
+    it('Admin should have initial tokens', async () => {
+        let adminTokensBalance = await crpPool.balanceOf.call(admin);
+        assert.equal(adminTokensBalance, toWei('100'));
 
-        adminBPTBalance = await crpPool2.balanceOf.call(admin);
-        assert.equal(adminBPTBalance, toWei('100'));
+        adminTokensBalance = await crpPool2.balanceOf.call(admin);
+        assert.equal(adminTokensBalance, toWei('100'));
 
-        adminBPTBalance = await crpPool3.balanceOf.call(admin);
-        assert.equal(adminBPTBalance, toWei('100'));
+        adminTokensBalance = await crpPool3.balanceOf.call(admin);
+        assert.equal(adminTokensBalance, toWei('100'));
     });
 
     it('Should perform swaps', async () => {

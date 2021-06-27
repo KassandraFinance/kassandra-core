@@ -1,24 +1,23 @@
 const truffleAssert = require('truffle-assertions');
 const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
-const Pool = artifacts.require('Pool');
 const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
+
 const verbose = process.env.VERBOSE;
 
 contract('Pool', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
     const user2 = accounts[2];
-    const { toWei } = web3.utils;
-    const { fromWei } = web3.utils;
+    const { toWei, fromWei } = web3.utils;
+
     const errorDelta = 10 ** -8;
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let WETH; let MKR; let DAI; let
-        XXX; // addresses
-    let weth; let mkr; let dai; let
-        xxx; // TTokens
+    let WETH; let MKR; let DAI; let XXX; // addresses
+    let weth; let mkr; let dai; let xxx; // TTokens
     let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
@@ -141,11 +140,14 @@ contract('Pool', async (accounts) => {
             await pool.bind(XXX, toWei('10'), toWei('5'));
             let adminBalance = await xxx.balanceOf(admin);
             assert.equal(0, fromWei(adminBalance));
+
             await pool.unbind(XXX);
             adminBalance = await xxx.balanceOf(admin);
             assert.equal(10, fromWei(adminBalance));
+
             const numTokens = await pool.getNumTokens();
             assert.equal(3, numTokens);
+
             const totalDernomWeight = await pool.getTotalDenormalizedWeight();
             assert.equal(15, fromWei(totalDernomWeight));
         });

@@ -2,25 +2,27 @@ const Decimal = require('decimal.js');
 const truffleAssert = require('truffle-assertions');
 const { calcRelativeDiff } = require('../../lib/calc_comparisons');
 
-const Pool = artifacts.require('Pool');
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
+
 const errorDelta = 10 ** -8;
-const swapFee = 0.001; // 0.001;
-const exitFee = 0;
 const verbose = process.env.VERBOSE;
 
 contract('Pool', async (accounts) => {
     const admin = accounts[0];
-    const { toWei } = web3.utils;
-    const { fromWei } = web3.utils;
+    const { toWei, fromWei } = web3.utils;
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let WETH; let DAI;
-    let weth; let dai;
+    let WETH;
+    let DAI;
     let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
+
+    const swapFee = 0.001;
+    let exitFee;
 
     const wethBalance = '1000';
     const wethDenorm = '1';
@@ -83,14 +85,18 @@ contract('Pool', async (accounts) => {
     }
 
     before(async () => {
+        const constants = await KassandraConstants.deployed();
+        exitFee = await constants.exitFee();
+        exitFee = Decimal(fromWei(exitFee));
+
         factory = await Factory.deployed();
 
         POOL = await factory.newPool.call(); // this works fine in clean room
         await factory.newPool();
         pool = await Pool.at(POOL);
 
-        weth = await TToken.new('Wrapped Ether', 'WETH', 18);
-        dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
+        const weth = await TToken.new('Wrapped Ether', 'WETH', 18);
+        const dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
         WETH = weth.address;
         DAI = dai.address;
@@ -215,10 +221,10 @@ contract('Pool', async (accounts) => {
         it('exitPool', async () => {
             // Call function
             // so that the balances of all tokens will go back exactly to what they were before joinPool()
-            const poolAmountIn = 1 / (1 - exitFee);
+            const poolAmountIn = Decimal(1).div(Decimal(1).sub(exitFee));
             const poolAmountInAfterExitFee = Decimal(poolAmountIn).mul(Decimal(1).sub(exitFee));
 
-            await pool.exitPool(toWei(String(poolAmountIn)), [toWei('0'), toWei('0')]);
+            await pool.exitPool(toWei(poolAmountIn.toFixed(18)), [toWei('0'), toWei('0')]);
 
             // Update balance states
             previousPoolBalance = currentPoolBalance;

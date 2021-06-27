@@ -1,27 +1,25 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const ElasticSupplyPool = artifacts.require('ElasticSupplyPool');
-const ESPFactory = artifacts.require('ESPFactory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 
+const ElasticSupplyPool = artifacts.require('ElasticSupplyPool');
+const ESPFactory = artifacts.require('ESPFactory');
+const Factory = artifacts.require('Factory');
+const TToken = artifacts.require('TToken');
+
+const verbose = process.env.VERBOSE;
 
 contract('ESPFactory', async (accounts) => {
     const admin = accounts[0];
     const { toWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
-    const swapFee = 10**15;
+    const swapFee = 10 ** 15;
 
     let espFactory;
     let coreFactory;
-    let espPool;
-    let ESPPOOL;
     let ESPPOOL_ADDRESS;
     let USDC;
     let DAI;
-    let AMPL;
     let dai;
     let usdc;
     let ampl;
@@ -41,7 +39,7 @@ contract('ESPFactory', async (accounts) => {
     };
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
+        coreFactory = await Factory.deployed();
         espFactory = await ESPFactory.deployed();
         usdc = await TToken.new('USD Stablecoin', 'USDC', 6);
         dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -49,7 +47,6 @@ contract('ESPFactory', async (accounts) => {
 
         DAI = dai.address;
         USDC = usdc.address;
-        AMPL = ampl.address;
 
         // admin balances
         await dai.mint(admin, toWei('15000'));
@@ -62,10 +59,10 @@ contract('ESPFactory', async (accounts) => {
             constituentTokens: [USDC, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        ESPPOOL = await espFactory.newEsp.call(
+        const ESPPOOL = await espFactory.newEsp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -77,7 +74,7 @@ contract('ESPFactory', async (accounts) => {
             permissions,
         );
 
-        espPool = await ElasticSupplyPool.at(ESPPOOL);
+        const espPool = await ElasticSupplyPool.at(ESPPOOL);
 
         ESPPOOL_ADDRESS = espPool.address;
 
@@ -88,7 +85,9 @@ contract('ESPFactory', async (accounts) => {
     });
 
     it('CRPFactory should have new espPool registered', async () => {
-        console.log(ESPPOOL_ADDRESS);
+        if (verbose) {
+            console.log(ESPPOOL_ADDRESS);
+        }
         const isPoolRegistered = await espFactory.isEsp(ESPPOOL_ADDRESS);
 
         assert.equal(isPoolRegistered, true, `Expected ${ESPPOOL_ADDRESS} to be registered.`);
@@ -108,8 +107,8 @@ contract('ESPFactory', async (accounts) => {
             constituentTokens: [USDC, DAI],
             tokenBalances: startBalances,
             tokenWeights: badStartWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             espFactory.newEsp(
@@ -117,7 +116,7 @@ contract('ESPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_START_WEIGHTS_MISMATCH'
+            'ERR_START_WEIGHTS_MISMATCH',
         );
     });
 
@@ -130,8 +129,8 @@ contract('ESPFactory', async (accounts) => {
             constituentTokens: [USDC, DAI],
             tokenBalances: badStartBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             espFactory.newEsp(
@@ -139,7 +138,7 @@ contract('ESPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_START_BALANCES_MISMATCH'
+            'ERR_START_BALANCES_MISMATCH',
         );
     });
 
@@ -150,14 +149,14 @@ contract('ESPFactory', async (accounts) => {
             constituentTokens: [USDC, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         espFactory.newEsp(
             coreFactory.address,
             poolParams,
             permissions,
-        )
+        );
     });
 
     it('should not be able to create with zero fee', async () => {
@@ -168,7 +167,7 @@ contract('ESPFactory', async (accounts) => {
             tokenBalances: startBalances,
             tokenWeights: startWeights,
             swapFee: 0,
-        }
+        };
 
         await truffleAssert.reverts(
             espFactory.newEsp(
@@ -176,7 +175,7 @@ contract('ESPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_INVALID_SWAP_FEE'
+            'ERR_INVALID_SWAP_FEE',
         );
     });
 
@@ -190,7 +189,7 @@ contract('ESPFactory', async (accounts) => {
             tokenBalances: startBalances,
             tokenWeights: startWeights,
             swapFee: invalidSwapFee,
-        }
+        };
 
         await truffleAssert.reverts(
             espFactory.newEsp(
@@ -198,7 +197,7 @@ contract('ESPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_INVALID_SWAP_FEE'
+            'ERR_INVALID_SWAP_FEE',
         );
     });
 });

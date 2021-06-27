@@ -1,18 +1,18 @@
 /* eslint-env es6 */
+const truffleAssert = require('truffle-assertions');
 
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
-const truffleAssert = require('truffle-assertions');
 
 contract('configurableWeights_withTx', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
     const user2 = accounts[2];
 
-    const swapFee = 10**15;
+    const swapFee = 10 ** 15;
 
     const { toWei } = web3.utils;
 
@@ -30,8 +30,6 @@ contract('configurableWeights_withTx', async (accounts) => {
     };
 
     describe('Factory', () => {
-        let bfactory;
-        let factory;
         let controller;
         let CONTROLLER;
         let WETH;
@@ -45,8 +43,8 @@ contract('configurableWeights_withTx', async (accounts) => {
         let blockRange;
 
         before(async () => {
-            bfactory = await BFactory.deployed();
-            factory = await CRPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
             weth = await TToken.new('Wrapped Ether', 'WETH', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -76,17 +74,17 @@ contract('configurableWeights_withTx', async (accounts) => {
                 constituentTokens: [XYZ, WETH],
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-            }
+                swapFee,
+            };
 
-            CONTROLLER = await factory.newCrp.call(
-                bfactory.address,
+            CONTROLLER = await crpFactory.newCrp.call(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
 
-            await factory.newCrp(
-                bfactory.address,
+            await crpFactory.newCrp(
+                coreFactory.address,
                 poolParams,
                 permissions,
             );
@@ -131,7 +129,7 @@ contract('configurableWeights_withTx', async (accounts) => {
                 let block;
                 const poolAmountOut1 = '1';
                 const corePoolAddr = await controller.corePool();
-                const underlyingPool = await BPool.at(corePoolAddr);
+                const underlyingPool = await Pool.at(corePoolAddr);
 
                 // Pool was created by CRP
                 const owner = await underlyingPool.getController();
@@ -163,9 +161,11 @@ contract('configurableWeights_withTx', async (accounts) => {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
                     block = await web3.eth.getBlock('latest');
-                    console.log('Block: ' + block.number + '. Weights -> July: ' +
-                        (weightXYZ*2.5/10**18).toFixed(4) + '%\tJune: ' +
-                        (weightWETH*2.5/10**18).toFixed(4) + '%');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
                     await controller.pokeWeights();
 
                     // Balances should not change

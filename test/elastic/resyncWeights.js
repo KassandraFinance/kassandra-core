@@ -1,12 +1,11 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const BPool = artifacts.require('Pool');
-const ElasticSupplyPool = artifacts.require('ElasticSupplyPool');
-const ESPFactory = artifacts.require('ESPFactory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 
+const ElasticSupplyPool = artifacts.require('ElasticSupplyPool');
+const ESPFactory = artifacts.require('ESPFactory');
+const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
+const TToken = artifacts.require('TToken');
 
 contract('elasticSupplyPool', async (accounts) => {
     const admin = accounts[0];
@@ -14,10 +13,7 @@ contract('elasticSupplyPool', async (accounts) => {
     const startWeights = [toWei('20'), toWei('20')];
     const MAX = web3.utils.toTwosComplement(-1);
 
-    let crpFactory;
-    let coreFactory;
     let crpPool;
-    let CRPPOOL;
     let usdc;
     let dai;
     let USDC;
@@ -39,8 +35,8 @@ contract('elasticSupplyPool', async (accounts) => {
 
     describe('resyncWeight', () => {
         before(async () => {
-            coreFactory = await BFactory.deployed();
-            crpFactory = await ESPFactory.deployed();
+            const coreFactory = await Factory.deployed();
+            const crpFactory = await ESPFactory.deployed();
 
             usdc = await TToken.new('USD Stablecoin', 'USDC', 18);
             dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
@@ -61,10 +57,10 @@ contract('elasticSupplyPool', async (accounts) => {
                 constituentTokens: tokenAddresses,
                 tokenBalances: startBalances,
                 tokenWeights: startWeights,
-                swapFee: swapFee,
-                }
+                swapFee,
+            };
 
-            CRPPOOL = await crpFactory.newEsp.call(
+            const CRPPOOL = await crpFactory.newEsp.call(
                 coreFactory.address,
                 poolParams,
                 permissions,
@@ -86,7 +82,7 @@ contract('elasticSupplyPool', async (accounts) => {
 
         it('resync weights should gulp and not move price', async () => {
             const corePoolAddr = await crpPool.corePool();
-            const corePool = await BPool.at(corePoolAddr);
+            const corePool = await Pool.at(corePoolAddr);
 
             // both pools are out of balance
             // calling gulp after transfer will move the price

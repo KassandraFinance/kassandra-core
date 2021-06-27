@@ -1,17 +1,16 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
-const NoZeroXferToken = artifacts.require('NoZeroXferToken');
-const NoPriorApprovalToken = artifacts.require('NoPriorApprovalToken');
-const FalseReturningToken = artifacts.require('FalseReturningToken');
-const TaxingToken = artifacts.require('TaxingToken');
 const truffleAssert = require('truffle-assertions');
 const { assert } = require('chai');
 const { time } = require('@openzeppelin/test-helpers');
 
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const FalseReturningToken = artifacts.require('FalseReturningToken');
+const TaxingToken = artifacts.require('TaxingToken');
+const TToken = artifacts.require('TToken');
+const NoPriorApprovalToken = artifacts.require('NoPriorApprovalToken');
+const NoZeroXferToken = artifacts.require('NoZeroXferToken');
 
 contract('testERC20 violations', async (accounts) => {
     const admin = accounts[0];
@@ -29,7 +28,6 @@ contract('testERC20 violations', async (accounts) => {
     let XYZ;
     let KNC;
     let BRET;
-    let TAX;
     let LEND;
     let weth;
     let dai;
@@ -55,9 +53,8 @@ contract('testERC20 violations', async (accounts) => {
         canChangeCap: false,
     };
 
-    describe
     before(async () => {
-        coreFactory = await BFactory.deployed();
+        coreFactory = await Factory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -73,7 +70,6 @@ contract('testERC20 violations', async (accounts) => {
         KNC = knc.address;
         LEND = lend.address;
         BRET = bret.address;
-        TAX = tax.address;
 
         // admin balances
         await weth.mint(admin, toWei('100'));
@@ -92,8 +88,8 @@ contract('testERC20 violations', async (accounts) => {
             constituentTokens: tokenAddresses,
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
@@ -140,14 +136,14 @@ contract('testERC20 violations', async (accounts) => {
     it('should not be able to add a non-conforming token (0 transfer)', async () => {
         await truffleAssert.reverts(
             crpPool.commitAddToken(LEND, toWei('10000'), toWei('1.5')),
-            'ERR_NO_ZERO_XFER'
+            'ERR_NO_ZERO_XFER',
         );
     });
 
     it('should not be able to add a non-conforming token (returns false)', async () => {
         await truffleAssert.reverts(
             crpPool.commitAddToken(BRET, toWei('10'), toWei('1.5')),
-            'ERR_NONCONFORMING_TOKEN'
+            'ERR_NONCONFORMING_TOKEN',
         );
     });
 
@@ -155,14 +151,14 @@ contract('testERC20 violations', async (accounts) => {
         // Add a token that requires 0 prior approval
         await crpPool.commitAddToken(KNC, toWei('100'), toWei('1.5'));
 
-        //let block = await web3.eth.getBlock('latest');
+        // let block = await web3.eth.getBlock('latest');
         let advanceBlocks = 15;
         while (--advanceBlocks) await time.advanceBlock();
 
         const kncToken = await NoPriorApprovalToken.at(KNC);
 
         const currentAllowance = await kncToken.allowance(admin, CRPPOOL_ADDRESS);
-        //console.log(`Current allowance = ${currentAllowance}`);
+        // console.log(`Current allowance = ${currentAllowance}`);
         assert.notEqual(currentAllowance, 0);
 
         // This is going to call safeApprove (and it's already approved to MAX)
@@ -180,8 +176,8 @@ contract('testERC20 violations', async (accounts) => {
             constituentTokens: [XYZ, LEND, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -189,7 +185,7 @@ contract('testERC20 violations', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_NO_ZERO_XFER'
+            'ERR_NO_ZERO_XFER',
         );
     });
 
@@ -204,8 +200,8 @@ contract('testERC20 violations', async (accounts) => {
             constituentTokens: [XYZ, BRET, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -213,7 +209,7 @@ contract('testERC20 violations', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_NONCONFORMING_TOKEN'
+            'ERR_NONCONFORMING_TOKEN',
         );
     });
 });

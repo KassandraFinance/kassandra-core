@@ -1,23 +1,21 @@
 /* eslint-env es6 */
-
-const BFactory = artifacts.require('Factory');
-const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
-const CRPFactory = artifacts.require('CRPFactory');
-const TToken = artifacts.require('TToken');
 const truffleAssert = require('truffle-assertions');
 
+const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
+const CRPFactory = artifacts.require('CRPFactory');
+const Factory = artifacts.require('Factory');
+const TToken = artifacts.require('TToken');
 
 contract('CRPFactory', async (accounts) => {
     const admin = accounts[0];
     const { toWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
-    const swapFee = 10**15;
+    const swapFee = 10 ** 15;
 
     let crpFactory;
     let coreFactory;
     let crpPool;
-    let CRPPOOL;
     let CRPPOOL_ADDRESS;
     let WETH;
     let DAI;
@@ -28,7 +26,7 @@ contract('CRPFactory', async (accounts) => {
     const startWeights = [toWei('12'), toWei('1.5'), toWei('1.5')];
     const startBalances = [toWei('80000'), toWei('40'), toWei('10000')];
     const SYMBOL = 'KSP';
-    const LONG_SYMBOL = '012345678901234567890123456789012'
+    const LONG_SYMBOL = '012345678901234567890123456789012';
     const NAME = 'Kassandra Pool Token';
 
     const permissions = {
@@ -57,7 +55,7 @@ contract('CRPFactory', async (accounts) => {
     };
 
     before(async () => {
-        coreFactory = await BFactory.deployed();
+        coreFactory = await Factory.deployed();
         crpFactory = await CRPFactory.deployed();
         xyz = await TToken.new('XYZ', 'XYZ', 18);
         weth = await TToken.new('Wrapped Ether', 'WETH', 18);
@@ -78,10 +76,10 @@ contract('CRPFactory', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -125,8 +123,8 @@ contract('CRPFactory', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: startBalances,
             tokenWeights: badStartWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -134,7 +132,7 @@ contract('CRPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_START_WEIGHTS_MISMATCH'
+            'ERR_START_WEIGHTS_MISMATCH',
         );
     });
 
@@ -147,8 +145,8 @@ contract('CRPFactory', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: badStartBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -156,7 +154,7 @@ contract('CRPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_START_BALANCES_MISMATCH'
+            'ERR_START_BALANCES_MISMATCH',
         );
     });
 
@@ -167,8 +165,8 @@ contract('CRPFactory', async (accounts) => {
             constituentTokens: [XYZ, WETH, DAI],
             tokenBalances: startBalances,
             tokenWeights: startWeights,
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         crpFactory.newCrp(
             coreFactory.address,
@@ -185,7 +183,7 @@ contract('CRPFactory', async (accounts) => {
             tokenBalances: startBalances,
             tokenWeights: startWeights,
             swapFee: 0,
-        }
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -193,7 +191,7 @@ contract('CRPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_INVALID_SWAP_FEE'
+            'ERR_INVALID_SWAP_FEE',
         );
     });
 
@@ -209,7 +207,7 @@ contract('CRPFactory', async (accounts) => {
             tokenBalances: startBalances,
             tokenWeights: startWeights,
             swapFee: invalidSwapFee,
-        }
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -217,7 +215,7 @@ contract('CRPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_INVALID_SWAP_FEE'
+            'ERR_INVALID_SWAP_FEE',
         );
     });
 
@@ -230,8 +228,8 @@ contract('CRPFactory', async (accounts) => {
             constituentTokens: [DAI],
             tokenBalances: [toWei('1000')],
             tokenWeights: [toWei('20')],
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -239,7 +237,7 @@ contract('CRPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_TOO_FEW_TOKENS'
+            'ERR_TOO_FEW_TOKENS',
         );
     });
 
@@ -264,8 +262,8 @@ contract('CRPFactory', async (accounts) => {
                 toWei('20'), toWei('20'), toWei('20'),
                 toWei('20'), toWei('20'), toWei('20'),
             ],
-            swapFee: swapFee,
-        }
+            swapFee,
+        };
 
         await truffleAssert.reverts(
             crpFactory.newCrp(
@@ -273,7 +271,7 @@ contract('CRPFactory', async (accounts) => {
                 poolParams,
                 permissions,
             ),
-            'ERR_TOO_MANY_TOKENS'
+            'ERR_TOO_MANY_TOKENS',
         );
     });
 });

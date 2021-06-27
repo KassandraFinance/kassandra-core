@@ -6,23 +6,24 @@ const {
     calcRelativeDiff,
 } = require('../../lib/calc_comparisons');
 
-const Pool = artifacts.require('Pool');
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
-const errorDelta = 10 ** -8;
-const swapFee = 10 ** -3; // 0.001;
-const exitFee = 0;
+
 const verbose = process.env.VERBOSE;
 
 contract('Pool', async (accounts) => {
-    const { toWei } = web3.utils;
-    const { fromWei } = web3.utils;
+    const { toWei, fromWei } = web3.utils;
     const admin = accounts[0];
+
+    const errorDelta = 10 ** -8;
+    const swapFee = 10 ** -3; // 0.001;
+    let exitFee;
 
     const MAX = web3.utils.toTwosComplement(-1);
 
     let WETH; let DAI; // addresses
-    let weth; let dai; // TTokens
     let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
@@ -88,14 +89,18 @@ contract('Pool', async (accounts) => {
     }
 
     before(async () => {
+        const constants = await KassandraConstants.deployed();
+        exitFee = await constants.exitFee();
+        exitFee = Decimal(fromWei(exitFee));
+
         factory = await Factory.deployed();
 
         POOL = await factory.newPool.call(); // this works fine in clean room
         await factory.newPool();
         pool = await Pool.at(POOL);
 
-        weth = await TToken.new('Wrapped Ether', 'WETH', 18);
-        dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
+        const weth = await TToken.new('Wrapped Ether', 'WETH', 18);
+        const dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
         WETH = weth.address;
         DAI = dai.address;
@@ -261,7 +266,7 @@ contract('Pool', async (accounts) => {
             const pAi = 1 / (1 - exitFee);
             const pAiAfterExitFee = pAi * (1 - exitFee);
 
-            await pool.exitPool(toWei(String(pAi)), [toWei('0'), toWei('0')]);
+            await pool.exitPool(toWei(pAi.toFixed(18)), [toWei('0'), toWei('0')]);
 
             // Update balance states
             previousPoolBalance = currentPoolBalance;
