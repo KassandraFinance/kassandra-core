@@ -56,8 +56,8 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
     // Function declarations
 
     /**
-     * @notice Construct a new Configurable Rights Pool (wrapper around BPool)
-     * @param factoryAddress - the BPoolFactory used to create the underlying pool
+     * @notice Construct a new Configurable Rights Pool (wrapper around core Pool)
+     * @param factoryAddress - the core Pool Factory used to create the underlying pool
      * @param poolParams - CRP pool parameters
      * @param rightsParams - Set of permissions we are assigning to this smart pool
      */
@@ -75,17 +75,17 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
 
     /**
      * @notice Update the weight of a token without changing the price (or transferring tokens)
-     * @param token The address of the token in the underlying BPool to be weight adjusted.
+     * @param token The address of the token in the underlying core Pool to be weight adjusted.
      * @dev Checks if the token's current pool balance has deviated from cached balance,
      *      if so it adjusts the token's weights proportional to the deviation.
-     *      The underlying BPool enforces bounds on MIN_WEIGHTS=1e18, MAX_WEIGHT=50e18 and TOTAL_WEIGHT=50e18.
-     *      NOTE: The BPool.rebind function CAN REVERT if the updated weights go beyond the enforced bounds.
+     *      The underlying core Pool enforces bounds on MIN_WEIGHTS=1e18, MAX_WEIGHT=50e18 and TOTAL_WEIGHT=50e18.
+     *      NOTE: The Pool.rebind function CAN REVERT if the updated weights go beyond the enforced bounds.
      */
     function resyncWeight(address token)
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         virtual
     {
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
@@ -126,7 +126,6 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
             if(tokens[i] == token) {
                 // adjust weight
                 IPool(address(corePool)).rebind(token, tokenBalanceAfter, tokenWeightAfter);
-
             }
             else {
                 uint otherWeightBefore = IPool(address(corePool)).getDenormalizedWeight(tokens[i]);

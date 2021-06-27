@@ -19,7 +19,7 @@ import "./ConfigurableRightsPool.sol";
  *      3: canAddRemoveTokens - can bind/unbind tokens (allowed by default in base pool)
  *      4: canWhitelistLPs - if set, only whitelisted addresses can join pools
  *                           (enables private pools with more than one LP)
- *      5: canChangeCap - can change the BSP cap (max # of pool tokens)
+ *      5: canChangeCap - can change the KSP cap (max # of pool tokens)
  */
 contract CRPFactory is Ownable {
     // State variables
@@ -40,7 +40,7 @@ contract CRPFactory is Ownable {
     /**
      * @notice Create a new CRP
      * @dev emits a LogNewCRP event
-     * @param factoryAddress - the BFactory instance used to create the underlying pool
+     * @param factoryAddress - the Factory instance used to create the underlying pool
      * @param poolParams - struct containing the names, tokens, weights, balances, and swap fee
      * @param rights - struct of permissions, configuring this CRP instance (see above for definitions)
      */
@@ -68,7 +68,7 @@ contract CRPFactory is Ownable {
 
         _isCrp[address(crp)] = true;
         // The caller is the controller of the CRP
-        // The CRP will be the controller of the underlying Core BPool
+        // The CRP will be the controller of the underlying Core Pool
         crp.setController(msg.sender);
 
         return crp;

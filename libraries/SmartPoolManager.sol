@@ -42,7 +42,7 @@ library SmartPoolManager {
      * @notice Update the weight of an existing token
      * @dev Refactored to library to make CRPFactory deployable
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param token - token to be reweighted
      * @param newWeight - new weight of the token
     */
@@ -138,7 +138,7 @@ library SmartPoolManager {
 
     /**
      * @notice External function called to make the contract update weights according to plan
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param gradualUpdate - gradual update parameters from the CRP
     */
     function pokeWeights(
@@ -224,7 +224,7 @@ library SmartPoolManager {
     /**
      * @notice Schedule (commit) a token to be added; must call applyAddToken after a fixed
      *         number of blocks to actually add the token
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param token - the token to be added
      * @param balance - how much to be added
      * @param denormalizedWeight - the desired token weight
@@ -259,7 +259,7 @@ library SmartPoolManager {
     /**
      * @notice Add the token previously committed (in commitAddToken) to the pool
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param addTokenTimeLockInBlocks -  Wait time between committing and applying a new token
      * @param newToken - NewTokenParams struct used to hold the token data (in CRP storage)
      */
@@ -305,12 +305,12 @@ library SmartPoolManager {
     /**
      * @notice Remove a token from the pool
      * @dev Logic in the CRP controls when ths can be called. There are two related permissions:
-     *      AddRemoveTokens - which allows removing down to the underlying BPool limit of two
+     *      AddRemoveTokens - which allows removing down to the underlying Pool limit of two
      *      RemoveAllTokens - which allows completely draining the pool by removing all tokens
      *                        This can result in a non-viable pool with 0 or 1 tokens (by design),
      *                        meaning all swapping or binding operations would fail in this state
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param token - token to remove
      */
     function removeToken(
@@ -368,7 +368,7 @@ library SmartPoolManager {
     /**
      * @notice Update weights in a predetermined way, between startBlock and endBlock,
      *         through external cals to pokeWeights
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param newWeights - final weights we want to get to
      * @param startBlock - when weights should start to change
      * @param endBlock - when weights will be at their final values
@@ -430,7 +430,7 @@ library SmartPoolManager {
     /**
      * @notice Join a pool
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param poolAmountOut - number of pool tokens to receive
      * @param maxAmountsIn - Max amount of asset tokens to spend
      * @return actualAmountsIn - calculated values of the tokens to pull in
@@ -477,7 +477,7 @@ library SmartPoolManager {
     /**
      * @notice Exit a pool - redeem pool tokens for underlying assets
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountsOut - minimum amount of asset tokens to receive
      * @return exitFee - calculated exit fee
@@ -534,7 +534,7 @@ library SmartPoolManager {
      * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
      *         System calculates the pool token amount
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param tokenIn - which token we're transferring in
      * @param tokenAmountIn - amount of deposit
      * @param minPoolAmountOut - minimum of pool tokens to receive
@@ -573,7 +573,7 @@ library SmartPoolManager {
      * @notice Join by swapping an external token in (must be present in the pool)
      *         To receive an exact amount of pool tokens out. System calculates the deposit amount
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param tokenIn - which token we're transferring in (system calculates amount required)
      * @param poolAmountOut - amount of pool tokens to be received
      * @param maxAmountIn - Maximum asset tokens that can be pulled to pay for the pool tokens
@@ -614,7 +614,7 @@ library SmartPoolManager {
      * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
      *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param tokenOut - which token the caller wants to receive
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountOut - minimum asset tokens to receive
@@ -656,7 +656,7 @@ library SmartPoolManager {
      * @notice Exit a pool - redeem pool tokens for a specific amount of underlying assets
      *         Asset must be present in the pool
      * @param self - ConfigurableRightsPool instance calling the library
-     * @param corePool - Core BPool the CRP is wrapping
+     * @param corePool - Core Pool the CRP is wrapping
      * @param tokenOut - which token the caller wants to receive
      * @param tokenAmountOut - amount of underlying asset tokens to receive
      * @param maxPoolAmountIn - maximum pool tokens to be redeemed

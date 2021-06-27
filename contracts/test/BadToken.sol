@@ -110,7 +110,7 @@ contract BadToken {
     }
 
     function transferFrom(address src, address dst, uint amt) external virtual returns (bool) {
-        require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
+        require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_TOKEN_BAD_CALLER");
         _move(src, dst, amt);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
             _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt;
@@ -180,7 +180,7 @@ contract FalseReturningToken is BadToken {
     }
 
     function transferFrom(address src, address dst, uint amt) external override returns (bool) {
-        require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
+        require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_TOKEN_BAD_CALLER");
         _move(src, dst, amt);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
             _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt;
@@ -207,7 +207,7 @@ contract TaxingToken is BadToken {
     }
 
     function transferFrom(address src, address dst, uint amt) external override returns (bool) {
-        require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_BTOKEN_BAD_CALLER");
+        require(msg.sender == src || amt <= _allowance[src][msg.sender], "ERR_TOKEN_BAD_CALLER");
         _move(src, dst, amt - 1);
         if (msg.sender != src && _allowance[src][msg.sender] != type(uint256).max) {
             _allowance[src][msg.sender] = _allowance[src][msg.sender] - amt - 1;

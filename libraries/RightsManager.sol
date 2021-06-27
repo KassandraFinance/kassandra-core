@@ -10,7 +10,7 @@ pragma solidity ^0.8.0;
  *      canChangeWeights - can bind new token weights (allowed by default in base pool)
  *      canAddRemoveTokens - can bind/unbind tokens (allowed by default in base pool)
  *      canWhitelistLPs - can limit liquidity providers to a given set of addresses
- *      canChangeCap - can change the BSP cap (max # of pool tokens)
+ *      canChangeCap - can change the KSP cap (max # of pool tokens)
  */
 library RightsManager {
 

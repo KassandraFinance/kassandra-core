@@ -28,7 +28,7 @@ import "../libraries/SafeApprove.sol";
  *      2: canChangeWeights - can bind new token weights (allowed by default in base pool)
  *      3: canAddRemoveTokens - can bind/unbind tokens (allowed by default in base pool)
  *      4: canWhitelistLPs - can restrict LPs to a whitelist
- *      5: canChangeCap - can change the BSP cap (max # of pool tokens)
+ *      5: canChangeCap - can change the KSP cap (max # of pool tokens)
  *
  * Note that functions called on corePool and coreFactory may look like internal calls,
  *   but since they are contracts accessed through an interface, they are really external.
@@ -75,7 +75,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     // Store the list of tokens in the pool, and balances
     // NOTE that the token list is *only* used to store the pool tokens between
-    //   construction and createPool - thereafter, use the underlying BPool's list
+    //   construction and createPool - thereafter, use the underlying core Pool's list
     //   (avoids synchronization issues)
     address[] private _initialTokens;
     uint[] private _initialBalances;
@@ -143,7 +143,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     }
 
     // Mark functions that require delegation to the underlying Pool
-    modifier needsBPool() {
+    modifier needsCorePool() {
         require(address(corePool) != address(0), "ERR_NOT_CREATED");
         _;
     }
@@ -165,12 +165,12 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     // Function declarations
 
     /**
-     * @notice Construct a new Configurable Rights Pool (wrapper around BPool)
+     * @notice Construct a new Configurable Rights Pool (wrapper around core Pool)
      * @dev _initialTokens and _swapFee are only used for temporary storage between construction
      *      and create pool, and should not be used thereafter! _initialTokens is destroyed in
      *      createPool to prevent this, and _swapFee is kept in sync (defensively), but
      *      should never be used except in this constructor and createPool()
-     * @param factoryAddress - the BPoolFactory used to create the underlying pool
+     * @param factoryAddress - the core Pool Factory used to create the underlying pool
      * @param poolParams - struct containing pool parameters
      * @param rightsStruct - Set of permissions we are assigning to this smart pool
      */
@@ -190,7 +190,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Arrays must be parallel
         require(poolParams.tokenBalances.length == poolParams.constituentTokens.length, "ERR_START_BALANCES_MISMATCH");
         require(poolParams.tokenWeights.length == poolParams.constituentTokens.length, "ERR_START_WEIGHTS_MISMATCH");
-        // Cannot have too many or too few - technically redundant, since BPool.bind() would fail later
+        // Cannot have too many or too few - technically redundant, since Pool.bind() would fail later
         // But if we don't check now, we could have a useless contract with no way to create a pool
 
         require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
@@ -230,7 +230,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         onlyOwner
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canChangeSwapFee, "ERR_NOT_CONFIGURABLE_SWAP_FEE");
@@ -252,7 +252,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         onlyOwner
     {
         require(rights.canChangeCap, "ERR_CANNOT_CHANGE_CAP");
@@ -278,7 +278,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         onlyOwner
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canPauseSwapping, "ERR_NOT_PAUSABLE_SWAP");
@@ -350,7 +350,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     /**
      * @notice Update the weight of an existing token
-     * @dev Notice Balance is not an input (like with rebind on BPool) since we will require prices not to change
+     * @dev Notice Balance is not an input (like with rebind on core Pool) since we will require prices not to change
      *      This is achieved by forcing balances to change proportionally to weights, so that prices don't change
      *      If prices could be changed, this would allow the controller to drain the pool by arbing price changes
      * @param token - token to be reweighted
@@ -361,7 +361,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         canUpdateWeigths
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -383,7 +383,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      * @param newWeights - final weights we want to get to. Note that the ORDER (and number) of
      *                     tokens can change if you have added or removed tokens from the pool
      *                     It ensures the counts are correct, but can't help you with the order!
-     *                     You can get the underlying BPool (it's public), and call
+     *                     You can get the underlying core Pool (it's public), and call
      *                     getCurrentTokens() to see the current ordering, if you're not sure
      * @param startBlock - when weights should start to change
      * @param endBlock - when weights will be at their final values
@@ -397,7 +397,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         canUpdateWeigths
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -425,7 +425,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -456,7 +456,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         onlyOwner
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canAddRemoveTokens, "ERR_CANNOT_ADD_REMOVE_TOKENS");
@@ -486,7 +486,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         onlyOwner
-        needsBPool
+        needsCorePool
         virtual
     {
         require(rights.canAddRemoveTokens, "ERR_CANNOT_ADD_REMOVE_TOKENS");
@@ -510,11 +510,11 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         lock
         onlyOwner
-        needsBPool
+        needsCorePool
     {
         // It's possible to have remove rights without having add rights
         require(rights.canAddRemoveTokens,"ERR_CANNOT_ADD_REMOVE_TOKENS");
-        // After createPool, token list is maintained in the underlying BPool
+        // After createPool, token list is maintained in the underlying core Pool
         require(!newToken.isCommitted, "ERR_REMOVE_WITH_ADD_PENDING");
         // Prevent removing during an update (or token lists can get out of sync)
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
@@ -534,7 +534,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         lockUnderlyingPool
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
@@ -553,7 +553,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
             maxAmountsIn
         );
 
-        // After createPool, token list is maintained in the underlying BPool
+        // After createPool, token list is maintained in the underlying core Pool
         address[] memory poolTokens = corePool.getCurrentTokens();
 
         for (uint i = 0; i < poolTokens.length; i++) {
@@ -580,7 +580,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         lockUnderlyingPool
     {
         // Delegate to library to save space
@@ -602,7 +602,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _pushPoolShare(address(coreFactory), exitFee);
         _burnPoolShare(pAiAfterExitFee);
 
-        // After createPool, token list is maintained in the underlying BPool
+        // After createPool, token list is maintained in the underlying core Pool
         address[] memory poolTokens = corePool.getCurrentTokens();
 
         for (uint i = 0; i < poolTokens.length; i++) {
@@ -632,7 +632,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         returns (uint poolAmountOut)
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
@@ -673,7 +673,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         returns (uint tokenAmountIn)
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
@@ -714,7 +714,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         returns (uint tokenAmountOut)
     {
         // Delegate to library to save space
@@ -758,7 +758,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         logs
         lock
-        needsBPool
+        needsCorePool
         returns (uint poolAmountIn)
     {
         // Delegate to library to save space
@@ -828,7 +828,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         view
         viewlock
-        needsBPool
+        needsCorePool
         virtual
         returns (bool)
     {
@@ -879,7 +879,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         view
         viewlock
-        needsBPool
+        needsCorePool
         returns (uint)
     {
         return corePool.getDenormalizedWeight(token);
@@ -957,13 +957,13 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         }
 
         // There is technically reentrancy here, since we're making external calls and
-        // then transferring tokens. However, the external calls are all to the underlying BPool
+        // then transferring tokens. However, the external calls are all to the underlying core Pool
 
         // To the extent possible, modify state variables before calling functions
         _mintPoolShare(initialSupply);
         _pushPoolShare(msg.sender, initialSupply);
 
-        // Deploy new BPool (coreFactory and corePool are interfaces; all calls are external)
+        // Deploy new core Pool (coreFactory and corePool are interfaces; all calls are external)
         corePool = coreFactory.newPool();
 
         for (uint i = 0; i < _initialTokens.length; i++) {
@@ -997,10 +997,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     /* solhint-enable private-vars-leading-underscore */
 
-    // Rebind BPool and pull tokens from address
+    // Rebind core Pool and pull tokens from address
     // corePool is a contract interface; function calls on it are external
-    function _pullUnderlying(address erc20, address from, uint amount) internal needsBPool {
-        // Gets current Balance of token i, Bi, and weight of token i, Wi, from BPool.
+    function _pullUnderlying(address erc20, address from, uint amount) internal needsCorePool {
+        // Gets current Balance of token i, Bi, and weight of token i, Wi, from core Pool.
         uint tokenBalance = corePool.getBalance(erc20);
         uint tokenWeight = corePool.getDenormalizedWeight(erc20);
 
@@ -1009,10 +1009,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         corePool.rebind(erc20, tokenBalance + amount, tokenWeight);
     }
 
-    // Rebind BPool and push tokens to address
+    // Rebind core Pool and push tokens to address
     // corePool is a contract interface; function calls on it are external
-    function _pushUnderlying(address erc20, address to, uint amount) internal needsBPool {
-        // Gets current Balance of token i, Bi, and weight of token i, Wi, from BPool.
+    function _pushUnderlying(address erc20, address to, uint amount) internal needsCorePool {
+        // Gets current Balance of token i, Bi, and weight of token i, Wi, from core Pool.
         uint tokenBalance = corePool.getBalance(erc20);
         uint tokenWeight = corePool.getDenormalizedWeight(erc20);
         corePool.rebind(erc20, tokenBalance - amount, tokenWeight);

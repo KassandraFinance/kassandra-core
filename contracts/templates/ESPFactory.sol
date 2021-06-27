@@ -39,7 +39,7 @@ contract ESPFactory is Ownable {
     /**
      * @notice Create a new ESP
      * @dev emits a LogNewESP event
-     * @param factoryAddress - the BFactory instance used to create the underlying pool
+     * @param factoryAddress - the core Factory instance used to create the underlying pool
      * @param poolParams - CRP pool parameters
      * @param rights - struct of permissions, configuring this CRP instance (see above for definitions)
      */
