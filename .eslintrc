@@ -5,7 +5,10 @@
     "rules": {
         "indent": ["error", 4],
         "max-len": ["error", { "code": 120 }],
-        "no-console": "off"
+        "no-console": "off",
+        "no-continue": "off",
+        "no-plusplus": "off",
+        "no-await-in-loop": "off"
     },
     "globals" : {
         "artifacts": false,
