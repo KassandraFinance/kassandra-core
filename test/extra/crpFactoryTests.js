@@ -4,6 +4,7 @@ const truffleAssert = require('truffle-assertions');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
 const TToken = artifacts.require('TToken');
 
 contract('CRPFactory', async (accounts) => {
@@ -242,26 +243,18 @@ contract('CRPFactory', async (accounts) => {
     });
 
     it('should not be able to create with more than the max tokens', async () => {
+        const consts = await KassandraConstants.deployed();
+        let maxAssets = await consts.MAX_ASSET_LIMIT();
+        maxAssets = Number(toWei(maxAssets, 'wei')) + 1;
+
         // Max is 10**18 / 10
         // Have to pass it as a string for some reason...
         const poolParams = {
             poolTokenSymbol: SYMBOL,
             poolTokenName: NAME,
-            constituentTokens: [
-                DAI, DAI, DAI,
-                DAI, DAI, DAI,
-                DAI, DAI, DAI,
-            ],
-            tokenBalances: [
-                toWei('1000'), toWei('1000'), toWei('1000'),
-                toWei('1000'), toWei('1000'), toWei('1000'),
-                toWei('1000'), toWei('1000'), toWei('1000'),
-            ],
-            tokenWeights: [
-                toWei('20'), toWei('20'), toWei('20'),
-                toWei('20'), toWei('20'), toWei('20'),
-                toWei('20'), toWei('20'), toWei('20'),
-            ],
+            constituentTokens: Array(maxAssets).fill(DAI),
+            tokenBalances: Array(maxAssets).fill(toWei('1000')),
+            tokenWeights: Array(maxAssets).fill(toWei('20')),
             swapFee,
         };
 

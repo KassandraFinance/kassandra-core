@@ -2,6 +2,7 @@ const truffleAssert = require('truffle-assertions');
 const { calcOutGivenIn, calcInGivenOut, calcRelativeDiff } = require('../../lib/calc_comparisons');
 
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
@@ -11,7 +12,7 @@ contract('Pool', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
     const user2 = accounts[2];
-    const { toWei, fromWei } = web3.utils;
+    const { toBN, toWei, fromWei } = web3.utils;
 
     const errorDelta = 10 ** -8;
     const MAX = web3.utils.toTwosComplement(-1);
@@ -21,8 +22,19 @@ contract('Pool', async (accounts) => {
     let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
+    let minBalance;
+    let minWeight;
+    let maxWeight;
+    let maxTotalWeight;
+    const wethBalance = 50;
 
     before(async () => {
+        const constants = await KassandraConstants.deployed();
+        minBalance = await constants.MIN_CORE_BALANCE();
+        minWeight = await constants.MIN_WEIGHT();
+        maxWeight = await constants.MAX_WEIGHT();
+        maxTotalWeight = await constants.MAX_TOTAL_WEIGHT();
+
         factory = await Factory.deployed();
 
         POOL = await factory.newPool.call();
@@ -48,7 +60,7 @@ contract('Pool', async (accounts) => {
         */
 
         // Admin balances
-        await weth.mint(admin, toWei('50'));
+        await weth.mint(admin, toWei(wethBalance.toString()));
         await mkr.mint(admin, toWei('20'));
         await dai.mint(admin, toWei('10000'));
         await xxx.mint(admin, toWei('10'));
@@ -93,21 +105,21 @@ contract('Pool', async (accounts) => {
             await xxx.approve(POOL, MAX);
         });
 
-        it('Fails binding weights and balances outside MIX MAX', async () => {
+        it('Fails binding weights and balances outside MIN MAX', async () => {
             await truffleAssert.reverts(
-                pool.bind(WETH, toWei('51'), toWei('1')),
+                pool.bind(WETH, toWei((wethBalance + 1).toString()), toWei('1')),
                 'ERR_INSUFFICIENT_BAL',
             );
             await truffleAssert.reverts(
-                pool.bind(MKR, toWei('0.0000000000001'), toWei('1')),
+                pool.bind(MKR, toWei(minBalance.sub(toBN(1)), 'wei'), toWei('1')),
                 'ERR_MIN_BALANCE',
             );
             await truffleAssert.reverts(
-                pool.bind(DAI, toWei('1000'), toWei('0.99')),
+                pool.bind(DAI, toWei('1000'), toWei(minWeight.sub(toBN(1)), 'wei')),
                 'ERR_MIN_WEIGHT',
             );
             await truffleAssert.reverts(
-                pool.bind(WETH, toWei('5'), toWei('50.01')),
+                pool.bind(WETH, toWei('5'), toWei(maxWeight.add(toBN(1)), 'wei')),
                 'ERR_MAX_WEIGHT',
             );
         });
@@ -154,7 +166,8 @@ contract('Pool', async (accounts) => {
 
         it('Fails binding above MAX TOTAL WEIGHT', async () => {
             await truffleAssert.reverts(
-                pool.bind(XXX, toWei('1'), toWei('40')),
+                // 15 comes from the current 3 tokens in the pool
+                pool.bind(XXX, toWei('1'), toWei(maxTotalWeight.add(toBN(1)).sub(toBN(15)), 'wei')),
                 'ERR_MAX_TOTAL_WEIGHT',
             );
         });

@@ -24,8 +24,8 @@ contract('Factory', async (accounts) => {
 
         before(async () => {
             const constants = await KassandraConstants.deployed();
-            one = await constants.one();
-            exitFee = await constants.exitFee();
+            one = await constants.ONE();
+            exitFee = await constants.EXIT_FEE();
 
             factory = await Factory.deployed();
             const weth = await TToken.new('Wrapped Ether', 'WETH', 18);

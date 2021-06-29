@@ -8,7 +8,7 @@ const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 
-contract('BSP Cap', async (accounts) => {
+contract('Token Cap', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
     const user2 = accounts[2];

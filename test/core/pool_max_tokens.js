@@ -3,191 +3,204 @@ const truffleAssert = require('truffle-assertions');
 const Factory = artifacts.require('Factory');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
 
 contract('Pool', async (accounts) => {
     const admin = accounts[0];
 
     const { toWei, fromWei } = web3.utils;
 
-    const MAX = web3.utils.toTwosComplement(-1);
-
-    let AAA; let BBB; let CCC; let DDD; let EEE; let FFF; let GGG; let HHH; let ZZZ; // addresses
-    let aaa; let bbb; let ccc; let ddd; let eee; let fff; let ggg; let hhh; let zzz; // TTokens
-    let factory; // Pool factory
-    let FACTORY; // factory address
+    let tokens;
+    let extraToken;
+    let factory; // factory address
     let pool; // first pool w/ defaults
     let POOL; //   pool address
 
     before(async () => {
-        factory = await Factory.deployed();
-        FACTORY = factory.address;
+        const randomTokenName = () => {
+            let name = '';
+            for (let i = 0; i < 3; i += 1) {
+                name += String.fromCharCode(65 + Math.floor(Math.random * 25));
+            }
+            return name;
+        };
+
+        factory = await Factory.deployed(); // Pool factory
 
         POOL = await factory.newPool.call();
         await factory.newPool();
         pool = await Pool.at(POOL);
 
-        aaa = await TToken.new('AAA', 'AAA', 18);
-        bbb = await TToken.new('BBB', 'BBB', 18);
-        ccc = await TToken.new('CCC', 'CCC', 18);
-        ddd = await TToken.new('DDD', 'EEE', 18);
-        eee = await TToken.new('EEE', 'EEE', 18);
-        fff = await TToken.new('FFF', 'FFF', 18);
-        ggg = await TToken.new('GGG', 'GGG', 18);
-        hhh = await TToken.new('HHH', 'HHH', 18);
-        zzz = await TToken.new('ZZZ', 'ZZZ', 18);
+        const consts = await KassandraConstants.deployed();
+        const maxAssets = await consts.MAX_ASSET_LIMIT();
+        const maxAssetsNumber = Number(fromWei(maxAssets, 'wei')) + 1;
 
-        AAA = aaa.address;
-        BBB = bbb.address;
-        CCC = ccc.address;
-        DDD = ddd.address;
-        EEE = eee.address;
-        FFF = fff.address;
-        GGG = ggg.address;
-        HHH = hhh.address;
-        ZZZ = zzz.address;
+        tokens = await Promise.all(
+            Array(maxAssetsNumber).fill().map((a) => {
+                const symbol = randomTokenName(a);
+                return TToken.new(symbol, symbol, 18);
+            }),
+        );
+
+        extraToken = tokens.pop();
 
         // Admin balances
-        await aaa.mint(admin, toWei('100'));
-        await bbb.mint(admin, toWei('100'));
-        await ccc.mint(admin, toWei('100'));
-        await ddd.mint(admin, toWei('100'));
-        await eee.mint(admin, toWei('100'));
-        await fff.mint(admin, toWei('100'));
-        await ggg.mint(admin, toWei('100'));
-        await hhh.mint(admin, toWei('100'));
-        await zzz.mint(admin, toWei('100'));
+        await Promise.all(tokens.map(
+            (token) => token.mint(admin, toWei('100')),
+        ));
     });
 
     describe('Binding Tokens', () => {
         it('Admin approves tokens', async () => {
-            await aaa.approve(POOL, MAX);
-            await bbb.approve(POOL, MAX);
-            await ccc.approve(POOL, MAX);
-            await ddd.approve(POOL, MAX);
-            await eee.approve(POOL, MAX);
-            await fff.approve(POOL, MAX);
-            await ggg.approve(POOL, MAX);
-            await hhh.approve(POOL, MAX);
-            await zzz.approve(POOL, MAX);
+            const MAX = web3.utils.toTwosComplement(-1);
+            await extraToken.approve(POOL, MAX);
+            await Promise.all(tokens.map(
+                (token) => token.approve(POOL, MAX),
+            ));
         });
 
         it('Admin binds tokens', async () => {
-            await pool.bind(AAA, toWei('50'), toWei('1'));
-            await pool.bind(BBB, toWei('50'), toWei('3'));
-            await pool.bind(CCC, toWei('50'), toWei('2.5'));
-            await pool.bind(DDD, toWei('50'), toWei('7'));
-            await pool.bind(EEE, toWei('50'), toWei('10'));
-            await pool.bind(FFF, toWei('50'), toWei('1.99'));
-            await pool.bind(GGG, toWei('40'), toWei('6'));
-            await pool.bind(HHH, toWei('70'), toWei('2.3'));
+            await Promise.all(tokens.map(
+                (token, i) => pool.bind(
+                    token.address,
+                    toWei((i + 1) % 3 ? '50' : '70'),
+                    toWei(i > tokens.length / 2 ? '0.4' : '1'),
+                ),
+            ));
+
+            const total = (4 * (tokens.length / 2 - 1) + 10 * (tokens.length / 2 + 1)) / 10;
 
             const totalDernomWeight = await pool.getTotalDenormalizedWeight();
-            assert.equal(33.79, fromWei(totalDernomWeight));
+            assert.equal(total, fromWei(totalDernomWeight));
         });
 
-        it('Fails binding more than 8 tokens', async () => {
-            await truffleAssert.reverts(pool.bind(ZZZ, toWei('50'), toWei('2')), 'ERR_MAX_TOKENS');
+        it('Fails binding more than maximum tokens', async () => {
+            await truffleAssert.reverts(pool.bind(extraToken.address, toWei('50'), toWei('2')), 'ERR_MAX_TOKENS');
         });
 
         it('Rebind token at a smaller balance', async () => {
-            await pool.rebind(HHH, toWei('50'), toWei('2.1'));
-            const balance = await pool.getBalance(HHH);
+            const token = tokens[2];
+            // there's a chance of rounding errors here, an improved calculation should be made
+            const total = (4 * (tokens.length / 2 - 1) + 10 * (tokens.length / 2 + 1) - 2) / 10;
+
+            await pool.rebind(token.address, toWei('50'), toWei('0.8'));
+            const balance = await pool.getBalance(token.address);
             assert.equal(fromWei(balance), 50);
 
-            const adminBalance = await hhh.balanceOf(admin);
+            const adminBalance = await token.balanceOf(admin);
             assert.equal(fromWei(adminBalance), 50);
 
-            const factoryBalance = await hhh.balanceOf(FACTORY);
+            const factoryBalance = await token.balanceOf(factory.address);
             assert.equal(fromWei(factoryBalance), 0);
 
             const totalDernomWeight = await pool.getTotalDenormalizedWeight();
-            assert.equal(33.59, fromWei(totalDernomWeight));
+            assert.equal(total, fromWei(totalDernomWeight));
         });
 
         it('Fails gulp on unbound token', async () => {
-            await truffleAssert.reverts(pool.gulp(ZZZ), 'ERR_NOT_BOUND');
+            await truffleAssert.reverts(pool.gulp(extraToken.address), 'ERR_NOT_BOUND');
         });
 
         it('Pool can gulp tokens', async () => {
-            await ggg.transferFrom(admin, POOL, toWei('10'));
+            await tokens[4].transferFrom(admin, POOL, toWei('20'));
 
-            await pool.gulp(GGG);
-            const balance = await pool.getBalance(GGG);
-            assert.equal(fromWei(balance), 50);
+            await pool.gulp(tokens[4].address);
+            const balance = await pool.getBalance(tokens[4].address);
+            assert.equal(fromWei(balance), 70);
         });
 
         it('Fails swapExactAmountIn with limits', async () => {
+            // out token balance, weight = 50, 1
+            // in token balance, weight = 50, 0.4
+            // spot price ~= 2.500002500002500002
+            const lowWeight = tokens.length / 2 + 1;
+            const is50Bal = (lowWeight + 1) % 3;
+            const inToken = tokens[lowWeight + (is50Bal ? 0 : 1)].address;
+            const outToken = tokens[0].address;
+
             await pool.setPublicSwap(true);
+            // should revert if price is above maximum requested
             await truffleAssert.reverts(
                 pool.swapExactAmountIn(
-                    AAA,
+                    inToken,
                     toWei('1'),
-                    BBB,
+                    outToken,
                     toWei('0'),
-                    toWei('0.9'),
+                    toWei('0.9'), // < ~2.5
                 ),
                 'ERR_BAD_LIMIT_PRICE',
             );
+            // should revert if swap would yield less than requested
             await truffleAssert.reverts(
                 pool.swapExactAmountIn(
-                    AAA,
+                    inToken,
                     toWei('1'),
-                    BBB,
-                    toWei('2'),
+                    outToken,
+                    toWei('4'), // > ~2.5
                     toWei('3.5'),
                 ),
                 'ERR_LIMIT_OUT',
             );
+            // should revert if price goes above what the user requests after swap
             await truffleAssert.reverts(
                 pool.swapExactAmountIn(
-                    AAA,
+                    inToken,
                     toWei('1'),
-                    BBB,
+                    outToken,
                     toWei('0'),
-                    toWei('3.00001'),
+                    toWei('2.57028'), // < ~2.570281
                 ),
                 'ERR_LIMIT_PRICE',
             );
         });
 
         it('Fails swapExactAmountOut with limits', async () => {
+            const lowWeight = tokens.length / 2 + 1;
+            const is50Bal = (lowWeight + 1) % 3;
+            const inToken = tokens[lowWeight + (is50Bal ? 0 : 1)].address;
+            const outToken = tokens[0].address;
+
+            // can't swap out more than a third of the pool in a single transaction
             await truffleAssert.reverts(
                 pool.swapExactAmountOut(
-                    AAA,
+                    inToken,
                     toWei('51'),
-                    BBB,
-                    toWei('40'),
+                    outToken,
+                    toWei('20'), // 1/3 * 50 ~= 16.67
                     toWei('5'),
                 ),
                 'ERR_MAX_OUT_RATIO',
             );
+            // should revert if price is above maximum requested
             await truffleAssert.reverts(
                 pool.swapExactAmountOut(
-                    AAA,
-                    toWei('5'),
-                    BBB,
+                    inToken,
+                    toWei('51'),
+                    outToken,
                     toWei('1'),
-                    toWei('1'),
+                    toWei('0.9'), // < ~2.5
                 ),
                 'ERR_BAD_LIMIT_PRICE',
             );
+            // should revert if not enough tokens sent in to swap
             await truffleAssert.reverts(
                 pool.swapExactAmountOut(
-                    AAA,
-                    toWei('1'),
-                    BBB,
+                    inToken,
+                    toWei('1'), // < ~2.59
+                    outToken,
                     toWei('1'),
                     toWei('5'),
                 ),
                 'ERR_LIMIT_IN',
             );
+            // should revert if price goes above what the user requests after swap
             await truffleAssert.reverts(
                 pool.swapExactAmountOut(
-                    AAA,
+                    inToken,
                     toWei('5'),
-                    BBB,
+                    outToken,
                     toWei('1'),
-                    toWei('3.00001'),
+                    toWei('2.68317'), // < ~2.683176
                 ),
                 'ERR_LIMIT_PRICE',
             );

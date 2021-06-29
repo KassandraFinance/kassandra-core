@@ -90,7 +90,7 @@ contract('Pool', async (accounts) => {
 
     before(async () => {
         const constants = await KassandraConstants.deployed();
-        exitFee = await constants.exitFee();
+        exitFee = await constants.EXIT_FEE();
         exitFee = Decimal(fromWei(exitFee));
 
         factory = await Factory.deployed();

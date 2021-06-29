@@ -13,7 +13,7 @@ library KassandraConstants {
     // where numeric 1 = 10 ** 18
     uint public constant ONE               = 10**18;
 
-    uint public constant MIN_WEIGHT        = ONE;
+    uint public constant MIN_WEIGHT        = ONE / 10;
     uint public constant MAX_WEIGHT        = ONE * 50;
     uint public constant MAX_TOTAL_WEIGHT  = ONE * 50;
 
@@ -32,7 +32,7 @@ library KassandraConstants {
     uint public constant MAX_OUT_RATIO     = (ONE / 3) + 1 wei;
 
     uint public constant MIN_ASSET_LIMIT   = 2;
-    uint public constant MAX_ASSET_LIMIT   = 8;
+    uint public constant MAX_ASSET_LIMIT   = 16;
 
     uint public constant MAX_UINT          = type(uint).max;
 
