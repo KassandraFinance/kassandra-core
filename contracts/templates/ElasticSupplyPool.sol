@@ -83,8 +83,8 @@ contract ElasticSupplyPool is ConfigurableRightsPool {
      */
     function resyncWeight(address token)
         external
-        logs
         lock
+        logs
         needsCorePool
         virtual
     {

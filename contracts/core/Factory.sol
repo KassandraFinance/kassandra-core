@@ -45,11 +45,11 @@ contract Factory is Ownable {
     /**
      * @dev Create a new Pool
      *
-     * @return Address of new Pool contract
+     * @return pool Address of new Pool contract
      */
     function newPool()
         external
-        returns (Pool)
+        returns (Pool pool)
     {
         // only the governance or the CRP and ESP pools can request to create core pools
         require(
@@ -57,11 +57,10 @@ contract Factory is Ownable {
             "ERR_NOT_CONTROLLER"
         );
 
-        Pool pool = new Pool();
+        pool = new Pool();
         _isPool[address(pool)] = true;
         emit LogNewPool(msg.sender, address(pool));
         pool.setController(msg.sender);
-        return pool;
     }
 
     function collect(Pool pool)

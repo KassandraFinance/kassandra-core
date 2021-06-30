@@ -91,7 +91,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     // Cap on the pool size (i.e., # of tokens minted when joining)
     // Limits the risk of experimental pools; failsafe/backup for fixed-size pools
-    uint public bspCap;
+    uint public tokenCap;
 
     // Default values for these variables (used only in updateWeightsGradually), set in the constructor
     // Pools without permission to update weights cannot use them anyway, and should call
@@ -214,7 +214,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // Initializing (unnecessarily) for documentation - 0 means no gradual weight change has been initiated
         gradualUpdate.startBlock = 0;
         // By default, there is no cap (unlimited pool token minting)
-        bspCap = KassandraConstants.MAX_UINT;
+        tokenCap = KassandraConstants.MAX_UINT;
     }
 
     // External functions
@@ -227,8 +227,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function setSwapFee(uint swapFee)
         external
-        logs
         lock
+        logs
         onlyOwner
         needsCorePool
         virtual
@@ -241,7 +241,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     /**
      * @notice Set the cap (max # of pool tokens)
-     * @dev _bspCap defaults in the constructor to unlimited
+     * @dev tokenCap defaults in the constructor to unlimited
      *      Can set to 0 (or anywhere below the current supply), to halt new investment
      *      Prevent setting it before creating a pool, since createPool sets to intialSupply
      *      (it does this to avoid an unlimited cap window between construction and createPool)
@@ -250,16 +250,16 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function setCap(uint newCap)
         external
-        logs
         lock
-        needsCorePool
+        logs
         onlyOwner
+        needsCorePool
     {
         require(rights.canChangeCap, "ERR_CANNOT_CHANGE_CAP");
 
-        emit CapChanged(msg.sender, bspCap, newCap);
+        emit CapChanged(msg.sender, tokenCap, newCap);
 
-        bspCap = newCap;
+        tokenCap = newCap;
     }
 
     /**
@@ -275,8 +275,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function setPublicSwap(bool publicSwap)
         external
-        logs
         lock
+        logs
         onlyOwner
         needsCorePool
         virtual
@@ -293,7 +293,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      *      rules and formulas could update it.
      * @param updaterAddr contract address that will be able to update weights
      */
-    function setAllowedUpdater(address updaterAddr) external onlyOwner {
+    function setAllowedUpdater(address updaterAddr)
+        external
+        onlyOwner
+    {
         weightUpdater = updaterAddr;
     }
 
@@ -317,9 +320,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint addTokenTimeLockInBlocksParam
     )
         external
-        onlyOwner
-        logs
         lock
+        logs
+        onlyOwner
         virtual
     {
         require(
@@ -340,9 +343,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function createPool(uint initialSupply)
         external
-        onlyOwner
-        logs
         lock
+        logs
+        onlyOwner
         virtual
     {
         createPoolInternal(initialSupply);
@@ -358,10 +361,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     */
     function updateWeight(address token, uint newWeight)
         external
-        logs
         lock
-        canUpdateWeigths
+        logs
         needsCorePool
+        canUpdateWeigths
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -394,10 +397,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint endBlock
     )
         external
-        logs
         lock
-        canUpdateWeigths
+        logs
         needsCorePool
+        canUpdateWeigths
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -423,8 +426,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     */
     function pokeWeights()
         external
-        logs
         lock
+        logs
         needsCorePool
         virtual
     {
@@ -453,8 +456,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint denormalizedWeight
     )
         external
-        logs
         lock
+        logs
         onlyOwner
         needsCorePool
         virtual
@@ -483,8 +486,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function applyAddToken()
         external
-        logs
         lock
+        logs
         onlyOwner
         needsCorePool
         virtual
@@ -507,8 +510,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function removeToken(address token)
         external
-        logs
         lock
+        logs
         onlyOwner
         needsCorePool
     {
@@ -532,10 +535,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
-        logs
         lock
-        needsCorePool
         lockUnderlyingPool
+        logs
+        needsCorePool
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
                 "ERR_NOT_ON_WHITELIST");
@@ -578,10 +581,10 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
         external
-        logs
         lock
-        needsCorePool
         lockUnderlyingPool
+        logs
+        needsCorePool
     {
         // Delegate to library to save space
 
@@ -630,8 +633,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint minPoolAmountOut
     )
         external
-        logs
         lock
+        logs
         needsCorePool
         returns (uint poolAmountOut)
     {
@@ -652,8 +655,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _mintPoolShare(poolAmountOut);
         _pushPoolShare(msg.sender, poolAmountOut);
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-
-        return poolAmountOut;
     }
 
     /**
@@ -671,8 +672,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint maxAmountIn
     )
         external
-        logs
         lock
+        logs
         needsCorePool
         returns (uint tokenAmountIn)
     {
@@ -693,8 +694,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _mintPoolShare(poolAmountOut);
         _pushPoolShare(msg.sender, poolAmountOut);
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-
-        return tokenAmountIn;
     }
 
     /**
@@ -712,8 +711,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint minAmountOut
     )
         external
-        logs
         lock
+        logs
         needsCorePool
         returns (uint tokenAmountOut)
     {
@@ -737,8 +736,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _burnPoolShare(pAiAfterExitFee);
         _pushPoolShare(address(coreFactory), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return tokenAmountOut;
     }
 
     /**
@@ -756,8 +753,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         uint maxPoolAmountIn
     )
         external
-        logs
         lock
+        logs
         needsCorePool
         returns (uint poolAmountIn)
     {
@@ -781,8 +778,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _burnPoolShare(pAiAfterExitFee);
         _pushPoolShare(address(coreFactory), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return poolAmountIn;
     }
 
     /**
@@ -791,9 +786,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function whitelistLiquidityProvider(address provider)
         external
-        onlyOwner
         lock
         logs
+        onlyOwner
     {
         require(rights.canWhitelistLPs, "ERR_CANNOT_WHITELIST_LPS");
         require(provider != address(0), "ERR_INVALID_ADDRESS");
@@ -807,9 +802,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function removeWhitelistedLiquidityProvider(address provider)
         external
-        onlyOwner
         lock
         logs
+        onlyOwner
     {
         require(rights.canWhitelistLPs, "ERR_CANNOT_WHITELIST_LPS");
         require(_liquidityProviderWhitelist[provider], "ERR_LP_NOT_WHITELISTED");
@@ -843,7 +838,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     function canProvideLiquidity(address provider)
         external
         view
-        returns(bool)
+        returns (bool)
     {
         if (rights.canWhitelistLPs) {
             return _liquidityProviderWhitelist[provider];
@@ -865,7 +860,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         view
         virtual
-        returns(bool)
+        returns (bool)
     {
         return RightsManager.hasPermission(rights, permission);
     }
@@ -953,7 +948,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // (initialized to unlimited in the constructor), and setting the cap,
         // which they will presumably do if they have this right.
         if (rights.canChangeCap) {
-            bspCap = initialSupply;
+            tokenCap = initialSupply;
         }
 
         // There is technically reentrancy here, since we're making external calls and
@@ -1026,7 +1021,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     //
     function _mint(uint amount) internal override {
         super._mint(amount);
-        require(varTotalSupply <= bspCap, "ERR_CAP_LIMIT_REACHED");
+        require(varTotalSupply <= tokenCap, "ERR_CAP_LIMIT_REACHED");
     }
 
     function _mintPoolShare(uint amount) internal {

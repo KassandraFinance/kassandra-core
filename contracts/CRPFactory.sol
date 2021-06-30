@@ -50,7 +50,7 @@ contract CRPFactory is Ownable {
         RightsManager.Rights calldata rights
     )
         external onlyOwner
-        returns (ConfigurableRightsPool)
+        returns (ConfigurableRightsPool crp)
     {
         require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
 
@@ -58,7 +58,7 @@ contract CRPFactory is Ownable {
         require(poolParams.tokenBalances.length == poolParams.constituentTokens.length, "ERR_START_BALANCES_MISMATCH");
         require(poolParams.tokenWeights.length == poolParams.constituentTokens.length, "ERR_START_WEIGHTS_MISMATCH");
 
-        ConfigurableRightsPool crp = new ConfigurableRightsPool(
+        crp = new ConfigurableRightsPool(
             factoryAddress,
             poolParams,
             rights
@@ -70,8 +70,6 @@ contract CRPFactory is Ownable {
         // The caller is the controller of the CRP
         // The CRP will be the controller of the underlying Core Pool
         crp.setController(msg.sender);
-
-        return crp;
     }
 
     /**

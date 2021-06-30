@@ -5,19 +5,18 @@ import "./Token.sol";
 import "./Math.sol";
 
 import "../utils/Ownable.sol";
+import "../utils/ReentrancyGuard.sol";
 
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
-contract Pool is Ownable, Token, Math {
+contract Pool is Ownable, ReentrancyGuard, Token, Math {
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private
         uint denorm;  // denormalized weight
         uint balance;
     }
-
-    bool private _mutex;
 
     address private _factory;    // Factory address to push token exitFee to
     bool private _publicSwap; // true if PUBLIC can call SWAP functions
@@ -28,7 +27,7 @@ contract Pool is Ownable, Token, Math {
     bool private _finalized;
 
     address[] private _tokens;
-    mapping(address=>Record) private  _records;
+    mapping(address=>Record) private _records;
     uint private _totalWeight;
 
     event LogSwap(
@@ -62,18 +61,6 @@ contract Pool is Ownable, Token, Math {
         _;
     }
 
-    modifier _lock_() {
-        require(!_mutex, "ERR_REENTRY");
-        _mutex = true;
-        _;
-        _mutex = false;
-    }
-
-    modifier _viewlock_() {
-        require(!_mutex, "ERR_REENTRY");
-        _;
-    }
-
     constructor() {
         _factory = msg.sender;
         _swapFee = KassandraConstants.MIN_FEE;
@@ -83,9 +70,9 @@ contract Pool is Ownable, Token, Math {
 
     function setSwapFee(uint swapFee)
         external
-        onlyOwner
+        lock
         _logs_
-        _lock_
+        onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(swapFee >= KassandraConstants.MIN_FEE, "ERR_MIN_FEE");
@@ -95,9 +82,9 @@ contract Pool is Ownable, Token, Math {
 
     function setPublicSwap(bool public_)
         external
-        onlyOwner
+        lock
         _logs_
-        _lock_
+        onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
         _publicSwap = public_;
@@ -105,9 +92,9 @@ contract Pool is Ownable, Token, Math {
 
     function finalize()
         external
-        onlyOwner
+        lock
         _logs_
-        _lock_
+        onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
@@ -121,9 +108,9 @@ contract Pool is Ownable, Token, Math {
 
     function bind(address token, uint balance, uint denorm)
         external
-        onlyOwner
         _logs_
-        // _lock_  Bind does not lock because it jumps to `rebind`, which does
+        onlyOwner
+        // lock  Bind does not lock because it jumps to `rebind`, which does
     {
         require(!_records[token].bound, "ERR_IS_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -142,9 +129,9 @@ contract Pool is Ownable, Token, Math {
 
     function unbind(address token)
         external
-        onlyOwner
+        lock
         _logs_
-        _lock_
+        onlyOwner
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -173,8 +160,8 @@ contract Pool is Ownable, Token, Math {
     // Absorb any tokens that have been sent to this contract into the pool
     function gulp(address token)
         external
+        lock
         _logs_
-        _lock_
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
         _records[token].balance = IERC20(token).balanceOf(address(this));
@@ -182,8 +169,8 @@ contract Pool is Ownable, Token, Math {
 
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
+        lock
         _logs_
-        _lock_
     {
         require(_finalized, "ERR_NOT_FINALIZED");
 
@@ -207,8 +194,8 @@ contract Pool is Ownable, Token, Math {
 
     function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
         external
+        lock
         _logs_
-        _lock_
     {
         require(_finalized, "ERR_NOT_FINALIZED");
 
@@ -242,8 +229,8 @@ contract Pool is Ownable, Token, Math {
         uint maxPrice
     )
         external
+        lock
         _logs_
-        _lock_
         returns (uint tokenAmountOut, uint spotPriceAfter)
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
@@ -294,7 +281,6 @@ contract Pool is Ownable, Token, Math {
         emit LogSwap(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-        return (tokenAmountOut, spotPriceAfter);
     }
 
     function swapExactAmountOut(
@@ -305,8 +291,8 @@ contract Pool is Ownable, Token, Math {
         uint maxPrice
     )
         external
+        lock
         _logs_
-        _lock_
         returns (uint tokenAmountIn, uint spotPriceAfter)
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
@@ -357,13 +343,12 @@ contract Pool is Ownable, Token, Math {
         emit LogSwap(msg.sender, tokenIn, tokenOut, tokenAmountIn, tokenAmountOut);
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-        return (tokenAmountIn, spotPriceAfter);
     }
 
     function joinswapExternAmountIn(address tokenIn, uint tokenAmountIn, uint minPoolAmountOut)
         external
+        lock
         _logs_
-        _lock_
         returns (uint poolAmountOut)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -393,14 +378,12 @@ contract Pool is Ownable, Token, Math {
         _mintPoolShare(poolAmountOut);
         _pushPoolShare(msg.sender, poolAmountOut);
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-
-        return poolAmountOut;
     }
 
     function joinswapPoolAmountOut(address tokenIn, uint poolAmountOut, uint maxAmountIn)
         external
+        lock
         _logs_
-        _lock_
         returns (uint tokenAmountIn)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -432,14 +415,12 @@ contract Pool is Ownable, Token, Math {
         _mintPoolShare(poolAmountOut);
         _pushPoolShare(msg.sender, poolAmountOut);
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-
-        return tokenAmountIn;
     }
 
     function exitswapPoolAmountIn(address tokenOut, uint poolAmountIn, uint minAmountOut)
         external
+        lock
         _logs_
-        _lock_
         returns (uint tokenAmountOut)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -473,14 +454,12 @@ contract Pool is Ownable, Token, Math {
         _burnPoolShare(poolAmountIn - exitFee);
         _pushPoolShare(_factory, exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return tokenAmountOut;
     }
 
     function exitswapExternAmountOut(address tokenOut, uint tokenAmountOut, uint maxPoolAmountIn)
         external
+        lock
         _logs_
-        _lock_
         returns (uint poolAmountIn)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -514,8 +493,6 @@ contract Pool is Ownable, Token, Math {
         _burnPoolShare(poolAmountIn - exitFee);
         _pushPoolShare(_factory, exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-
-        return poolAmountIn;
     }
 
     function isPublicSwap()
@@ -547,7 +524,7 @@ contract Pool is Ownable, Token, Math {
     }
 
     function getCurrentTokens()
-        external view _viewlock_
+        external view viewlock
         returns (address[] memory tokens)
     {
         return _tokens;
@@ -555,7 +532,7 @@ contract Pool is Ownable, Token, Math {
 
     function getFinalTokens()
         external view
-        _viewlock_
+        viewlock
         returns (address[] memory tokens)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -564,7 +541,7 @@ contract Pool is Ownable, Token, Math {
 
     function getDenormalizedWeight(address token)
         external view
-        _viewlock_
+        viewlock
         returns (uint)
     {
 
@@ -574,7 +551,7 @@ contract Pool is Ownable, Token, Math {
 
     function getTotalDenormalizedWeight()
         external view
-        _viewlock_
+        viewlock
         returns (uint)
     {
         return _totalWeight;
@@ -582,10 +559,9 @@ contract Pool is Ownable, Token, Math {
 
     function getNormalizedWeight(address token)
         external view
-        _viewlock_
+        viewlock
         returns (uint)
     {
-
         require(_records[token].bound, "ERR_NOT_BOUND");
         uint denorm = _records[token].denorm;
         return KassandraSafeMath.bdiv(denorm, _totalWeight);
@@ -593,17 +569,16 @@ contract Pool is Ownable, Token, Math {
 
     function getBalance(address token)
         external view
-        _viewlock_
+        viewlock
         returns (uint)
     {
-
         require(_records[token].bound, "ERR_NOT_BOUND");
         return _records[token].balance;
     }
 
     function getSwapFee()
         external view
-        _viewlock_
+        viewlock
         returns (uint)
     {
         return _swapFee;
@@ -611,8 +586,8 @@ contract Pool is Ownable, Token, Math {
 
     function getSpotPrice(address tokenIn, address tokenOut)
         external view
-        _viewlock_
-        returns (uint spotPrice)
+        viewlock
+        returns (uint)
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
         require(_records[tokenOut].bound, "ERR_NOT_BOUND");
@@ -623,8 +598,8 @@ contract Pool is Ownable, Token, Math {
 
     function getSpotPriceSansFee(address tokenIn, address tokenOut)
         external view
-        _viewlock_
-        returns (uint spotPrice)
+        viewlock
+        returns (uint)
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
         require(_records[tokenOut].bound, "ERR_NOT_BOUND");
@@ -635,9 +610,9 @@ contract Pool is Ownable, Token, Math {
 
     function rebind(address token, uint balance, uint denorm)
         public
-        onlyOwner
+        lock
         _logs_
-        _lock_
+        onlyOwner
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -669,7 +644,7 @@ contract Pool is Ownable, Token, Math {
 
     // ==
     // 'Underlying' token-manipulation functions make external calls but are NOT locked
-    // You must `_lock_` or otherwise ensure reentry-safety
+    // You must `lock` or otherwise ensure reentry-safety
 
     function _pullUnderlying(address erc20, address from, uint amount)
         internal

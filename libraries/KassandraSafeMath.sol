@@ -45,8 +45,7 @@ library KassandraSafeMath {
         // Round to 0 if x*y < ONE/2?
         uint c1 = c0 + (KassandraConstants.ONE / 2);
         require(c1 >= c0, "ERR_MUL_OVERFLOW");
-        uint c2 = c1 / KassandraConstants.ONE;
-        return c2;
+        return c1 / KassandraConstants.ONE;
     }
 
     /**
@@ -70,8 +69,7 @@ library KassandraSafeMath {
         uint c1 = c0 + (divisor / 2);
         require(c1 >= c0, "ERR_DIV_INTERNAL"); //  badd require
 
-        uint c2 = c1 / divisor;
-        return c2;
+        return c1 / divisor;
     }
 
     /**
@@ -159,8 +157,8 @@ library KassandraSafeMath {
     }
 
     // DSMath.wpow
-    function bpowi(uint a, uint n) internal pure returns (uint) {
-        uint z = n % 2 != 0 ? a : KassandraConstants.ONE;
+    function bpowi(uint a, uint n) internal pure returns (uint z) {
+        z = n % 2 != 0 ? a : KassandraConstants.ONE;
 
         for (n /= 2; n != 0; n /= 2) {
             a = bmul(a, a);
@@ -169,7 +167,6 @@ library KassandraSafeMath {
                 z = bmul(z, a);
             }
         }
-        return z;
     }
 
     // Compute b^(e.w) by splitting it into (b^e)*(b^0.w).
@@ -192,14 +189,13 @@ library KassandraSafeMath {
         return bmul(wholePow, partialResult);
     }
 
-    function bpowApprox(uint base, uint exp, uint precision) internal pure returns (uint) {
+    function bpowApprox(uint base, uint exp, uint precision) internal pure returns (uint sum) {
         // term 0:
-        uint a     = exp;
-        (uint x, bool xneg)  = bsubSign(base, KassandraConstants.ONE);
+        uint a = exp;
+        (uint x, bool xneg) = bsubSign(base, KassandraConstants.ONE);
         uint term = KassandraConstants.ONE;
-        uint sum   = term;
         bool negative = false;
-
+        sum = term;
 
         // term(k) = numer / denom
         //         = (product(a - i - 1, i=1-->k) * x^k) / (k!)
@@ -220,7 +216,5 @@ library KassandraSafeMath {
                 sum += term;
             }
         }
-
-        return sum;
     }
 }

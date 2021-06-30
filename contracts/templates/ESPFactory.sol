@@ -49,7 +49,7 @@ contract ESPFactory is Ownable {
         RightsManager.Rights calldata rights
     )
         external onlyOwner
-        returns (ElasticSupplyPool)
+        returns (ElasticSupplyPool esp)
     {
         require(poolParams.constituentTokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
 
@@ -57,7 +57,7 @@ contract ESPFactory is Ownable {
         require(poolParams.tokenBalances.length == poolParams.constituentTokens.length, "ERR_START_BALANCES_MISMATCH");
         require(poolParams.tokenWeights.length == poolParams.constituentTokens.length, "ERR_START_WEIGHTS_MISMATCH");
 
-        ElasticSupplyPool esp = new ElasticSupplyPool(
+        esp = new ElasticSupplyPool(
             factoryAddress,
             poolParams,
             rights
@@ -67,8 +67,6 @@ contract ESPFactory is Ownable {
 
         _isEsp[address(esp)] = true;
         esp.setController(msg.sender);
-
-        return esp;
     }
 
     /**
