@@ -94,7 +94,7 @@ contract('configurableWeightsUMA', async (accounts) => {
                 const endWeights = [toWei('39'), toWei('1'), toWei('10')];
                 const block = await web3.eth.getBlock('latest');
 
-                truffleAssert.reverts(
+                await truffleAssert.reverts(
                     controller.updateWeightsGradually(endWeights, block.number, block.number + 20),
                     'ERR_START_WEIGHTS_MISMATCH',
                 );
@@ -218,7 +218,7 @@ contract('configurableWeightsUMA', async (accounts) => {
 
                     // Try to adust weights with mismatched tokens
                     if (i === 1) {
-                        truffleAssert.reverts(
+                        await truffleAssert.reverts(
                             controller.updateWeightsGradually(endWeights, i, i + 50),
                             'ERR_GRADUAL_UPDATE_TIME_TRAVEL',
                         );
@@ -240,7 +240,7 @@ contract('configurableWeightsUMA', async (accounts) => {
             // Here we are trying to updateWeightsGradually in the past: from 10-20 when we're on block 30
             const endWeights = [toWei('39'), toWei('1')];
 
-            truffleAssert.reverts(
+            await truffleAssert.reverts(
                 controller.updateWeightsGradually(endWeights, blockStart, blockEnd),
                 'ERR_GRADUAL_UPDATE_TIME_TRAVEL',
             );

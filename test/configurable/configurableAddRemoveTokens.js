@@ -173,14 +173,14 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     });
 
     it('Controller should not be able to applyAddToken for a token that is already bound', async () => {
-        truffleAssert.reverts(
+        await truffleAssert.reverts(
             crpPool.commitAddToken(WETH, toWei('20'), toWei('1.5')),
             'ERR_IS_BOUND',
         );
     });
 
     it('Controller should not be able to applyAddToken for no commitment', async () => {
-        truffleAssert.reverts(
+        await truffleAssert.reverts(
             crpPool.applyAddToken(),
             'ERR_NO_TOKEN_COMMIT',
         );
@@ -315,14 +315,14 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     });
 
     it('Controller should not be able to applyAddToken after finished', async () => {
-        truffleAssert.reverts(
+        await truffleAssert.reverts(
             crpPool.applyAddToken(),
             'ERR_NO_TOKEN_COMMIT',
         );
     });
 
     it('Controller should not be able to removeToken if token is not bound', async () => {
-        truffleAssert.reverts(
+        await truffleAssert.reverts(
             crpPool.removeToken(ASD),
             'ERR_NOT_BOUND',
         );

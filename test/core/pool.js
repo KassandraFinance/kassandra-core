@@ -330,7 +330,7 @@ contract('Pool', async (accounts) => {
             const tx = await pool.finalize();
             const adminBal = await pool.balanceOf(admin);
             assert.equal(100, fromWei(adminBal));
-            truffleAssert.eventEmitted(tx, 'Transfer', (event) => event.to === admin);
+            await truffleAssert.eventEmitted(tx, 'Transfer', (event) => event.to === admin);
             const finalized = pool.isFinalized();
             assert(finalized);
         });

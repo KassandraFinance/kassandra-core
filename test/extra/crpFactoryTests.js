@@ -275,8 +275,8 @@ contract('CRPFactory', async (accounts) => {
         const totalWeight = startWeights.reduce((acc, cur) => acc.add(toBN(cur)), toBN(0));
         const normalisedWETH = await safeMath.bdiv(startWeights[1], totalWeight);
 
-        coreFactory.setKacyToken(WETH);
-        coreFactory.setKacyMinimum(normalisedWETH.add(toBN(100)));
+        await coreFactory.setKacyToken(WETH);
+        await coreFactory.setKacyMinimum(normalisedWETH.add(toBN(100)));
 
         const poolParams = {
             poolTokenSymbol: LONG_SYMBOL,
@@ -303,8 +303,8 @@ contract('CRPFactory', async (accounts) => {
         const totalWeight = startWeights.reduce((acc, cur) => acc.add(toBN(cur)), toBN(0));
         const normalisedWETH = await safeMath.bdiv(startWeights[1], totalWeight);
 
-        coreFactory.setKacyToken(WETH);
-        coreFactory.setKacyMinimum(normalisedWETH.sub(toBN(100)));
+        await coreFactory.setKacyToken(WETH);
+        await coreFactory.setKacyMinimum(normalisedWETH.sub(toBN(100)));
 
         const poolParams = {
             poolTokenSymbol: LONG_SYMBOL,
@@ -315,10 +315,12 @@ contract('CRPFactory', async (accounts) => {
             swapFee,
         };
 
-        crpFactory.newCrp(
+        await crpFactory.newCrp(
             coreFactory.address,
             poolParams,
             permissions,
         );
+
+        await coreFactory.setKacyMinimum('0');
     });
 });

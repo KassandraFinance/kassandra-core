@@ -115,7 +115,7 @@ contract('configurableWeights_withSwaps', async (accounts) => {
         it('Should revert because too early to pokeWeights()', async () => {
             const block = await web3.eth.getBlock('latest');
             console.log(`Block: ${block.number}`);
-            truffleAssert.reverts(
+            await truffleAssert.reverts(
                 controller.pokeWeights(),
                 'ERR_CANT_POKE_YET',
             );
@@ -137,7 +137,7 @@ contract('configurableWeights_withSwaps', async (accounts) => {
             const finalized = await underlyingPool.isFinalized();
             assert.isFalse(finalized);
 
-            truffleAssert.reverts(
+            await truffleAssert.reverts(
                 underlyingPool.finalize(), 'ERR_NOT_CONTROLLER',
             );
 
