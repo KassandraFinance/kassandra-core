@@ -7,12 +7,13 @@ const { time } = require('@openzeppelin/test-helpers');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
 contract('configurableAddRemoveTokens', async (accounts) => {
     const admin = accounts[0];
-    const { toWei, fromWei } = web3.utils;
+    const { toBN, toWei, fromWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
 
@@ -28,6 +29,9 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     let abc;
     let asd;
     let applyAddTokenValidBlock;
+    let minWeight;
+    let maxWeight;
+    let maxTotalWeight;
 
     // These are the intial settings for newCrp:
     const swapFee = 10 ** 15;
@@ -47,6 +51,11 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     };
 
     before(async () => {
+        const constants = await KassandraConstants.deployed();
+        minWeight = await constants.MIN_WEIGHT();
+        maxWeight = await constants.MAX_WEIGHT();
+        maxTotalWeight = await constants.MAX_TOTAL_WEIGHT();
+
         /*
         Uses deployed Factory & CRPFactory.
         Deploys new test tokens - XYZ, WETH, DAI, ABC, ASD
@@ -129,18 +138,21 @@ contract('configurableAddRemoveTokens', async (accounts) => {
 
     it('Controller should not be able to commitAddToken with invalid weight', async () => {
         await truffleAssert.reverts(
-            crpPool.commitAddToken(ABC, toWei('10000'), toWei('50.1')),
+            crpPool.commitAddToken(ABC, toWei('10000'), maxWeight.add(toBN(1))),
             'ERR_WEIGHT_ABOVE_MAX',
         );
 
         await truffleAssert.reverts(
-            crpPool.commitAddToken(ABC, toWei('10000'), toWei('0.1')),
+            crpPool.commitAddToken(ABC, toWei('10000'), minWeight.sub(toBN(1))),
             'ERR_WEIGHT_BELOW_MIN',
         );
 
         // Initial weights are: [toWei('12'), toWei('1.5'), toWei('1.5')];
+        const curWeights = startWeights.reduce((acc, cur) => acc.add(toBN(cur)), toBN(0));
+        const aboveMax = maxTotalWeight.sub(curWeights).add(toBN(1));
+
         await truffleAssert.reverts(
-            crpPool.commitAddToken(ABC, toWei('10000'), toWei('35.1')), // total weight = 50.1, invalid
+            crpPool.commitAddToken(ABC, toWei('10000'), aboveMax),
             'ERR_MAX_TOTAL_WEIGHT',
         );
     });

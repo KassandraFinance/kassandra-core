@@ -8,6 +8,8 @@ const { calcRelativeDiff } = require('../../lib/calc_comparisons');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
+const KassandraSafeMath = artifacts.require('KassandraSafeMathMock');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
@@ -32,8 +34,7 @@ function newWeight(block, startBlock, endBlock, startWeight, endWeight) {
 
 contract('configurableWeights', async (accounts) => {
     const admin = accounts[0];
-    const { toWei } = web3.utils;
-    const { fromWei } = web3.utils;
+    const { toBN, toWei, fromWei } = web3.utils;
     const errorDelta = 10 ** -8;
     const MAX = web3.utils.toTwosComplement(-1);
 
@@ -46,6 +47,9 @@ contract('configurableWeights', async (accounts) => {
     let dai;
     let xyz;
     let abc;
+    let minWeight;
+    let maxWeight;
+    let maxTotalWeight;
 
     // These are the intial settings for newCrp:
     const swapFee = 10 ** 15;
@@ -76,6 +80,11 @@ contract('configurableWeights', async (accounts) => {
 
     describe('Weights permissions, etc', () => {
         before(async () => {
+            const constants = await KassandraConstants.deployed();
+            minWeight = await constants.MIN_WEIGHT();
+            maxWeight = await constants.MAX_WEIGHT();
+            maxTotalWeight = await constants.MAX_TOTAL_WEIGHT();
+
             const coreFactory = await Factory.deployed();
             const crpFactory = await CRPFactory.deployed();
             xyz = await TToken.new('XYZ', 'XYZ', 18);
@@ -150,21 +159,22 @@ contract('configurableWeights', async (accounts) => {
 
         it('Should not change weights below min', async () => {
             await truffleAssert.reverts(
-                crpPool.updateWeight(WETH, toWei('0.1')),
+                crpPool.updateWeight(WETH, minWeight.sub(toBN(1))),
                 'ERR_MIN_WEIGHT',
             );
         });
 
         it('Should not change weights above max', async () => {
             await truffleAssert.reverts(
-                crpPool.updateWeight(WETH, toWei('50.1')),
+                crpPool.updateWeight(WETH, maxWeight.add(toBN(1))),
                 'ERR_MAX_WEIGHT',
             );
         });
 
         it('Should not change weights if brings total weight above max', async () => {
+            const updWeight = maxTotalWeight.add(toBN(1)).sub(toBN(startWeights[0])).sub(toBN(startWeights[2]));
             await truffleAssert.reverts(
-                crpPool.updateWeight(WETH, toWei('37.5')),
+                crpPool.updateWeight(WETH, updWeight),
                 'ERR_MAX_TOTAL_WEIGHT',
             );
         });
@@ -462,17 +472,18 @@ contract('configurableWeights', async (accounts) => {
             const endBlock = startBlock + blockRange;
 
             await truffleAssert.reverts(
-                crpPool.updateWeightsGradually([toWei('51'), toWei('6'), toWei('6')], startBlock, endBlock),
+                crpPool.updateWeightsGradually([maxWeight.add(toBN(1)), toWei('6'), toWei('6')], startBlock, endBlock),
                 'ERR_WEIGHT_ABOVE_MAX',
             );
 
             await truffleAssert.reverts(
-                crpPool.updateWeightsGradually([toWei('0.999'), toWei('6'), toWei('6')], startBlock, endBlock),
+                crpPool.updateWeightsGradually([minWeight.sub(toBN(1)), toWei('6'), toWei('6')], startBlock, endBlock),
                 'ERR_WEIGHT_BELOW_MIN',
             );
 
+            const weight = maxTotalWeight.div(toBN(3));
             await truffleAssert.reverts(
-                crpPool.updateWeightsGradually([toWei('20'), toWei('20'), toWei('11')], startBlock, endBlock),
+                crpPool.updateWeightsGradually([weight, weight, weight.add(toBN(100))], startBlock, endBlock),
                 'ERR_MAX_TOTAL_WEIGHT',
             );
         });

@@ -1,21 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-// Imports
-
-import "../interfaces/IFactory.sol";
 import "./PCToken.sol";
+
 import "./utils/ReentrancyGuard.sol";
 import "./utils/Ownable.sol";
 
-// Interfaces
+import "../interfaces/IFactory.sol";
 
-// Libraries
 import { RightsManager } from "../libraries/RightsManager.sol";
 import "../libraries/SmartPoolManager.sol";
 import "../libraries/SafeApprove.sol";
-
-// Contracts
 
 /**
  * @author Kassandra (and Balancer Labs)
@@ -295,6 +290,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
      */
     function setAllowedUpdater(address updaterAddr)
         external
+        logs
         onlyOwner
     {
         weightUpdater = updaterAddr;
@@ -536,9 +532,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
         lock
+        needsCorePool
         lockUnderlyingPool
         logs
-        needsCorePool
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
                 "ERR_NOT_ON_WHITELIST");
@@ -582,9 +578,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
         external
         lock
+        needsCorePool
         lockUnderlyingPool
         logs
-        needsCorePool
     {
         // Delegate to library to save space
 

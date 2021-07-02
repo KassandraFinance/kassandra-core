@@ -33,25 +33,17 @@ contract('crpPoolOverloadTests', async (accounts) => {
     };
 
     let crpPool;
-    let CRPPOOL;
-    let CRPPOOL_ADDRESS;
-    let WETH;
-    let DAI;
-    let XYZ;
-    let weth;
-    let dai;
-    let xyz;
 
     before(async () => {
         const coreFactory = await Factory.deployed();
         const crpFactory = await CRPFactory.deployed();
-        xyz = await TToken.new('XYZ', 'XYZ', 18);
-        weth = await TToken.new('Wrapped Ether', 'WETH', 18);
-        dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
+        const xyz = await TToken.new('XYZ', 'XYZ', 18);
+        const weth = await TToken.new('Wrapped Ether', 'WETH', 18);
+        const dai = await TToken.new('Dai Stablecoin', 'DAI', 18);
 
-        WETH = weth.address;
-        DAI = dai.address;
-        XYZ = xyz.address;
+        const WETH = weth.address;
+        const DAI = dai.address;
+        const XYZ = xyz.address;
 
         // admin balances
         await weth.mint(admin, toWei('100'));
@@ -67,7 +59,7 @@ contract('crpPoolOverloadTests', async (accounts) => {
             swapFee,
         };
 
-        CRPPOOL = await crpFactory.newCrp.call(
+        const CRPPOOL = await crpFactory.newCrp.call(
             coreFactory.address,
             poolParams,
             permissions,
@@ -81,7 +73,7 @@ contract('crpPoolOverloadTests', async (accounts) => {
 
         crpPool = await ConfigurableRightsPool.at(CRPPOOL);
 
-        CRPPOOL_ADDRESS = crpPool.address;
+        const CRPPOOL_ADDRESS = crpPool.address;
 
         await weth.approve(CRPPOOL_ADDRESS, MAX);
         await dai.approve(CRPPOOL_ADDRESS, MAX);

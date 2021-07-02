@@ -7,6 +7,8 @@ import "./Math.sol";
 import "../utils/Ownable.sol";
 import "../utils/ReentrancyGuard.sol";
 
+import "../../interfaces/IFactory.sol";
+
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 

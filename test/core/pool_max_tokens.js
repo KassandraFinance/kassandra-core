@@ -1,9 +1,9 @@
 const truffleAssert = require('truffle-assertions');
 
 const Factory = artifacts.require('Factory');
+const KassandraConstants = artifacts.require('KassandraConstantsMock');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
-const KassandraConstants = artifacts.require('KassandraConstantsMock');
 
 contract('Pool', async (accounts) => {
     const admin = accounts[0];
@@ -15,6 +15,9 @@ contract('Pool', async (accounts) => {
     let factory; // factory address
     let pool; // first pool w/ defaults
     let POOL; //   pool address
+    let minWeight;
+    let maxAssets;
+    let maxTotalWeight;
 
     before(async () => {
         const randomTokenName = () => {
@@ -32,11 +35,13 @@ contract('Pool', async (accounts) => {
         pool = await Pool.at(POOL);
 
         const consts = await KassandraConstants.deployed();
-        const maxAssets = await consts.MAX_ASSET_LIMIT();
-        const maxAssetsNumber = Number(fromWei(maxAssets, 'wei')) + 1;
+        maxTotalWeight = await consts.MAX_TOTAL_WEIGHT();
+        minWeight = await consts.MIN_WEIGHT();
+        maxAssets = await consts.MAX_ASSET_LIMIT();
+        maxAssets = Number(fromWei(maxAssets, 'wei')) + 1;
 
         tokens = await Promise.all(
-            Array(maxAssetsNumber).fill().map((a) => {
+            Array(maxAssets).fill().map((a) => {
                 const symbol = randomTokenName(a);
                 return TToken.new(symbol, symbol, 18);
             }),
@@ -60,6 +65,11 @@ contract('Pool', async (accounts) => {
         });
 
         it('Admin binds tokens', async () => {
+            assert(
+                maxAssets * minWeight <= maxTotalWeight,
+                'MAX_TOTAL_WEIGHT is surpassed with maximum amount of tokens',
+            );
+
             await Promise.all(tokens.map(
                 (token, i) => pool.bind(
                     token.address,

@@ -118,7 +118,7 @@ contract('Token Cap', async (accounts) => {
     it('ConfigurableRightsPool cap should be set to initial supply after creation', async () => {
         await crpPool.createPool(toWei('100'), 10, 10);
 
-        const cap = await crpPool.bspCap();
+        const cap = await crpPool.tokenCap();
         const supply = await crpPool.totalSupply.call();
 
         assert.equal(fromWei(cap), fromWei(supply));
@@ -135,21 +135,21 @@ contract('Token Cap', async (accounts) => {
         const newCap = toWei('10000');
         await crpPool.setCap(newCap);
 
-        const currentCap = await crpPool.bspCap();
+        const currentCap = await crpPool.tokenCap();
         assert.equal(currentCap, newCap);
     });
 
     it('Controller should be able to set the cap to 0', async () => {
         await crpPool.setCap(0);
 
-        const currentCap = await crpPool.bspCap();
+        const currentCap = await crpPool.tokenCap();
         assert.equal(0, currentCap);
     });
 
     it('Controller should be able to set the cap to unlimited', async () => {
         await crpPool.setCap(MAX);
 
-        const currentCap = await crpPool.bspCap();
+        const currentCap = await crpPool.tokenCap();
         assert.equal(MaxBig256, fromWei(currentCap).toString());
     });
 
@@ -158,7 +158,7 @@ contract('Token Cap', async (accounts) => {
             const newCap = toWei('200');
             await crpPool.setCap(newCap);
 
-            const currentCap = await crpPool.bspCap();
+            const currentCap = await crpPool.tokenCap();
             assert.equal(currentCap, newCap);
 
             const supply = await crpPool.totalSupply();
