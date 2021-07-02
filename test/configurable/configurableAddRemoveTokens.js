@@ -391,6 +391,12 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         await crpPool.removeToken(XYZ);
     });
 
+    it('Should fail when trying to remove $KACY from the pool', async () => {
+        const coreFactory = await Factory.deployed();
+        await coreFactory.setKacyToken(WETH);
+        await truffleAssert.reverts(crpPool.removeToken(WETH), 'ERR_MIN_KACY');
+    });
+
     it('Start weights should still be aligned, after removeToken', async () => {
         // Tokens are now ABC, WETH (swaps XYZ with ABC, then deletes XYZ)
         const corePoolAddr = await crpPool.corePool();
@@ -487,11 +493,5 @@ contract('configurableAddRemoveTokens', async (accounts) => {
             crpPool.applyAddToken(),
             'ERR_INSUFFICIENT_BAL',
         );
-    });
-
-    it('Should fail when trying to remove $KACY from the pool', async () => {
-        const coreFactory = await Factory.deployed();
-        await coreFactory.setKacyToken(WETH);
-        await truffleAssert.reverts(crpPool.removeToken(WETH), 'ERR_MIN_KACY');
     });
 });

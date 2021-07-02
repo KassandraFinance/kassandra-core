@@ -197,7 +197,6 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
         SmartPoolManager.verifyTokenCompliance(
             poolParams.constituentTokens,
-            poolParams.tokenBalances,
             poolParams.tokenWeights,
             coreFactory.minimumKacy(),
             coreFactory.kacyToken()

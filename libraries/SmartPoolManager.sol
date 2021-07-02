@@ -365,19 +365,18 @@ library SmartPoolManager {
      */
     function verifyTokenCompliance(
         address[] calldata tokens,
-        uint[] calldata tokenBalances,
         uint[] calldata tokenWeights,
         uint minimumKacy,
         address kacyToken
     )
         external
     {
-        uint totalWeight = 0;
-        uint kacyWeight = 0;
+        uint totalWeight;
+        uint kacyWeight;
 
         for (uint i = 0; i < tokens.length; i++) {
             verifyTokenComplianceInternal(tokens[i]);
-            totalWeight += tokenBalances[i];
+            totalWeight += tokenWeights[i];
 
             if (tokens[i] == kacyToken) {
                 kacyWeight = tokenWeights[i];
