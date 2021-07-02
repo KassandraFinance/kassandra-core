@@ -110,6 +110,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('1000'), 10, 10);
+            await controller.setAllowedUpdater(admin);
         });
 
         // Change weights linearly over the given block period
@@ -229,6 +230,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('1000'), 10, 10);
+            await controller.setAllowedUpdater(admin);
         });
 
         describe('Nonlinear LBP example', () => {

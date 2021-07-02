@@ -135,6 +135,7 @@ contract('configurableWeights', async (accounts) => {
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
+            await crpPool.setAllowedUpdater(admin);
         });
 
         it('crpPool should have correct rights set', async () => {
@@ -150,10 +151,10 @@ contract('configurableWeights', async (accounts) => {
             }
         });
 
-        it('Non Controller account should not be able to change weights', async () => {
+        it('Non Updater account should not be able to change weights', async () => {
             await truffleAssert.reverts(
                 crpPool.updateWeight(WETH, toWei('3'), { from: accounts[1] }),
-                'ERR_NOT_CONTROLLER',
+                'ERR_NOT_UPDATER',
             );
         });
 
@@ -179,7 +180,7 @@ contract('configurableWeights', async (accounts) => {
             );
         });
 
-        it('Controller should be able to change weights with updateWeight()', async () => {
+        it('Updater should be able to change weights with updateWeight()', async () => {
             const corePoolAddr = await crpPool.corePool();
             const corePool = await Pool.at(corePoolAddr);
 
@@ -240,7 +241,7 @@ contract('configurableWeights', async (accounts) => {
             assert.equal(fromWei(xdStartSpotPrice), fromWei(xdUpdatedSpotPrice));
         });
 
-        it('Controller should not be able to change weights when they do not have enough tokens', async () => {
+        it('Updater should not be able to change weights when they do not have enough tokens', async () => {
             // This should triple WETH weight from 1.5 to 4.5, requiring 80 WETH, but admin only has 60.
             await truffleAssert.reverts(
                 crpPool.updateWeight(WETH, toWei('4.5')),
@@ -309,9 +310,10 @@ contract('configurableWeights', async (accounts) => {
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
+            await crpPool.setAllowedUpdater(admin);
         });
 
-        it('Controller should be able to change weights (down) with updateWeight()', async () => {
+        it('Updater should be able to change weights (down) with updateWeight()', async () => {
             const corePoolAddr = await crpPool.corePool();
             const corePool = await Pool.at(corePoolAddr);
 
@@ -375,7 +377,7 @@ contract('configurableWeights', async (accounts) => {
             assert.equal(fromWei(xdStartSpotPrice), fromWei(xdUpdatedSpotPrice));
         });
 
-        it('Controller should be able to change weights with updateWeight()', async () => {
+        it('Updater should be able to change weights with updateWeight()', async () => {
             const corePoolAddr = await crpPool.corePool();
             const corePool = await Pool.at(corePoolAddr);
 
@@ -439,7 +441,7 @@ contract('configurableWeights', async (accounts) => {
     });
 
     describe('updateWeightsGradually', () => {
-        it('Non Controller account should not be able to change weights gradually', async () => {
+        it('Non Updater account should not be able to change weights gradually', async () => {
             const blockRange = 10;
             const block = await web3.eth.getBlock('latest');
 
@@ -449,7 +451,7 @@ contract('configurableWeights', async (accounts) => {
 
             await truffleAssert.reverts(
                 crpPool.updateWeightsGradually(endWeights, startBlock, endBlock, { from: accounts[1] }),
-                'ERR_NOT_CONTROLLER',
+                'ERR_NOT_UPDATER',
             );
         });
 
@@ -488,7 +490,7 @@ contract('configurableWeights', async (accounts) => {
             );
         });
 
-        it('Controller should be able to call updateWeightsGradually() with valid range', async () => {
+        it('Updater should be able to call updateWeightsGradually() with valid range', async () => {
             const block = await web3.eth.getBlock('latest');
             const startBlock = block.number + 10;
             const endBlock = startBlock + minimumWeightChangeBlockPeriod;

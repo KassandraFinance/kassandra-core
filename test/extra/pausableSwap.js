@@ -105,6 +105,7 @@ contract('pausableSwap', async (accounts) => {
         await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
         await crpPool.createPool(toWei('100'));
+        await crpPool.setAllowedUpdater(admin);
     });
 
     it('crpPool should have correct rights set', async () => {

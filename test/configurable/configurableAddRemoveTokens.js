@@ -119,6 +119,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         await asd.approve(CRPPOOL_ADDRESS, MAX);
 
         await crpPool.createPool(toWei('100'), 10, 10);
+        await crpPool.setAllowedUpdater(admin, { from: admin });
     });
 
     it('crpPool should have correct rights set', async () => {

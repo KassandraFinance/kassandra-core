@@ -153,7 +153,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     }
 
     modifier canUpdateWeigths() {
-        require(msg.sender == this.getController() || msg.sender == weightUpdater, "ERR_NOT_CONTROLLER");
+        require(msg.sender == weightUpdater, "ERR_NOT_UPDATER");
         _;
     }
 
