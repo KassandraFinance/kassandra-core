@@ -92,9 +92,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     // Pools without permission to update weights cannot use them anyway, and should call
     //   the default createPool() function.
     // To override these defaults, pass them into the overloaded createPool()
-    // Period is in blocks; 500 blocks ~ 2 hours; 90,000 blocks ~ 2 weeks
-    uint public constant DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD = 90000;
-    uint public constant DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS = 500;
+    // Period is in blocks; 500 blocks ~ 2 hours; 5,700 blocks ~< 1 day
+    uint private constant _DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD = 5700;
+    uint private constant _DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS = 500;
 
     // Event declarations
 
@@ -209,8 +209,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         _initialSwapFee = poolParams.swapFee;
 
         // These default block time parameters can be overridden in createPool
-        minimumWeightChangeBlockPeriod = DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD;
-        addTokenTimeLockInBlocks = DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS;
+        minimumWeightChangeBlockPeriod = _DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD;
+        addTokenTimeLockInBlocks = _DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS;
 
         gradualUpdate.startWeights = poolParams.tokenWeights;
         // Initializing (unnecessarily) for documentation - 0 means no gradual weight change has been initiated
