@@ -1,7 +1,6 @@
 const RightsManager = artifacts.require('RightsManager');
 const SmartPoolManager = artifacts.require('SmartPoolManager');
 const CRPFactory = artifacts.require('CRPFactory');
-const ESPFactory = artifacts.require('ESPFactory');
 const Factory = artifacts.require('Factory');
 const KassandraConstantsMock = artifacts.require('KassandraConstantsMock');
 const KassandraSafeMath = artifacts.require('KassandraSafeMath');
@@ -23,14 +22,5 @@ module.exports = async function (deployer, network, accounts) {
 
     const factory = await deployer.deploy(Factory);
     const crpFactory = await deployer.deploy(CRPFactory);
-    factory.setFactory(1, crpFactory.address);
-
-    if (network === 'development' || network === 'coverage') {
-        deployer.link(KassandraSafeMath, ESPFactory);
-        deployer.link(RightsManager, ESPFactory);
-        deployer.link(SmartPoolManager, ESPFactory);
-
-        const espFactory = await deployer.deploy(ESPFactory);
-        factory.setFactory(0, espFactory.address);
-    }
+    factory.setFactory(crpFactory.address);
 };

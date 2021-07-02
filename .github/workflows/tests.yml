@@ -37,7 +37,7 @@ jobs:
       - run: yarn test test/core/*
 
   crp-unit-tests-bankless:
-    name: CRP Unit Tests
+    name: CRP Unit Tests (Bankless Simulation)
     runs-on: ubuntu-latest
     needs: lint-contracts
 
@@ -95,18 +95,3 @@ jobs:
       - run: yarn compile
       - run: yarn testrpc &
       - run: yarn test test/extra/*
-
-  crp-unit-tests-elastic:
-    name: CRP Unit Tests (Elastic Supply)
-    runs-on: ubuntu-latest
-    needs: lint-contracts
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-      - run: yarn
-      - run: yarn compile
-      - run: yarn testrpc &
-      - run: yarn test test/elastic/*
