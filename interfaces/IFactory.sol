@@ -13,6 +13,7 @@ interface IPool {
     function totalSupply() external view returns (uint);
     function getSwapFee() external view returns (uint);
     function isPublicSwap() external view returns (bool);
+    function getNormalizedWeight(address token) external view returns (uint);
     function getDenormalizedWeight(address token) external view returns (uint);
     function getTotalDenormalizedWeight() external view returns (uint);
 
@@ -69,6 +70,10 @@ interface IFactory {
     function newPool() external returns (IPool);
     function setController(address b) external;
     function collect(IPool pool) external;
+    function setKacyToken() external returns (uint);
+    function setKacyMinimum() external returns (uint);
+    function kacyToken() external view returns (address);
+    function minimumKacy() external view returns (uint);
     function isPool(address b) external view returns (bool);
     function getController() external view returns (address);
 }

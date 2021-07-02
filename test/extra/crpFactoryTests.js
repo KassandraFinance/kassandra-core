@@ -5,11 +5,12 @@ const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
 const KassandraConstants = artifacts.require('KassandraConstantsMock');
+const KassandraSafeMath = artifacts.require('KassandraSafeMathMock');
 const TToken = artifacts.require('TToken');
 
 contract('CRPFactory', async (accounts) => {
     const admin = accounts[0];
-    const { toWei } = web3.utils;
+    const { toBN, toWei } = web3.utils;
 
     const MAX = web3.utils.toTwosComplement(-1);
     const swapFee = 10 ** 15;
@@ -265,6 +266,59 @@ contract('CRPFactory', async (accounts) => {
                 permissions,
             ),
             'ERR_TOO_MANY_TOKENS',
+        );
+    });
+
+    it('should not be able to create a pool that doesnt have minimum $KACY', async () => {
+        const safeMath = await KassandraSafeMath.deployed();
+
+        const totalWeight = startWeights.reduce((acc, cur) => acc.add(toBN(cur)), toBN(0));
+        const normalisedWETH = await safeMath.bdiv(startWeights[1], totalWeight);
+
+        coreFactory.setKacyToken(WETH);
+        coreFactory.setKacyMinimum(normalisedWETH.add(toBN(100)));
+
+        const poolParams = {
+            poolTokenSymbol: LONG_SYMBOL,
+            poolTokenName: NAME,
+            constituentTokens: [XYZ, WETH, DAI],
+            tokenBalances: startBalances,
+            tokenWeights: startWeights,
+            swapFee,
+        };
+
+        await truffleAssert.reverts(
+            crpFactory.newCrp(
+                coreFactory.address,
+                poolParams,
+                permissions,
+            ),
+            'ERR_MIN_KACY',
+        );
+    });
+
+    it('should be able to create a pool with minimum $KACY', async () => {
+        const safeMath = await KassandraSafeMath.deployed();
+
+        const totalWeight = startWeights.reduce((acc, cur) => acc.add(toBN(cur)), toBN(0));
+        const normalisedWETH = await safeMath.bdiv(startWeights[1], totalWeight);
+
+        coreFactory.setKacyToken(WETH);
+        coreFactory.setKacyMinimum(normalisedWETH.sub(toBN(100)));
+
+        const poolParams = {
+            poolTokenSymbol: LONG_SYMBOL,
+            poolTokenName: NAME,
+            constituentTokens: [XYZ, WETH, DAI],
+            tokenBalances: startBalances,
+            tokenWeights: startWeights,
+            swapFee,
+        };
+
+        crpFactory.newCrp(
+            coreFactory.address,
+            poolParams,
+            permissions,
         );
     });
 });

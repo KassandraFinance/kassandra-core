@@ -231,6 +231,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
             await controller.createPool(toWei('1000'), 10, 10);
             await controller.setAllowedUpdater(admin);
+            await coreFactory.setKacyToken(DAI);
         });
 
         describe('Nonlinear LBP example', () => {

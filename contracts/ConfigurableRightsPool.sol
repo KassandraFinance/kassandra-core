@@ -193,9 +193,16 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         // There are further possible checks (e.g., if they use the same token twice), but
         // we can let bind() catch things like that (i.e., not things that might reasonably work)
 
-        SmartPoolManager.verifyTokenCompliance(poolParams.constituentTokens);
-
         coreFactory = IFactory(factoryAddress);
+
+        SmartPoolManager.verifyTokenCompliance(
+            poolParams.constituentTokens,
+            poolParams.tokenBalances,
+            poolParams.tokenWeights,
+            coreFactory.minimumKacy(),
+            coreFactory.kacyToken()
+        );
+
         rights = rightsStruct;
         _initialTokens = poolParams.constituentTokens;
         _initialBalances = poolParams.tokenBalances;
@@ -369,7 +376,14 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
 
         // Delegate to library to save space
-        SmartPoolManager.updateWeight(IConfigurableRightsPool(address(this)), corePool, token, newWeight);
+        SmartPoolManager.updateWeight(
+            IConfigurableRightsPool(address(this)),
+            corePool,
+            token,
+            newWeight,
+            coreFactory.minimumKacy(),
+            coreFactory.kacyToken()
+        );
     }
 
     /**
@@ -411,7 +425,9 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
             newWeights,
             startBlock,
             endBlock,
-            minimumWeightChangeBlockPeriod
+            minimumWeightChangeBlockPeriod,
+            coreFactory.minimumKacy(),
+            coreFactory.kacyToken()
         );
     }
 
@@ -517,6 +533,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         require(!newToken.isCommitted, "ERR_REMOVE_WITH_ADD_PENDING");
         // Prevent removing during an update (or token lists can get out of sync)
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
+        // can't remove $KACY (core pool also checks but we can fail earlier)
+        require(token != coreFactory.kacyToken(), "ERR_MIN_KACY");
 
         // Delegate to library to save space
         SmartPoolManager.removeToken(IConfigurableRightsPool(address(this)), corePool, token);

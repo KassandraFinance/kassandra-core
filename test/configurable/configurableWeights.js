@@ -136,6 +136,7 @@ contract('configurableWeights', async (accounts) => {
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
             await crpPool.setAllowedUpdater(admin);
+            await coreFactory.setKacyToken(WETH);
         });
 
         it('crpPool should have correct rights set', async () => {
@@ -311,6 +312,24 @@ contract('configurableWeights', async (accounts) => {
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
             await crpPool.setAllowedUpdater(admin);
+            await coreFactory.setKacyToken(WETH);
+        });
+
+        it('Should not allow reducing $KACY below minimum with updateWeight', async () => {
+            const safeMath = await KassandraSafeMath.deployed();
+            const coreFactory = await Factory.deployed();
+
+            const totalWeight = startWeights.reduce((acc, cur) => acc.add(toBN(cur)), toBN(0));
+            const normalisedWETH = await safeMath.bdiv(startWeights[1], totalWeight);
+
+            await coreFactory.setKacyToken(WETH);
+            await coreFactory.setKacyMinimum(normalisedWETH.sub(toBN(100)));
+
+            await truffleAssert.reverts(
+                crpPool.updateWeight(WETH, toBN(startWeights[1]).sub(toBN(1000000))),
+                'ERR_MIN_KACY',
+            );
+            await coreFactory.setKacyMinimum('0');
         });
 
         it('Updater should be able to change weights (down) with updateWeight()', async () => {
@@ -441,6 +460,39 @@ contract('configurableWeights', async (accounts) => {
     });
 
     describe('updateWeightsGradually', () => {
+        it('Should not have less $KACY than minimum on updateWeightGradually', async () => {
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await Pool.at(corePoolAddr);
+
+            const coreFactory = await Factory.deployed();
+
+            const xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
+            const wethWeight = await crpPool.getDenormalizedWeight(WETH);
+            const daiWeight = await crpPool.getDenormalizedWeight(DAI);
+            const wethNormalWeight = await corePool.getNormalizedWeight(WETH);
+
+            await coreFactory.setKacyMinimum(wethNormalWeight.add(toBN(100)));
+
+            const block = await web3.eth.getBlock('latest');
+            const startBlock = block.number;
+            const endBlock = startBlock + 20;
+
+            await truffleAssert.reverts(
+                crpPool.updateWeightsGradually(
+                    [
+                        xyzWeight,
+                        wethWeight.sub(toBN(1000000)),
+                        daiWeight.add(toBN(1000000)),
+                    ],
+                    startBlock,
+                    endBlock,
+                ),
+                'ERR_MIN_KACY',
+            );
+
+            await coreFactory.setKacyMinimum('0');
+        });
+
         it('Non Updater account should not be able to change weights gradually', async () => {
             const blockRange = 10;
             const block = await web3.eth.getBlock('latest');

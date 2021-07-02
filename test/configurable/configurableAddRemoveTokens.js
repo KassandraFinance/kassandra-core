@@ -488,4 +488,10 @@ contract('configurableAddRemoveTokens', async (accounts) => {
             'ERR_INSUFFICIENT_BAL',
         );
     });
+
+    it('Should fail when trying to remove $KACY from the pool', async () => {
+        const coreFactory = await Factory.deployed();
+        await coreFactory.setKacyToken(WETH);
+        await truffleAssert.reverts(crpPool.removeToken(WETH), 'ERR_MIN_KACY');
+    });
 });

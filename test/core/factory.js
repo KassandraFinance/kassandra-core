@@ -92,6 +92,40 @@ contract('Factory', async (accounts) => {
             );
         });
 
+        it('nonadmin cant change $KACY address', async () => {
+            await truffleAssert.reverts(factory.setKacyToken(WETH, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
+        });
+
+        it('admin changes $KACY address', async () => {
+            await factory.setKacyToken(WETH);
+            const kacy = await factory.kacyToken();
+            assert.equal(kacy, WETH);
+        });
+
+        it('nonadmin cant change minimum $KACY', async () => {
+            await truffleAssert.reverts(
+                factory.setKacyMinimum(toBN(20).mul(one).div(toBN(100)), { from: nonAdmin }),
+                'ERR_NOT_CONTROLLER',
+            );
+        });
+
+        it('admin changes minimum $KACY', async () => {
+            const minimum = toBN(20).mul(one).div(toBN(100));
+            await factory.setKacyMinimum(minimum);
+            const minimumKacy = await factory.minimumKacy();
+            assert.equal(minimumKacy.toString(), minimum.toString());
+        });
+
+        it('nonadmin cant change crpFactory', async () => {
+            await truffleAssert.reverts(factory.setFactory(admin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
+        });
+
+        it('admin changes crpFactory', async () => {
+            await factory.setFactory(admin);
+            const crpFactory = await factory.crpFactory();
+            assert.equal(crpFactory, admin);
+        });
+
         it('nonadmin cant set controller address', async () => {
             await truffleAssert.reverts(factory.setController(nonAdmin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
         });

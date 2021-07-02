@@ -10,12 +10,17 @@ import "../utils/Ownable.sol";
 
 import "../../interfaces/IcrpFactory.sol";
 
+import "../../libraries/KassandraConstants.sol";
+
 /**
  * @title Pool Factory
  */
 contract Factory is Ownable {
     // the CRPFactory contract allowed to create pools
     IcrpFactory public crpFactory;
+    // $KACY enforcement
+    address public kacyToken;
+    uint public minimumKacy;
     // map of all pools
     mapping(address=>bool) private _isPool;
 
@@ -71,6 +76,19 @@ contract Factory is Ownable {
         external onlyOwner
     {
         crpFactory = IcrpFactory(factoryAddr);
+    }
+
+    function setKacyToken(address newAddr)
+        external onlyOwner
+    {
+        kacyToken = newAddr;
+    }
+
+    function setKacyMinimum(uint percent)
+        external onlyOwner
+    {
+        require(percent < KassandraConstants.ONE, "ERR_NOT_VALID_PERCENTAGE");
+        minimumKacy = percent;
     }
 
     /**

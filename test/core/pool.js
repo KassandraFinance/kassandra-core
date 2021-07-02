@@ -22,6 +22,7 @@ contract('Pool', async (accounts) => {
     let factory; // Pool factory
     let pool; // first pool w/ defaults
     let POOL; //   pool address
+    let one;
     let minBalance;
     let minWeight;
     let maxWeight;
@@ -30,6 +31,7 @@ contract('Pool', async (accounts) => {
 
     before(async () => {
         const constants = await KassandraConstants.deployed();
+        one = await constants.ONE();
         minBalance = await constants.MIN_CORE_BALANCE();
         minWeight = await constants.MIN_WEIGHT();
         maxWeight = await constants.MAX_WEIGHT();
@@ -262,11 +264,22 @@ contract('Pool', async (accounts) => {
             );
         });
 
+        it('Fails to setPublicSwap if below minimumKacy', async () => {
+            await factory.setKacyToken(WETH);
+            await factory.setKacyMinimum(toBN(50).mul(one).div(toBN(100)));
+            await truffleAssert.reverts(pool.setPublicSwap(true), 'ERR_MIN_KACY');
+        });
+
         it('Only controller can setPublicSwap', async () => {
+            await factory.setKacyMinimum(toBN(33).mul(one).div(toBN(100)));
             await pool.setPublicSwap(true);
             const publicSwap = pool.isPublicSwap();
             assert(publicSwap);
             await truffleAssert.reverts(pool.setPublicSwap(true, { from: user1 }), 'ERR_NOT_CONTROLLER');
+        });
+
+        it('Fails to remove $KACY from the pool', async () => {
+            await truffleAssert.reverts(pool.unbind(WETH), 'ERR_MIN_KACY');
         });
 
         it('Fails setting low swap fees', async () => {
@@ -307,7 +320,13 @@ contract('Pool', async (accounts) => {
             );
         });
 
+        it('Fails to finalize pool if below minimumKacy', async () => {
+            await factory.setKacyMinimum(toBN(50).mul(one).div(toBN(100)));
+            await truffleAssert.reverts(pool.finalize(), 'ERR_MIN_KACY');
+        });
+
         it('Admin finalizes pool', async () => {
+            await factory.setKacyMinimum(toBN(33).mul(one).div(toBN(100)));
             const tx = await pool.finalize();
             const adminBal = await pool.balanceOf(admin);
             assert.equal(100, fromWei(adminBal));

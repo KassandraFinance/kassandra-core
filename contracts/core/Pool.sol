@@ -89,6 +89,12 @@ contract Pool is Ownable, ReentrancyGuard, Token, Math {
         onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
+        require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
+        IFactory factory = IFactory(_factory);
+        require(
+            factory.minimumKacy() <= KassandraSafeMath.bdiv(_records[factory.kacyToken()].denorm, _totalWeight),
+            "ERR_MIN_KACY"
+        );
         _publicSwap = public_;
     }
 
@@ -100,6 +106,11 @@ contract Pool is Ownable, ReentrancyGuard, Token, Math {
     {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
+        IFactory factory = IFactory(_factory);
+        require(
+            factory.minimumKacy() <= KassandraSafeMath.bdiv(_records[factory.kacyToken()].denorm, _totalWeight),
+            "ERR_MIN_KACY"
+        );
 
         _finalized = true;
         _publicSwap = true;
@@ -137,6 +148,9 @@ contract Pool is Ownable, ReentrancyGuard, Token, Math {
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
+        // can't remove kacy
+        IFactory factory = IFactory(_factory);
+        require(token != factory.kacyToken(), "ERR_MIN_KACY");
 
         uint tokenBalance = _records[token].balance;
 

@@ -50,7 +50,9 @@ library SmartPoolManager {
         IConfigurableRightsPool self,
         IPool corePool,
         address token,
-        uint newWeight
+        uint newWeight,
+        uint minimumKacy,
+        address kacyToken
     )
         external
     {
@@ -95,6 +97,7 @@ library SmartPoolManager {
 
             // First get the tokens from this contract (Pool Controller) to msg.sender
             corePool.rebind(token, newBalance, newWeight);
+            require(minimumKacy <= corePool.getNormalizedWeight(kacyToken), "ERR_MIN_KACY");
 
             // Now with the tokens this contract can send them to msg.sender
             bool xfer = IERC20(token).transfer(msg.sender, deltaBalance);
@@ -130,6 +133,7 @@ library SmartPoolManager {
 
             // Now with the tokens this contract can bind them to the pool it controls
             corePool.rebind(token, currentBalance + deltaBalance, newWeight);
+            require(minimumKacy <= corePool.getNormalizedWeight(kacyToken), "ERR_MIN_KACY");
 
             self.mintPoolShareFromLib(poolShares);
             self.pushPoolShareFromLib(msg.sender, poolShares);
@@ -359,10 +363,28 @@ library SmartPoolManager {
      * @dev Will revert if invalid - overloaded to save space in the main contract
      * @param tokens - The prospective tokens to verify
      */
-    function verifyTokenCompliance(address[] calldata tokens) external {
+    function verifyTokenCompliance(
+        address[] calldata tokens,
+        uint[] calldata tokenBalances,
+        uint[] calldata tokenWeights,
+        uint minimumKacy,
+        address kacyToken
+    )
+        external
+    {
+        uint totalWeight = 0;
+        uint kacyWeight = 0;
+
         for (uint i = 0; i < tokens.length; i++) {
             verifyTokenComplianceInternal(tokens[i]);
+            totalWeight += tokenBalances[i];
+
+            if (tokens[i] == kacyToken) {
+                kacyWeight = tokenWeights[i];
+            }
         }
+
+        require(minimumKacy <= KassandraSafeMath.bdiv(kacyWeight, totalWeight), "ERR_MIN_KACY");
     }
 
     /**
@@ -380,7 +402,9 @@ library SmartPoolManager {
         uint[] calldata newWeights,
         uint startBlock,
         uint endBlock,
-        uint minimumWeightChangeBlockPeriod
+        uint minimumWeightChangeBlockPeriod,
+        uint minimumKacy,
+        address kacyToken
     )
         external
     {
@@ -408,6 +432,7 @@ library SmartPoolManager {
         require(newWeights.length == tokens.length, "ERR_START_WEIGHTS_MISMATCH");
 
         uint weightsSum = 0;
+        uint kacyDenorm = 0;
         gradualUpdate.startWeights = new uint[](tokens.length);
 
         // Check that endWeights are valid now to avoid reverting in a future pokeWeights call
@@ -418,10 +443,15 @@ library SmartPoolManager {
             require(newWeights[i] <= KassandraConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
             require(newWeights[i] >= KassandraConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
 
+            if (tokens[i] == kacyToken) {
+                kacyDenorm = newWeights[i];
+            }
+
             weightsSum += newWeights[i];
             gradualUpdate.startWeights[i] = corePool.getDenormalizedWeight(tokens[i]);
         }
         require(weightsSum <= KassandraConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
+        require(minimumKacy <= KassandraSafeMath.bdiv(kacyDenorm, weightsSum), "ERR_MIN_KACY");
 
         gradualUpdate.endBlock = endBlock;
         gradualUpdate.endWeights = newWeights;
