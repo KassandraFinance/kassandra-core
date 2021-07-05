@@ -152,7 +152,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         corePool.setPublicSwap(origSwapState);
     }
 
-    modifier canUpdateWeigths() {
+    modifier onlyUpdater() {
         require(msg.sender == weightUpdater, "ERR_NOT_UPDATER");
         _;
     }
@@ -366,7 +366,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         lock
         logs
         needsCorePool
-        canUpdateWeigths
+        onlyUpdater
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -409,7 +409,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         lock
         logs
         needsCorePool
-        canUpdateWeigths
+        onlyUpdater
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
