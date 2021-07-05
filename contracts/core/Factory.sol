@@ -36,17 +36,6 @@ contract Factory is Ownable {
     );
 
     /**
-     * @dev Alert of change of controller
-     *
-     * @param caller Address that changed controller
-     * @param controller Address of the new controller
-     */
-    event LogNewController(
-        address indexed caller,
-        address indexed controller
-    );
-
-    /**
      * @dev Create a new Pool
      *
      * @return pool Address of new Pool contract
