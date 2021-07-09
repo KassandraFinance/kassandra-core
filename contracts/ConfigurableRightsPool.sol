@@ -48,7 +48,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
 
     // State variables
 
-    address public weightUpdater;
+    address public strategyUpdater;
 
     IFactory public coreFactory;
     IPool public corePool;
@@ -152,8 +152,8 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         corePool.setPublicSwap(origSwapState);
     }
 
-    modifier onlyUpdater() {
-        require(msg.sender == weightUpdater, "ERR_NOT_UPDATER");
+    modifier onlyStrategy() {
+        require(msg.sender == strategyUpdater, "ERR_NOT_STRATEGY");
         _;
     }
 
@@ -288,18 +288,18 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Set a contract/address that will be allowed to update the weights
+     * @notice Set a contract/address that will be allowed to update weights and add/remove tokens
      * @dev If this smart pool has canUpdateWeigths enabled, not only can the
      *      controller update the weights but another smart contract with defined
      *      rules and formulas could update it.
      * @param updaterAddr contract address that will be able to update weights
      */
-    function setAllowedUpdater(address updaterAddr)
+    function setStrategist(address updaterAddr)
         external
         logs
         onlyOwner
     {
-        weightUpdater = updaterAddr;
+        strategyUpdater = updaterAddr;
     }
 
     /**
@@ -366,7 +366,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         lock
         logs
         needsCorePool
-        onlyUpdater
+        onlyStrategy
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -409,7 +409,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         lock
         logs
         needsCorePool
-        onlyUpdater
+        onlyStrategy
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -469,7 +469,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         lock
         logs
-        onlyOwner
+        onlyStrategy
         needsCorePool
         virtual
     {
@@ -499,7 +499,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         lock
         logs
-        onlyOwner
+        onlyStrategy
         needsCorePool
         virtual
     {
@@ -523,7 +523,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         external
         lock
         logs
-        onlyOwner
+        onlyStrategy
         needsCorePool
     {
         // It's possible to have remove rights without having add rights

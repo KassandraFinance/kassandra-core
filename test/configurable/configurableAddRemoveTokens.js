@@ -119,7 +119,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         await asd.approve(CRPPOOL_ADDRESS, MAX);
 
         await crpPool.createPool(toWei('100'), 10, 10);
-        await crpPool.setAllowedUpdater(admin, { from: admin });
+        await crpPool.setStrategist(admin, { from: admin });
     });
 
     it('crpPool should have correct rights set', async () => {
@@ -168,7 +168,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     it('Non Controller account should not be able to commitAddToken', async () => {
         await truffleAssert.reverts(
             crpPool.commitAddToken(WETH, toWei('20'), toWei('1.5'), { from: accounts[1] }),
-            'ERR_NOT_CONTROLLER',
+            'ERR_NOT_STRATEGY',
         );
     });
 
@@ -239,7 +239,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     it('Non Controller account should not be able to applyAddToken', async () => {
         await truffleAssert.reverts(
             crpPool.applyAddToken({ from: accounts[1] }),
-            'ERR_NOT_CONTROLLER',
+            'ERR_NOT_STRATEGY',
         );
     });
 
@@ -331,7 +331,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     it('Non Controller account should not be able to removeToken if token is bound', async () => {
         await truffleAssert.reverts(
             crpPool.removeToken(DAI, { from: accounts[1] }),
-            'ERR_NOT_CONTROLLER',
+            'ERR_NOT_STRATEGY',
         );
     });
 

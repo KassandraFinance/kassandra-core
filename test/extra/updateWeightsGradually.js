@@ -79,7 +79,7 @@ contract('updateWeightsGradually', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('100'), 10, 10);
-            await controller.setAllowedUpdater(admin);
+            await controller.setStrategist(admin);
         });
 
         describe('configurableWeights - update gradually', () => {

@@ -99,6 +99,7 @@ contract('Remove all tokens', async (accounts) => {
         await asd.approve(CRPPOOL_ADDRESS, MAX);
 
         await crpPool.createPool(toWei('100'));
+        await crpPool.setStrategist(admin);
     });
 
     it('crpPool should have correct rights set', async () => {

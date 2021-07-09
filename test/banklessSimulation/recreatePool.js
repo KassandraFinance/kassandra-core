@@ -113,7 +113,7 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         await crpPool.approve(user3, MAX);
 
         await crpPool.createPool(toWei(numPoolTokens), 0, 0);
-        await crpPool.setAllowedUpdater(admin);
+        await crpPool.setStrategist(admin);
     });
 
     it('crpPool should have correct rights set', async () => {

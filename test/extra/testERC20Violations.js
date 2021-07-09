@@ -116,6 +116,7 @@ contract('testERC20 violations', async (accounts) => {
         await tax.approve(CRPPOOL_ADDRESS, MAX);
 
         await crpPool.createPool(toWei('100'), 10, 10);
+        await crpPool.setStrategist(admin);
     });
 
     it('crpPool should have correct rights set', async () => {

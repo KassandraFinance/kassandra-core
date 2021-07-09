@@ -1,11 +1,11 @@
 /* eslint-env es6 */
+const truffleAssert = require('truffle-assertions');
+const { time } = require('@openzeppelin/test-helpers');
 
 const Factory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
-const { time } = require('@openzeppelin/test-helpers');
-const truffleAssert = require('truffle-assertions');
 
 contract('configurableWeightsUMA', async (accounts) => {
     const admin = accounts[0];
@@ -86,7 +86,7 @@ contract('configurableWeightsUMA', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('100'), 10, 10);
-            await controller.setAllowedUpdater(admin, { from: admin });
+            await controller.setStrategist(admin, { from: admin });
         });
 
         describe('configurableWeights only', () => {

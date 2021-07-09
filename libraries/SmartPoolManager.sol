@@ -284,8 +284,10 @@ library SmartPoolManager {
         uint totalSupply = self.totalSupply();
 
         // poolShares = totalSupply * newTokenWeight / totalWeight
-        uint poolShares = KassandraSafeMath.bdiv(KassandraSafeMath.bmul(totalSupply, newToken.denorm),
-                                                corePool.getTotalDenormalizedWeight());
+        uint poolShares = KassandraSafeMath.bdiv(
+            KassandraSafeMath.bmul(totalSupply, newToken.denorm),
+            corePool.getTotalDenormalizedWeight()
+        );
 
         // Clear this to allow adding more tokens
         newToken.isCommitted = false;

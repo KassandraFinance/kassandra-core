@@ -135,7 +135,7 @@ contract('configurableWeights', async (accounts) => {
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
-            await crpPool.setAllowedUpdater(admin);
+            await crpPool.setStrategist(admin);
             await coreFactory.setKacyToken(WETH);
         });
 
@@ -155,7 +155,7 @@ contract('configurableWeights', async (accounts) => {
         it('Non Updater account should not be able to change weights', async () => {
             await truffleAssert.reverts(
                 crpPool.updateWeight(WETH, toWei('3'), { from: accounts[1] }),
-                'ERR_NOT_UPDATER',
+                'ERR_NOT_STRATEGY',
             );
         });
 
@@ -311,7 +311,7 @@ contract('configurableWeights', async (accounts) => {
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
-            await crpPool.setAllowedUpdater(admin);
+            await crpPool.setStrategist(admin);
             await coreFactory.setKacyToken(WETH);
         });
 
@@ -503,7 +503,7 @@ contract('configurableWeights', async (accounts) => {
 
             await truffleAssert.reverts(
                 crpPool.updateWeightsGradually(endWeights, startBlock, endBlock, { from: accounts[1] }),
-                'ERR_NOT_UPDATER',
+                'ERR_NOT_STRATEGY',
             );
         });
 
