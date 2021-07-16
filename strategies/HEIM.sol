@@ -55,7 +55,7 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
         address airnodeAddress,
         address coreFactoryAddr,
         address crpPoolAddr,
-        string[] calldata tokensList
+        string[] memory tokensList
         )
         AirnodeClient(airnodeAddress)
     {
@@ -68,16 +68,16 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
     /**
      * @notice Update API3 request info
      *
-     * @param providerId - ID of data provider
-     * @param endpointId - ID of the endpoint for that provider
-     * @param requesterInd - ID of the requester (governance)
-     * @param designatedWallet - Wallet the governance allowed to use
+     * @param providerId_ - ID of data provider
+     * @param endpointId_ - ID of the endpoint for that provider
+     * @param requesterInd_ - ID of the requester (governance)
+     * @param designatedWallet_ - Wallet the governance allowed to use
      */
     function setApi3(
-        bytes32 providerId,
-        bytes32 endpointId,
-        uint256 requesterInd,
-        address designatedWallet
+        bytes32 providerId_,
+        bytes32 endpointId_,
+        uint256 requesterInd_,
+        address designatedWallet_
         )
         external
         onlyOwner
@@ -139,7 +139,7 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
      * @param denormalizedWeight - the desired token weight
      */
     function commitAddToken(
-        string tokenSymbol,
+        string calldata tokenSymbol,
         address token,
         uint balance,
         uint denormalizedWeight
@@ -147,7 +147,7 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
         external
         onlyOwner
     {
-        require(tokensListHeimdall.length < 14, "ERR_MAX_14_TOKENS");
+        require(tokensListHeimdall.length < 15, "ERR_MAX_14_TOKENS");
         _pause();
         crpPool.commitAddToken(token, balance, denormalizedWeight);
         tokensListHeimdall.push(tokenSymbol);
@@ -178,7 +178,7 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
      * @param token - token to remove
      */
     function removeToken(
-        string tokenSymbol,
+        string calldata tokenSymbol,
         address token
         )
         external
@@ -189,10 +189,10 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
 
         // similar logic to `corePool.unbind()` so the token locations match
         uint index = 200;
-        int last = tokensListHeimdall.length - 1;
+        uint last = tokensListHeimdall.length - 1;
 
-        for (int i = last; i > -1; i--) {
-            if (tokensListHeimdall[i] == tokenSymbol) {
+        for (uint i = 0; i < tokensListHeimdall.length; i++) {
+            if (keccak256(abi.encodePacked(tokensListHeimdall[i])) == keccak256(abi.encodePacked(tokenSymbol))) {
                 index = i;
             }
         }
@@ -250,35 +250,42 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
 
         // Heimdall API declares that the most significative bit is always 1 if the request works
         if (statusCode == 0 && data < 0) {
-            uint[14] memory scores;
+            uint tokensLen = tokensListHeimdall.length;
             uint totalScore;
+            uint[] memory scores;
+            address[] memory tokenAddresses = IPool(crpPool.corePool()).getCurrentTokens();
+            address kacyToken = coreFactory.kacyToken();
+            uint kacyIdx;
 
             // get social scores
-            for (uint i = 0; i < 14; i++) {
-                scores[i] = data >> (i * 18) & 0x3FFFF;
+            for (uint i = 0; i < tokensLen; i++) {
+                scores[i] = uint256(data >> (i * 18) & 0x3FFFF);
                 if (scores[i] == 0x3FFFF) {
                     emit RequestFailed(requestId, "ERR_SCORE_OVERFLOW");
                     return;
                 }
                 totalScore += scores[i];
+                if (kacyToken == tokenAddresses[i]) {
+                    kacyIdx = i;
+                }
             }
 
             uint minimumKacy = coreFactory.minimumKacy();
-            uint kacyPercentage = scores[kacy] * KassandraConstants.ONE / totalScore;
+            uint kacyPercentage = scores[kacyIdx] * KassandraConstants.ONE / totalScore;
             uint totalWeight = 40;
 
             if (kacyPercentage < minimumKacy) {
-                totalScore -= scores[kacy];
+                totalScore -= scores[kacyIdx];
                 totalWeight = 38;
             }
 
             // transform social scores to de-normalised weights for CRP pool
-            for (uint i = 0; i < 14; i++) {
+            for (uint i = 0; i < tokensLen; i++) {
                 scores[i] = (scores[i] * totalWeight * KassandraConstants.ONE) / totalScore;
             }
 
             if (kacyPercentage < minimumKacy) {
-                scores[kacy] = 2;
+                scores[kacyIdx] = 2;
             }
 
             // adjust weights before new update
@@ -294,20 +301,22 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
      * @notice Pauses the UpdateWeightsGradually and prevents API3 requests from being made
      */
     function _pause()
+        override
         internal
     {
         // update weights to current block
-        pokeWeights();
+        crpPool.pokeWeights();
         // get current weights
         IPool corePool = crpPool.corePool();
         address[] memory tokens = corePool.getCurrentTokens();
+        uint[] memory weights;
 
         for (uint i = 0; i < tokens.length; i++) {
-            tokens[i] = corePool.getDenormalizedWeight(tokens[i]);
+            weights[i] = corePool.getDenormalizedWeight(tokens[i]);
         }
 
         // pause the gradual weights update
-        crpPool.updateWeightsGradually(tokens, block.number, block.number);
+        crpPool.updateWeightsGradually(weights, block.number, block.number);
         // block API3 requests
         super._pause();
     }
@@ -320,11 +329,13 @@ contract StrategyHEIM is Ownable, Pausable, AirnodeClient {
     {
         bytes memory symbols;
 
-        for (uint i = 0; i < 13; i++) {
+        uint tokensLen = tokensListHeimdall.length - 1;
+
+        for (uint i = 0; i < tokensLen; i++) {
             symbols = abi.encodePacked(symbols, tokensListHeimdall[i], ",");
         }
 
-        symbols = abi.encodePacked(symbols, tokensListHeimdall[13]);
+        symbols = abi.encodePacked(symbols, tokensListHeimdall[tokensLen]);
         _parametersHeimdall = abi.encode(
             bytes32("1S"),
             bytes32("symbols"), symbols
