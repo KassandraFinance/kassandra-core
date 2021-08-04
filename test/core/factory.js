@@ -117,11 +117,11 @@ contract('Factory', async (accounts) => {
         });
 
         it('nonadmin cant change crpFactory', async () => {
-            await truffleAssert.reverts(factory.setFactory(admin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
+            await truffleAssert.reverts(factory.setCRPFactory(admin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
         });
 
         it('admin changes crpFactory', async () => {
-            await factory.setFactory(admin);
+            await factory.setCRPFactory(admin);
             const crpFactory = await factory.crpFactory();
             assert.equal(crpFactory, admin);
         });

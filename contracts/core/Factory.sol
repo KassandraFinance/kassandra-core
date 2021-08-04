@@ -25,10 +25,10 @@ contract Factory is Ownable {
     mapping(address=>bool) private _isPool;
 
     /**
-     * @dev Every new pool gets broadcast of its creation
+     * @notice Every new pool gets broadcast of its creation
      *
-     * @param caller Address that created a pool
-     * @param pool Address of new Pool
+     * @param caller - Address that created a pool
+     * @param pool - Address of new Pool
      */
     event LogNewPool(
         address indexed caller,
@@ -36,9 +36,9 @@ contract Factory is Ownable {
     );
 
     /**
-     * @dev Create a new Pool
+     * @notice Create a new Pool
      *
-     * @return pool Address of new Pool contract
+     * @return pool - Address of new Pool contract
      */
     function newPool()
         external
@@ -53,6 +53,13 @@ contract Factory is Ownable {
         pool.setController(msg.sender);
     }
 
+    /**
+     * @notice Collect fees generated from exits
+     *
+     * @dev When someone exists a pool the fees are collected here
+     *
+     * @param pool - The address of the Pool token that will be collected
+     */
     function collect(Pool pool)
         external onlyOwner
     {
@@ -61,18 +68,35 @@ contract Factory is Ownable {
         require(xfer, "ERR_ERC20_FAILED");
     }
 
-    function setFactory(address factoryAddr)
+    /**
+     * @notice Set address of CRPFactory
+     *
+     * @dev This address is used to allow CRPPools to create Pools as well
+     *
+     * @param factoryAddr - Address of the CRPFactory
+     */
+    function setCRPFactory(address factoryAddr)
         external onlyOwner
     {
         crpFactory = IcrpFactory(factoryAddr);
     }
 
+    /**
+     * @notice Set who's the $KACY token
+     *
+     * @param newAddr - Address of a valid EIP-20 token
+     */
     function setKacyToken(address newAddr)
         external onlyOwner
     {
         kacyToken = newAddr;
     }
 
+    /**
+     * @notice Set the minimum percentage of $KACY a pool needs
+     *
+     * @param percent - how much of $KACY a pool requires
+     */
     function setKacyMinimum(uint percent)
         external onlyOwner
     {
@@ -81,7 +105,7 @@ contract Factory is Ownable {
     }
 
     /**
-     * @dev Check if address is a Pool
+     * @notice Check if address is a Pool
      *
      * @param b Address for checking
      *
