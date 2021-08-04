@@ -130,6 +130,12 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         address indexed caller
     );
 
+    event NewStrategy(
+        address indexed newAddr,
+        address indexed pool,
+        address indexed caller
+    );
+
     // Modifiers
 
     modifier logs() {
@@ -299,6 +305,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         logs
         onlyOwner
     {
+        emit NewStrategy(updaterAddr, address(this), msg.sender);
         strategyUpdater = updaterAddr;
     }
 
