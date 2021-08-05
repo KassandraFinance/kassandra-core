@@ -98,26 +98,6 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
 
     // Event declarations
 
-    // Anonymous logger event - can only be filtered by contract address
-
-    event LogCall(
-        bytes4  indexed sig,
-        address indexed caller,
-        bytes data
-    ) anonymous;
-
-    event LogJoin(
-        address indexed caller,
-        address indexed tokenIn,
-        uint tokenAmountIn
-    );
-
-    event LogExit(
-        address indexed caller,
-        address indexed tokenOut,
-        uint tokenAmountOut
-    );
-
     event CapChanged(
         address indexed caller,
         uint oldCap,
@@ -134,6 +114,25 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
         address indexed newAddr,
         address indexed pool,
         address indexed caller
+    );
+
+    // Anonymous logger event - can only be filtered by contract address
+    event LogCall(
+        bytes4  indexed sig,
+        address indexed caller,
+        bytes data
+    ) anonymous;
+
+    event LogJoin(
+        address indexed caller,
+        address indexed tokenIn,
+        uint tokenAmountIn
+    );
+
+    event LogExit(
+        address indexed caller,
+        address indexed tokenOut,
+        uint tokenAmountOut
     );
 
     // Modifiers
@@ -298,7 +297,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
      * @dev If this smart pool has canUpdateWeigths enabled, not only can the
      *      controller update the weights but another smart contract with defined
      *      rules and formulas could update it.
-     * @param updaterAddr contract address that will be able to update weights
+     * @param updaterAddr - contract address that will be able to update weights
      */
     function setStrategist(address updaterAddr)
         external
