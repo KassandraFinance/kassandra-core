@@ -26,6 +26,28 @@ contract Factory is Ownable {
     mapping(address=>bool) private _isPool;
 
     /**
+     * @notice If the minimum amount of $KACY is changed
+     *
+     * @param caller - Address that changed minimum
+     * @param percentage - the new minimum percentage
+     */
+    event NewMinimum(
+        address indexed caller,
+        uint256 percentage
+    );
+
+    /**
+     * @notice If the token being enforced is changed
+     *
+     * @param caller - Address that created a pool
+     * @param token - Address of the new token that will be enforced
+     */
+    event NewTokenEnforced(
+        address indexed caller,
+        address token
+    );
+
+    /**
      * @notice Every new pool gets broadcast of its creation
      *
      * @param caller - Address that created a pool
@@ -92,6 +114,7 @@ contract Factory is Ownable {
         external onlyOwner
     {
         SmartPoolManager.verifyTokenCompliance(newAddr);
+        emit NewTokenEnforced(msg.sender, newAddr);
         kacyToken = newAddr;
     }
 
@@ -104,6 +127,7 @@ contract Factory is Ownable {
         external onlyOwner
     {
         require(percent < KassandraConstants.ONE, "ERR_NOT_VALID_PERCENTAGE");
+        emit NewMinimum(msg.sender, percent);
         minimumKacy = percent;
     }
 
