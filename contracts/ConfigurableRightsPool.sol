@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "./PCToken.sol";
+import "./Token.sol";
 
 import "./utils/ReentrancyGuard.sol";
 import "./utils/Ownable.sol";
@@ -15,7 +15,7 @@ import "../libraries/SafeApprove.sol";
 /**
  * @author Kassandra (and Balancer Labs)
  * @title Smart Pool with customizable features
- * @notice PCToken is the "Kassandra Smart Pool" token (transferred upon finalization)
+ * @notice SPToken is the "Kassandra Smart Pool" token (transferred upon finalization)
  * @dev Rights are defined as follows (index values into the array)
  *      0: canPauseSwapping - can setPublicSwap back to false after turning it on
  *                            by default, it is off on initialization and can only be turned on
@@ -30,7 +30,7 @@ import "../libraries/SafeApprove.sol";
  * To make this explicit, we could write "IPool(address(corePool)).function()" everywhere,
  *   instead of "corePool.function()".
  */
-contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
+contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
     using SafeApprove for IERC20;
 
     // Type declarations
@@ -180,7 +180,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
         PoolParams memory poolParams,
         RightsManager.Rights memory rightsStruct
     )
-        PCToken(poolParams.poolTokenSymbol, poolParams.poolTokenName)
+        SPToken(poolParams.poolTokenSymbol, poolParams.poolTokenName)
     {
         // We don't have a pool yet; check now or it will fail later (in order of likelihood to fail)
         // (and be unrecoverable if they don't have permission set to change it)
@@ -1041,7 +1041,7 @@ contract ConfigurableRightsPool is PCToken, Ownable, ReentrancyGuard {
     //
     function _mint(uint amount) internal override {
         super._mint(amount);
-        require(varTotalSupply <= tokenCap, "ERR_CAP_LIMIT_REACHED");
+        require(_totalSupply <= tokenCap, "ERR_CAP_LIMIT_REACHED");
     }
 
     function _mintPoolShare(uint amount) internal {

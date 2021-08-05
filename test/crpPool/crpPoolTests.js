@@ -450,7 +450,7 @@ contract('crpPoolTests', async (accounts) => {
         );
     });
 
-    describe('PCToken interactions', () => {
+    describe('SPToken interactions', () => {
         it('Token descriptors', async () => {
             const name = await crpPool.name();
             assert.equal(name, NAME); // 'Kassandra Smart Pool-' + SYMBOL);
@@ -483,7 +483,7 @@ contract('crpPoolTests', async (accounts) => {
         it('Token transfers', async () => {
             await truffleAssert.reverts(
                 crpPool.transferFrom(user2, admin, toWei('10')),
-                'ERR_PCTOKEN_BAD_CALLER',
+                'ERR_TOKEN_BAD_CALLER',
             );
 
             await crpPool.transferFrom(admin, user2, toWei('1'));

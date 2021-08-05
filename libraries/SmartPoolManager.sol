@@ -75,7 +75,7 @@ library SmartPoolManager {
 
         if (newWeight < currentWeight) {
             // This means the controller will withdraw tokens to keep price
-            // So they need to redeem PCTokens
+            // So they need to redeem SPTokens
             deltaWeight = currentWeight - newWeight;
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
@@ -108,7 +108,7 @@ library SmartPoolManager {
         }
         else {
             // This means the controller will deposit tokens to keep the price.
-            // They will be minted and given PCTokens
+            // They will be minted and given SPTokens
             deltaWeight = newWeight - currentWeight;
 
             require(

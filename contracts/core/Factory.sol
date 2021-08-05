@@ -59,21 +59,38 @@ contract Factory is Ownable {
     );
 
     /**
-     * @notice Create a new Pool
+     * @notice Create a new Pool with a custom name and symbol
+     *
+     * @param tokenSymbol - A short symbol for the token
+     * @param tokenName - A descriptive name for the token
      *
      * @return pool - Address of new Pool contract
      */
-    function newPool()
-        external
+    function newPool(string memory tokenSymbol, string memory tokenName)
+        public
         returns (Pool pool)
     {
         // only the governance or the CRP pools can request to create core pools
         require(msg.sender == this.getController() || crpFactory.isCrp(msg.sender), "ERR_NOT_CONTROLLER");
 
-        pool = new Pool();
+        pool = new Pool(tokenSymbol, tokenName);
         _isPool[address(pool)] = true;
         emit LogNewPool(msg.sender, address(pool));
         pool.setController(msg.sender);
+    }
+
+    /**
+     * @notice Create a new Pool with default name
+     *
+     * @dev This is what a CRPPool calls so it creates an internal unused token
+     *
+     * @return pool - Address of new Pool contract
+     */
+    function newPool() // solhint-disable-line ordering
+        external
+        returns (Pool pool)
+    {
+        return newPool("KIT", "Kassandra Internal Token");
     }
 
     /**

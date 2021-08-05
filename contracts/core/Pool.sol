@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "./Token.sol";
 import "./Math.sol";
+
+import "../Token.sol";
 
 import "../utils/Ownable.sol";
 import "../utils/ReentrancyGuard.sol";
@@ -12,7 +13,7 @@ import "../../interfaces/IFactory.sol";
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
-contract Pool is Ownable, ReentrancyGuard, Token, Math {
+contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private
@@ -63,7 +64,9 @@ contract Pool is Ownable, ReentrancyGuard, Token, Math {
         _;
     }
 
-    constructor() {
+    constructor(string memory tokenSymbol, string memory tokenName)
+        CPToken(tokenSymbol, tokenName)
+    {
         _factory = msg.sender;
         _swapFee = KassandraConstants.MIN_FEE;
         _publicSwap = false;
@@ -190,7 +193,7 @@ contract Pool is Ownable, ReentrancyGuard, Token, Math {
     {
         require(_finalized, "ERR_NOT_FINALIZED");
 
-        uint poolTotal = totalSupply();
+        uint poolTotal = _totalSupply;
         uint ratio = KassandraSafeMath.bdiv(poolAmountOut, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
@@ -215,7 +218,7 @@ contract Pool is Ownable, ReentrancyGuard, Token, Math {
     {
         require(_finalized, "ERR_NOT_FINALIZED");
 
-        uint poolTotal = totalSupply();
+        uint poolTotal = _totalSupply;
         uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
         uint pAiAfterExitFee = poolAmountIn - exitFee;
         uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal);

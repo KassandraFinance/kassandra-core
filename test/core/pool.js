@@ -593,13 +593,28 @@ contract('Pool', async (accounts) => {
     describe('Token interactions', () => {
         it('Token descriptors', async () => {
             const name = await pool.name();
-            assert.equal(name, 'Kassandra Pool Token');
+            assert.equal(name, 'Kassandra Internal Token');
 
             const symbol = await pool.symbol();
-            assert.equal(symbol, 'KPT');
+            assert.equal(symbol, 'KIT');
 
             const decimals = await pool.decimals();
             assert.equal(decimals, 18);
+        });
+
+        it('Token custom descriptors', async () => {
+            const customName = 'Kassandra Custom Token';
+            const customSymbol = 'KCT';
+
+            const poolAddress = await factory.newPool.call();
+            await factory.newPool(customSymbol, customName);
+            const customPool = await Pool.at(poolAddress);
+
+            const name = await customPool.name();
+            assert.equal(name, customName);
+
+            const symbol = await customPool.symbol();
+            assert.equal(symbol, customSymbol);
         });
 
         it('Token allowances', async () => {

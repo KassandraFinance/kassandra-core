@@ -7,27 +7,23 @@ import "../interfaces/IERC20.sol";
  * @author Kassandra (and Balancer Labs)
  * @title Highly opinionated token implementation
 */
-abstract contract PCToken is IERC20 {
+abstract contract TokenBase is IERC20 {
     // State variables
-    string public constant NAME = "Kassandra Smart Pool";
     uint8 private constant _DECIMALS = 18;
 
-    // No leading underscore per naming convention (non-private)
-    // Cannot call totalSupply (name conflict)
-    // solhint-disable-next-line private-vars-leading-underscore
-    uint internal varTotalSupply;
+    uint internal _totalSupply;
+    string private _symbol;
+    string private _name;
 
     mapping(address => uint) private _balance;
     mapping(address => mapping(address => uint)) private _allowance;
-
-    string private _symbol;
-    string private _name;
 
     // Function declarations
 
     /**
      * @notice Base token constructor
      * @param tokenSymbol - the token symbol
+     * @param tokenName - the token name
      */
     constructor (string memory tokenSymbol, string memory tokenName) {
         _symbol = tokenSymbol;
@@ -144,12 +140,11 @@ abstract contract PCToken is IERC20 {
      */
     function transferFrom(address sender, address recipient, uint amount) external override returns (bool) {
         require(recipient != address(0), "ERR_ZERO_ADDRESS");
-        require(msg.sender == sender || amount <= _allowance[sender][msg.sender], "ERR_PCTOKEN_BAD_CALLER");
-
-        _move(sender, recipient, amount);
-
         // memoize for gas optimization
         uint oldAllowance = _allowance[sender][msg.sender];
+        require(msg.sender == sender || amount <= oldAllowance, "ERR_TOKEN_BAD_CALLER");
+
+        _move(sender, recipient, amount);
 
         // If the sender is not the caller, adjust the allowance by the amount transferred
         if (msg.sender != sender && oldAllowance != type(uint).max) {
@@ -169,7 +164,7 @@ abstract contract PCToken is IERC20 {
      * @return uint - total number of tokens in existence
      */
     function totalSupply() external view override returns (uint) {
-        return varTotalSupply;
+        return _totalSupply;
     }
 
     // Public functions
@@ -216,7 +211,7 @@ abstract contract PCToken is IERC20 {
     // Emit a transfer amount from the null address to this contract
     function _mint(uint amount) internal virtual {
         _balance[address(this)] += amount;
-        varTotalSupply += amount;
+        _totalSupply += amount;
 
         emit Transfer(address(0), address(this), amount);
     }
@@ -229,7 +224,7 @@ abstract contract PCToken is IERC20 {
         // require(_balance[address(this)] >= amount, "ERR_INSUFFICIENT_BAL");
 
         _balance[address(this)] -= amount;
-        varTotalSupply -= amount;
+        _totalSupply -= amount;
 
         emit Transfer(address(this), address(0), amount);
     }
@@ -258,4 +253,24 @@ abstract contract PCToken is IERC20 {
     function _pull(address sender, uint amount) internal {
         _move(sender, address(this), amount);
     }
+}
+
+/**
+ * @title Smart Pool Token
+*/
+abstract contract SPToken is TokenBase {
+    string public constant NAME = "Kassandra Smart Pool";
+
+    constructor (string memory tokenSymbol, string memory tokenName)
+        TokenBase(tokenSymbol, tokenName) {}
+}
+
+/**
+ * @title Core Pool Token
+*/
+abstract contract CPToken is TokenBase {
+    string public constant NAME = "Kassandra Core Pool";
+
+    constructor (string memory tokenSymbol, string memory tokenName)
+        TokenBase(tokenSymbol, tokenName) {}
 }
