@@ -11,6 +11,7 @@ import "../utils/Ownable.sol";
 import "../../interfaces/IcrpFactory.sol";
 
 import "../../libraries/KassandraConstants.sol";
+import "../../libraries/SmartPoolManager.sol";
 
 /**
  * @title Pool Factory
@@ -78,6 +79,7 @@ contract Factory is Ownable {
     function setCRPFactory(address factoryAddr)
         external onlyOwner
     {
+        IcrpFactory(factoryAddr).isCrp(address(0));
         crpFactory = IcrpFactory(factoryAddr);
     }
 
@@ -89,6 +91,7 @@ contract Factory is Ownable {
     function setKacyToken(address newAddr)
         external onlyOwner
     {
+        SmartPoolManager.verifyTokenCompliance(newAddr);
         kacyToken = newAddr;
     }
 

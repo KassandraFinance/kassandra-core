@@ -1,5 +1,6 @@
 const truffleAssert = require('truffle-assertions');
 
+const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
 const KassandraConstants = artifacts.require('KassandraConstantsMock');
 const Pool = artifacts.require('Pool');
@@ -102,6 +103,12 @@ contract('Factory', async (accounts) => {
             assert.equal(kacy, WETH);
         });
 
+        it('$KACY address must be valid token', async () => {
+            await truffleAssert.reverts(
+                factory.setKacyToken(admin),
+            );
+        });
+
         it('nonadmin cant change minimum $KACY', async () => {
             await truffleAssert.reverts(
                 factory.setKacyMinimum(toBN(20).mul(one).div(toBN(100)), { from: nonAdmin }),
@@ -116,14 +123,27 @@ contract('Factory', async (accounts) => {
             assert.equal(minimumKacy.toString(), minimum.toString());
         });
 
+        it('minimum $KACY should be less than 100%', async () => {
+            await truffleAssert.reverts(
+                factory.setKacyMinimum(toWei('1')), 'ERR_NOT_VALID_PERCENTAGE',
+            );
+        });
+
         it('nonadmin cant change crpFactory', async () => {
             await truffleAssert.reverts(factory.setCRPFactory(admin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
         });
 
         it('admin changes crpFactory', async () => {
-            await factory.setCRPFactory(admin);
+            const newCRP = await CRPFactory.new();
+            await factory.setCRPFactory(newCRP.address);
             const crpFactory = await factory.crpFactory();
-            assert.equal(crpFactory, admin);
+            assert.equal(crpFactory, newCRP.address);
+        });
+
+        it('crpFactory should be valid', async () => {
+            await truffleAssert.reverts(
+                factory.setCRPFactory(admin),
+            );
         });
 
         it('nonadmin cant set controller address', async () => {
