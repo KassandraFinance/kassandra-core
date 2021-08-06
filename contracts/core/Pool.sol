@@ -35,6 +35,12 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     mapping(address=>Record) private _records;
     uint private _totalWeight;
 
+    event NewSwapFee(
+        address indexed pool,
+        address indexed caller,
+        uint256 newFee
+    );
+
     event LogSwap(
         address indexed caller,
         address indexed tokenIn,
@@ -84,6 +90,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(swapFee >= KassandraConstants.MIN_FEE, "ERR_MIN_FEE");
         require(swapFee <= KassandraConstants.MAX_FEE, "ERR_MAX_FEE");
+        emit NewSwapFee(address(this), msg.sender, swapFee);
         _swapFee = swapFee;
     }
 
