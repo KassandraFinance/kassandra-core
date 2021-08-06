@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
+import "../../interfaces/IOwnable.sol";
+
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -13,7 +15,7 @@ pragma solidity ^0.8.0;
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-abstract contract Ownable {
+abstract contract Ownable is IOwnable {
     // State variables
 
     address private _owner;
@@ -60,7 +62,7 @@ abstract contract Ownable {
      * @dev external for gas optimization
      * @return address - of the owner (AKA controller)
      */
-    function getController() external view returns (address) {
+    function getController() external view override returns (address) {
         return _owner;
     }
 }

@@ -8,6 +8,8 @@ import "./Pool.sol";
 
 import "../utils/Ownable.sol";
 
+import "../../interfaces/IERC20.sol";
+import "../../interfaces/IFactory.sol";
 import "../../interfaces/IcrpFactory.sol";
 
 import "../../libraries/KassandraConstants.sol";
@@ -16,12 +18,12 @@ import "../../libraries/SmartPoolManager.sol";
 /**
  * @title Pool Factory
  */
-contract Factory is Ownable {
+contract Factory is IFactoryDef, Ownable {
     // the CRPFactory contract allowed to create pools
     IcrpFactory public crpFactory;
     // $KACY enforcement
-    address public kacyToken;
-    uint public minimumKacy;
+    address public override kacyToken;
+    uint public override minimumKacy;
     // map of all pools
     mapping(address=>bool) private _isPool;
 

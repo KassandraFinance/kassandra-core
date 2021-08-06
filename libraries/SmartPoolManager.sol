@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IERC20.sol";
 import "../interfaces/IConfigurableRightsPool.sol";
-import "../interfaces/IFactory.sol";
+import "../interfaces/IPool.sol";
+
+import "./KassandraConstants.sol";
 import "./KassandraSafeMath.sol";
 import "./SafeApprove.sol";
 

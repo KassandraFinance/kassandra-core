@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
+import "../../interfaces/IMath.sol";
+
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
-abstract contract Math {
+abstract contract Math is IMath {
     using KassandraSafeMath for uint;
 
     /**********************************************************************************************
@@ -113,7 +115,7 @@ abstract contract Math {
         uint tokenAmountIn,
         uint swapFee
     )
-        public pure
+        public pure override
         returns (uint)
     {
         // Charge the trading fee for the proportion of tokenAi
@@ -151,7 +153,7 @@ abstract contract Math {
         uint poolAmountOut,
         uint swapFee
     )
-        public pure
+        public pure override
         returns (uint)
     {
         uint normalizedWeight = KassandraSafeMath.bdiv(tokenWeightIn, totalWeight);
@@ -189,7 +191,7 @@ abstract contract Math {
         uint poolAmountIn,
         uint swapFee
     )
-        public pure
+        public pure override
         returns (uint)
     {
         uint normalizedWeight = KassandraSafeMath.bdiv(tokenWeightOut, totalWeight);
@@ -236,7 +238,7 @@ abstract contract Math {
         uint tokenAmountOut,
         uint swapFee
     )
-        public pure
+        public pure override
         returns (uint poolAmountIn)
     {
 

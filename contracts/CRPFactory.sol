@@ -3,6 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./ConfigurableRightsPool.sol";
 
+import "./utils/Ownable.sol";
+
+import "../interfaces/IcrpFactory.sol";
+
+import { RightsManager } from "../libraries/RightsManager.sol";
+import "../libraries/KassandraConstants.sol";
+
 /**
  * @author Kassandra (and Balancer Labs)
  * @title Configurable Rights Pool Factory - create parameterized smart pools
@@ -17,7 +24,7 @@ import "./ConfigurableRightsPool.sol";
  *                           (enables private pools with more than one LP)
  *      5: canChangeCap - can change the KSP cap (max # of pool tokens)
  */
-contract CRPFactory is Ownable {
+contract CRPFactory is IcrpFactory, Ownable {
     // State variables
 
     // Keep a list of all Configurable Rights Pools
@@ -74,7 +81,7 @@ contract CRPFactory is Ownable {
      * @return boolean indicating whether it is a CRP
      */
     function isCrp(address addr)
-        external view
+        external view override
         returns (bool)
     {
         return _isCrp[addr];

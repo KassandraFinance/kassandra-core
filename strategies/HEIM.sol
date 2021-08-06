@@ -8,6 +8,7 @@ import "../contracts/utils/Ownable.sol";
 
 import "../interfaces/IConfigurableRightsPool.sol";
 import "../interfaces/IFactory.sol";
+import "../interfaces/IPool.sol";
 
 import "../libraries/KassandraConstants.sol";
 // import "../libraries/KassandraSafeMath.sol";

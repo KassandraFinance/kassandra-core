@@ -3,14 +3,18 @@ pragma solidity ^0.8.0;
 
 import "./Token.sol";
 
-import "./utils/ReentrancyGuard.sol";
 import "./utils/Ownable.sol";
+import "./utils/ReentrancyGuard.sol";
 
+import "../interfaces/IERC20.sol";
+import "../interfaces/IConfigurableRightsPool.sol";
 import "../interfaces/IFactory.sol";
+import "../interfaces/IPool.sol";
 
 import { RightsManager } from "../libraries/RightsManager.sol";
-import "../libraries/SmartPoolManager.sol";
+import "../libraries/KassandraConstants.sol";
 import "../libraries/SafeApprove.sol";
+import "../libraries/SmartPoolManager.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)
@@ -30,7 +34,7 @@ import "../libraries/SafeApprove.sol";
  * To make this explicit, we could write "IPool(address(corePool)).function()" everywhere,
  *   instead of "corePool.function()".
  */
-contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
+contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable, ReentrancyGuard {
     using SafeApprove for IERC20;
 
     // Type declarations
@@ -51,7 +55,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
     address public strategyUpdater;
 
     IFactory public coreFactory;
-    IPool public corePool;
+    IPool public override corePool;
 
     // Struct holding the rights configuration
     RightsManager.Rights public rights;
@@ -369,6 +373,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
     */
     function updateWeight(address token, uint newWeight)
         external
+        override
         lock
         logs
         needsCorePool
@@ -412,6 +417,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
         uint endBlock
     )
         external
+        override
         lock
         logs
         needsCorePool
@@ -443,6 +449,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
     */
     function pokeWeights()
         external
+        override
         lock
         logs
         needsCorePool
@@ -473,6 +480,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
         uint denormalizedWeight
     )
         external
+        override
         lock
         logs
         onlyStrategy
@@ -503,6 +511,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
      */
     function applyAddToken()
         external
+        override
         lock
         logs
         onlyStrategy
@@ -527,6 +536,7 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
      */
     function removeToken(address token)
         external
+        override
         lock
         logs
         onlyStrategy
@@ -922,25 +932,25 @@ contract ConfigurableRightsPool is SPToken, Ownable, ReentrancyGuard {
     // "Public" versions that can safely be called from SmartPoolManager
     // Allows only the contract itself to call them (not the controller or any external account)
 
-    function mintPoolShareFromLib(uint amount) public {
+    function mintPoolShareFromLib(uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _mint(amount);
     }
 
-    function pushPoolShareFromLib(address to, uint amount) public {
+    function pushPoolShareFromLib(address to, uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _push(to, amount);
     }
 
-    function pullPoolShareFromLib(address from, uint amount) public  {
+    function pullPoolShareFromLib(address from, uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _pull(from, amount);
     }
 
-    function burnPoolShareFromLib(uint amount) public  {
+    function burnPoolShareFromLib(uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _burn(amount);

@@ -8,12 +8,14 @@ import "../Token.sol";
 import "../utils/Ownable.sol";
 import "../utils/ReentrancyGuard.sol";
 
+import "../../interfaces/IERC20.sol";
 import "../../interfaces/IFactory.sol";
+import "../../interfaces/IPool.sol";
 
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
-contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
+contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private
@@ -74,7 +76,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function setSwapFee(uint swapFee)
-        external
+        external override
         lock
         _logs_
         onlyOwner
@@ -86,7 +88,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function setPublicSwap(bool public_)
-        external
+        external override
         lock
         _logs_
         onlyOwner
@@ -123,7 +125,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function bind(address token, uint balance, uint denorm)
-        external
+        external override
         _logs_
         onlyOwner
         // lock  Bind does not lock because it jumps to `rebind`, which does
@@ -144,7 +146,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function unbind(address token)
-        external
+        external override
         lock
         _logs_
         onlyOwner
@@ -515,7 +517,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function isPublicSwap()
-        external view
+        external view override
         returns (bool)
     {
         return _publicSwap;
@@ -529,7 +531,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function isBound(address t)
-        external view
+        external view override
         returns (bool)
     {
         return _records[t].bound;
@@ -543,7 +545,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function getCurrentTokens()
-        external view viewlock
+        external view override viewlock
         returns (address[] memory tokens)
     {
         return _tokens;
@@ -559,7 +561,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function getDenormalizedWeight(address token)
-        external view
+        external view override
         viewlock
         returns (uint)
     {
@@ -569,7 +571,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function getTotalDenormalizedWeight()
-        external view
+        external view override
         viewlock
         returns (uint)
     {
@@ -577,7 +579,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function getNormalizedWeight(address token)
-        external view
+        external view override
         viewlock
         returns (uint)
     {
@@ -587,7 +589,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function getBalance(address token)
-        external view
+        external view override
         viewlock
         returns (uint)
     {
@@ -596,7 +598,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function getSwapFee()
-        external view
+        external view override
         viewlock
         returns (uint)
     {
@@ -628,7 +630,7 @@ contract Pool is Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     function rebind(address token, uint balance, uint denorm)
-        public
+        public override
         lock
         _logs_
         onlyOwner
