@@ -308,6 +308,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         logs
         onlyOwner
     {
+        require(updaterAddr != address(0), "ERR_ZERO_ADDRESS");
         emit NewStrategy(updaterAddr, address(this), msg.sender);
         strategyUpdater = updaterAddr;
     }
