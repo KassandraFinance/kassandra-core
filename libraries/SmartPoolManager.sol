@@ -313,7 +313,7 @@ library SmartPoolManager {
         corePool.bind(newToken.addr, newToken.balance, newToken.denorm);
 
         self.mintPoolShareFromLib(poolShares);
-        self.pushPoolShareFromLib(msg.sender, poolShares);
+        self.pushPoolShareFromLib(self.getController(), poolShares);
     }
 
     /**
