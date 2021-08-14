@@ -121,7 +121,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     /**
      * @dev Logs a call to a function, only needed for external and public function
      */
-    modifier _logs_() {
+    modifier logs() {
         emit LogCall(msg.sig, msg.sender, msg.data);
         _;
     }
@@ -149,7 +149,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function setSwapFee(uint swapFee)
         external override
         lock
-        _logs_
+        logs
         onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -167,7 +167,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function setPublicSwap(bool public_)
         external override
         lock
-        _logs_
+        logs
         onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -186,7 +186,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function finalize()
         external
         lock
-        _logs_
+        logs
         onlyOwner
     {
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -215,7 +215,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
      */
     function bind(address token, uint balance, uint denorm)
         external override
-        _logs_
+        logs
         onlyOwner
         // lock  see explanation above
     {
@@ -242,7 +242,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function unbind(address token)
         external override
         lock
-        _logs_
+        logs
         onlyOwner
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
@@ -280,7 +280,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function gulp(address token)
         external
         lock
-        _logs_
+        logs
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
         _records[token].balance = IERC20(token).balanceOf(address(this));
@@ -297,7 +297,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
         lock
-        _logs_
+        logs
     {
         require(_finalized, "ERR_NOT_FINALIZED");
 
@@ -330,7 +330,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
         external
         lock
-        _logs_
+        logs
     {
         require(_finalized, "ERR_NOT_FINALIZED");
 
@@ -379,7 +379,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     )
         external
         lock
-        _logs_
+        logs
         returns (uint tokenAmountOut, uint spotPriceAfter)
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
@@ -455,7 +455,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     )
         external
         lock
-        _logs_
+        logs
         returns (uint tokenAmountIn, uint spotPriceAfter)
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
@@ -523,7 +523,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function joinswapExternAmountIn(address tokenIn, uint tokenAmountIn, uint minPoolAmountOut)
         external
         lock
-        _logs_
+        logs
         returns (uint poolAmountOut)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -570,7 +570,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function joinswapPoolAmountOut(address tokenIn, uint poolAmountOut, uint maxAmountIn)
         external
         lock
-        _logs_
+        logs
         returns (uint tokenAmountIn)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -619,7 +619,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function exitswapPoolAmountIn(address tokenOut, uint poolAmountIn, uint minAmountOut)
         external
         lock
-        _logs_
+        logs
         returns (uint tokenAmountOut)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -670,7 +670,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function exitswapExternAmountOut(address tokenOut, uint tokenAmountOut, uint maxPoolAmountIn)
         external
         lock
-        _logs_
+        logs
         returns (uint poolAmountIn)
     {
         require(_finalized, "ERR_NOT_FINALIZED");
@@ -928,7 +928,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     function rebind(address token, uint balance, uint denorm)
         public override
         lock
-        _logs_
+        logs
         onlyOwner
     {
         require(_records[token].bound, "ERR_NOT_BOUND");
