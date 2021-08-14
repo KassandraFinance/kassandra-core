@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 /**
  * @author Kassandra (and Balancer Labs)
+ *
  * @title Manage Configurable Rights for the smart pool
+ *
  *      canPauseSwapping - can setPublicSwap back to false after turning it on
  *                         by default, it is off on initialization and can only be turned on
  *      canChangeSwapFee - can setSwapFee after initialization (by default, it is fixed at create time)
@@ -13,9 +15,7 @@ pragma solidity ^0.8.0;
  *      canChangeCap - can change the KSP cap (max # of pool tokens)
  */
 library RightsManager {
-
-    // Type declarations
-
+    // possible permissions
     enum Permissions {
         PAUSE_SWAPPING,
         CHANGE_SWAP_FEE,
@@ -25,6 +25,7 @@ library RightsManager {
         CHANGE_CAP
     }
 
+    // for holding all possible permissions in a compact way
     struct Rights {
         bool canPauseSwapping;
         bool canChangeSwapFee;
@@ -34,7 +35,7 @@ library RightsManager {
         bool canChangeCap;
     }
 
-    // State variables (can only be constants in a library)
+    // Default state variables (can only be constants in a library)
     bool public constant DEFAULT_CAN_PAUSE_SWAPPING = false;
     bool public constant DEFAULT_CAN_CHANGE_SWAP_FEE = true;
     bool public constant DEFAULT_CAN_CHANGE_WEIGHTS = true;
@@ -42,12 +43,13 @@ library RightsManager {
     bool public constant DEFAULT_CAN_WHITELIST_LPS = false;
     bool public constant DEFAULT_CAN_CHANGE_CAP = false;
 
-    // Functions
-
     /**
      * @notice create a struct from an array (or return defaults)
+     *
      * @dev If you pass an empty array, it will construct it using the defaults
-     * @param a - array input
+     *
+     * @param a - Boolean array input
+     *
      * @return Rights struct
      */
     function constructRights(bool[] calldata a) external pure returns (Rights memory) {
@@ -68,9 +70,12 @@ library RightsManager {
 
     /**
      * @notice Convert rights struct to an array (e.g., for events, GUI)
-     * @dev avoids multiple calls to hasPermission
-     * @param rights - the rights struct to convert
-     * @return boolean array containing the rights settings
+     *
+     * @dev Avoids multiple calls to hasPermission
+     *
+     * @param rights - The Rights struct to convert
+     *
+     * @return Boolean array containing the Rights settings
      */
     function convertRights(Rights calldata rights) external pure returns (bool[] memory) {
         bool[] memory result = new bool[](6);
@@ -90,8 +95,11 @@ library RightsManager {
 
     /**
      * @notice Externally check permissions using the Enum
+     *
      * @param self - Rights struct containing the permissions
+     *
      * @param permission - The permission to check
+     *
      * @return Boolean true if it has the permission
      */
     function hasPermission(Rights calldata self, Permissions permission) external pure returns (bool) {

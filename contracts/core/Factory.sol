@@ -16,19 +16,20 @@ import "../../libraries/KassandraConstants.sol";
 import "../../libraries/SmartPoolManager.sol";
 
 /**
- * @title Pool Factory
+ * @title Core Pool Factory
  */
 contract Factory is IFactoryDef, Ownable {
-    // the CRPFactory contract allowed to create pools
+    /// CRPFactory contract allowed to create pools
     IcrpFactory public crpFactory;
-    // $KACY enforcement
+    /// Address of the enforced $KACY token
     address public override kacyToken;
+    /// Minimum amount of $KACY required by the pools
     uint public override minimumKacy;
-    // map of all pools
+    // map of all core pools
     mapping(address=>bool) private _isPool;
 
     /**
-     * @notice If the minimum amount of $KACY is changed
+     * @notice Emitted when the minimum amount of $KACY is changed
      *
      * @param caller - Address that changed minimum
      * @param percentage - the new minimum percentage
@@ -39,7 +40,7 @@ contract Factory is IFactoryDef, Ownable {
     );
 
     /**
-     * @notice If the token being enforced is changed
+     * @notice Emitted when the token being enforced is changed
      *
      * @param caller - Address that created a pool
      * @param token - Address of the new token that will be enforced
@@ -96,11 +97,11 @@ contract Factory is IFactoryDef, Ownable {
     }
 
     /**
-     * @notice Collect fees generated from exits
+     * @notice Collect fees generated from exit fees
      *
      * @dev When someone exists a pool the fees are collected here
      *
-     * @param pool - The address of the Pool token that will be collected
+     * @param pool - Address of the Pool token that will be collected
      */
     function collect(Pool pool)
         external onlyOwner
@@ -151,11 +152,11 @@ contract Factory is IFactoryDef, Ownable {
     }
 
     /**
-     * @notice Check if address is a Pool
+     * @notice Check if address is a core Pool
      *
-     * @param b Address for checking
+     * @param b - Address for checking
      *
-     * @return Boolean telling if address is a pool
+     * @return Boolean telling if address is a core pool
      */
     function isPool(address b)
         external view

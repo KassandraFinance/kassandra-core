@@ -3,6 +3,11 @@ pragma solidity ^0.8.0;
 
 import "./IMath.sol";
 
+/**
+ * @title Core pool definition
+ *
+ * @dev Only contains the definitions of the Pool.sol contract and no parent classes
+ */
 interface IPoolDef {
     function setSwapFee(uint swapFee) external;
     function setPublicSwap(bool publicSwap) external;
@@ -20,4 +25,9 @@ interface IPoolDef {
     function getSwapFee() external view returns (uint);
 }
 
+/**
+ * @title Core pool interface for external contracts
+ *
+ * @dev Joins the Core pool definition and the Math abstract contract
+ */
 interface IPool is IPoolDef, IMath {}

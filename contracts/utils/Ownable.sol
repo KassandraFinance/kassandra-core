@@ -16,15 +16,19 @@ import "../../interfaces/IOwnable.sol";
  * the owner.
  */
 abstract contract Ownable is IOwnable {
-    // State variables
-
+    // owner of the contract
     address private _owner;
 
-    // Event declarations
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    // Modifiers
+    /**
+     * @notice Emitted when the owner is changed
+     *
+     * @param previousOwner - The previous owner of the contract
+     * @param newOwner - The new owner of the contract
+     */
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     /**
      * @dev Throws if called by any account other than the owner.
@@ -33,8 +37,6 @@ abstract contract Ownable is IOwnable {
         require(_owner == msg.sender, "ERR_NOT_CONTROLLER");
         _;
     }
-
-    // Function declarations
 
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
@@ -46,8 +48,10 @@ abstract contract Ownable is IOwnable {
     /**
      * @notice Transfers ownership of the contract to a new account (`newOwner`).
      *         Can only be called by the current owner
+     *
      * @dev external for gas optimization
-     * @param newOwner - address of new owner
+     *
+     * @param newOwner - Address of new owner
      */
     function setController(address newOwner) external onlyOwner {
         require(newOwner != address(0), "ERR_ZERO_ADDRESS");
@@ -59,7 +63,9 @@ abstract contract Ownable is IOwnable {
 
     /**
      * @notice Returns the address of the current owner
+     *
      * @dev external for gas optimization
+     *
      * @return address - of the owner (AKA controller)
      */
     function getController() external view override returns (address) {

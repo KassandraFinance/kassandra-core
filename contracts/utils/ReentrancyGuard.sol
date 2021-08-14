@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 
 /**
  * @author Kassandra (and Balancer Labs and OpenZeppelin)
+ *
  * @title Protect against reentrant calls (and also selectively protect view functions)
+ *
  * @dev Contract module that helps prevent reentrant calls to a function.
  *
  * Inheriting from `ReentrancyGuard` will make the {_lock_} modifier
@@ -33,6 +35,7 @@ abstract contract ReentrancyGuard {
     uint private constant _NOT_ENTERED = 1;
     uint private constant _ENTERED = 2;
 
+    // current status of entrancy
     uint private _status;
 
     /**
@@ -63,6 +66,9 @@ abstract contract ReentrancyGuard {
         _;
     }
 
+    /**
+     * @dev Initializes the contract with not entered state
+     */
     constructor () {
         _status = _NOT_ENTERED;
     }

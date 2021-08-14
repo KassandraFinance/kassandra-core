@@ -1,8 +1,8 @@
 module.exports = {
   port: 8555,
+  testrpcOptions: "-p 8555 -d",
   skipFiles: [
     'Migrations.sol',
     'test'
   ],
-  testrpcOptions: "-p 8555 -d"
 };

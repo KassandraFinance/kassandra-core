@@ -6,18 +6,30 @@ import "../../interfaces/IMath.sol";
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
+/**
+ * @title Math functions for price, balance and swap calculations
+ */
 abstract contract Math is IMath {
-    using KassandraSafeMath for uint;
-
-    /**********************************************************************************************
-    // calcSpotPrice                                                                             //
-    // sP = spotPrice                                                                            //
-    // bI = tokenBalanceIn                ( bI / wI )         1                                  //
-    // bO = tokenBalanceOut         sP =  -----------  *  ----------                             //
-    // wI = tokenWeightIn                 ( bO / wO )     ( 1 - sF )                             //
-    // wO = tokenWeightOut                                                                       //
-    // sF = swapFee                                                                              //
-    **********************************************************************************************/
+    /**
+     * @notice Get the spot price between two assets
+     *
+     * @param tokenBalanceIn - Balance of the swapped-in token inside the Pool
+     * @param tokenWeightIn - Denormalized weight of the swapped-in token inside the Pool
+     * @param tokenBalanceOut - Balance of the swapped-out token inside the Pool
+     * @param tokenWeightOut - Denormalized weight of the swapped-out token inside the Pool
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Spot price as amount of swapped-in for every swapped-out
+     *
+     ***********************************************************************************************
+     // calcSpotPrice                                                                             //
+     // sP = spotPrice                                                                            //
+     // bI = tokenBalanceIn                ( bI / wI )         1                                  //
+     // bO = tokenBalanceOut         sP =  -----------  *  ----------                             //
+     // wI = tokenWeightIn                 ( bO / wO )     ( 1 - sF )                             //
+     // wO = tokenWeightOut                                                                       //
+     // sF = swapFee                                                                              //
+     **********************************************************************************************/
     function calcSpotPrice(
         uint tokenBalanceIn,
         uint tokenWeightIn,
@@ -35,16 +47,28 @@ abstract contract Math is IMath {
         return KassandraSafeMath.bmul(ratio, scale);
     }
 
-    /**********************************************************************************************
-    // calcOutGivenIn                                                                            //
-    // aO = tokenAmountOut                                                                       //
-    // bO = tokenBalanceOut                                                                      //
-    // bI = tokenBalanceIn              /      /            bI             \    (wI / wO) \      //
-    // aI = tokenAmountIn    aO = bO * |  1 - | --------------------------  | ^            |     //
-    // wI = tokenWeightIn               \      \ ( bI + ( aI * ( 1 - sF )) /              /      //
-    // wO = tokenWeightOut                                                                       //
-    // sF = swapFee                                                                              //
-    **********************************************************************************************/
+    /**
+     * @notice Get amount received when sending an exact amount on swap
+     *
+     * @param tokenBalanceIn - Balance of the swapped-in token inside the Pool
+     * @param tokenWeightIn - Denormalized weight of the swapped-in token inside the Pool
+     * @param tokenBalanceOut - Balance of the swapped-out token inside the Pool
+     * @param tokenWeightOut - Denormalized weight of the swapped-out token inside the Pool
+     * @param tokenAmountIn - Amount of swapped-in token that will be sent
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Amount of swapped-out token you'll receive
+     *
+     ***********************************************************************************************
+     // calcOutGivenIn                                                                            //
+     // aO = tokenAmountOut                                                                       //
+     // bO = tokenBalanceOut                                                                      //
+     // bI = tokenBalanceIn              /      /            bI             \    (wI / wO) \      //
+     // aI = tokenAmountIn    aO = bO * |  1 - | --------------------------  | ^            |     //
+     // wI = tokenWeightIn               \      \ ( bI + ( aI * ( 1 - sF )) /              /      //
+     // wO = tokenWeightOut                                                                       //
+     // sF = swapFee                                                                              //
+     **********************************************************************************************/
     function calcOutGivenIn(
         uint tokenBalanceIn,
         uint tokenWeightIn,
@@ -65,16 +89,28 @@ abstract contract Math is IMath {
         return KassandraSafeMath.bmul(tokenBalanceOut, bar);
     }
 
-    /**********************************************************************************************
-    // calcInGivenOut                                                                            //
-    // aI = tokenAmountIn                                                                        //
-    // bO = tokenBalanceOut               /  /     bO      \    (wO / wI)      \                 //
-    // bI = tokenBalanceIn          bI * |  | ------------  | ^            - 1  |                //
-    // aO = tokenAmountOut    aI =        \  \ ( bO - aO ) /                   /                 //
-    // wI = tokenWeightIn           --------------------------------------------                 //
-    // wO = tokenWeightOut                          ( 1 - sF )                                   //
-    // sF = swapFee                                                                              //
-    **********************************************************************************************/
+    /**
+     * @notice Get amount that must be sent to receive an exact amount on swap
+     *
+     * @param tokenBalanceIn - Balance of the swapped-in token inside the Pool
+     * @param tokenWeightIn - Denormalized weight of the swapped-in token inside the Pool
+     * @param tokenBalanceOut - Balance of the swapped-out token inside the Pool
+     * @param tokenWeightOut - Denormalized weight of the swapped-out token inside the Pool
+     * @param tokenAmountOut - Amount of swapped-out token that you want to receive
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Amount of swapped-in token to send
+     *
+     ***********************************************************************************************
+     // calcInGivenOut                                                                            //
+     // aI = tokenAmountIn                                                                        //
+     // bO = tokenBalanceOut               /  /     bO      \    (wO / wI)      \                 //
+     // bI = tokenBalanceIn          bI * |  | ------------  | ^            - 1  |                //
+     // aO = tokenAmountOut    aI =        \  \ ( bO - aO ) /                   /                 //
+     // wI = tokenWeightIn           --------------------------------------------                 //
+     // wO = tokenWeightOut                          ( 1 - sF )                                   //
+     // sF = swapFee                                                                              //
+     **********************************************************************************************/
     function calcInGivenOut(
         uint tokenBalanceIn,
         uint tokenWeightIn,
@@ -97,16 +133,28 @@ abstract contract Math is IMath {
         );
     }
 
-    /**********************************************************************************************
-    // calcPoolOutGivenSingleIn                                                                  //
-    // pAo = poolAmountOut         /                                              \              //
-    // tAi = tokenAmountIn        ///      /     //    wI \      \\       \     wI \             //
-    // wI = tokenWeightIn        //| tAi *| 1 - || 1 - --  | * sF || + tBi \    --  \            //
-    // tW = totalWeight     pAo=||  \      \     \\    tW /      //         | ^ tW   | * pS - pS //
-    // tBi = tokenBalanceIn      \\  ------------------------------------- /        /            //
-    // pS = poolSupply            \\                    tBi               /        /             //
-    // sF = swapFee                \                                              /              //
-    **********************************************************************************************/
+    /**
+     * @notice Get amount of pool tokens received when sending an exact amount of a single token
+     *
+     * @param tokenBalanceIn - Balance of the swapped-in token inside the Pool
+     * @param tokenWeightIn - Denormalized weight of the swapped-in token inside the Pool
+     * @param poolSupply - Current supply of the pool token
+     * @param totalWeight - Total denormalized weight of the pool
+     * @param tokenAmountIn - Amount of swapped-in token that will be sent
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Amount of the pool token you'll receive
+     *
+     ***********************************************************************************************
+     // calcPoolOutGivenSingleIn                                                                  //
+     // pAo = poolAmountOut         /                                              \              //
+     // tAi = tokenAmountIn        ///      /     //    wI \      \\       \     wI \             //
+     // wI = tokenWeightIn        //| tAi *| 1 - || 1 - --  | * sF || + tBi \    --  \            //
+     // tW = totalWeight     pAo=||  \      \     \\    tW /      //         | ^ tW   | * pS - pS //
+     // tBi = tokenBalanceIn      \\  ------------------------------------- /        /            //
+     // pS = poolSupply            \\                    tBi               /        /             //
+     // sF = swapFee                \                                              /              //
+     **********************************************************************************************/
     function calcPoolOutGivenSingleIn(
         uint tokenBalanceIn,
         uint tokenWeightIn,
@@ -135,16 +183,28 @@ abstract contract Math is IMath {
         return newPoolSupply - poolSupply;
     }
 
-    /**********************************************************************************************
-    // calcSingleInGivenPoolOut                                                                  //
-    // tAi = tokenAmountIn              //(pS + pAo)\     /    1    \\                           //
-    // pS = poolSupply                 || ---------  | ^ | --------- || * bI - bI                //
-    // pAo = poolAmountOut              \\    pS    /     \(wI / tW)//                           //
-    // bI = balanceIn          tAi =  --------------------------------------------               //
-    // wI = weightIn                              /      wI  \                                   //
-    // tW = totalWeight                          |  1 - ----  |  * sF                            //
-    // sF = swapFee                               \      tW  /                                   //
-    **********************************************************************************************/
+    /**
+     * @notice Get amount that must be sent of a single token to receive an exact amount of pool tokens
+     *
+     * @param tokenBalanceIn - Balance of the swapped-in token inside the Pool
+     * @param tokenWeightIn - Denormalized weight of the swapped-in token inside the Pool
+     * @param poolSupply - Current supply of the pool token
+     * @param totalWeight - Total denormalized weight of the pool
+     * @param poolAmountOut - Amount of pool tokens that you want to receive
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Amount of swapped-in tokens to send
+     *
+     ***********************************************************************************************
+     // calcSingleInGivenPoolOut                                                                  //
+     // tAi = tokenAmountIn              //(pS + pAo)\     /    1    \\                           //
+     // pS = poolSupply                 || ---------  | ^ | --------- || * bI - bI                //
+     // pAo = poolAmountOut              \\    pS    /     \(wI / tW)//                           //
+     // bI = balanceIn          tAi =  --------------------------------------------               //
+     // wI = weightIn                              /      wI  \                                   //
+     // tW = totalWeight                          |  1 - ----  |  * sF                            //
+     // sF = swapFee                               \      tW  /                                   //
+     **********************************************************************************************/
     function calcSingleInGivenPoolOut(
         uint tokenBalanceIn,
         uint tokenWeightIn,
@@ -172,17 +232,29 @@ abstract contract Math is IMath {
         return KassandraSafeMath.bdiv(tokenAmountInAfterFee, (KassandraConstants.ONE - zar));
     }
 
-    /**********************************************************************************************
-    // calcSingleOutGivenPoolIn                                                                  //
-    // tAo = tokenAmountOut            /      /                                             \\   //
-    // bO = tokenBalanceOut           /      // pS - (pAi * (1 - eF)) \     /    1    \      \\  //
-    // pAi = poolAmountIn            | bO - || ----------------------- | ^ | --------- | * b0 || //
-    // ps = poolSupply                \      \\          pS           /     \(wO / tW)/      //  //
-    // wI = tokenWeightIn      tAo =   \      \                                             //   //
-    // tW = totalWeight                    /     /      wO \       \                             //
-    // sF = swapFee                    *  | 1 - |  1 - ---- | * sF  |                            //
-    // eF = exitFee                        \     \      tW /       /                             //
-    **********************************************************************************************/
+    /**
+     * @notice Get amount received of a single token when sending an exact amount of pool tokens
+     *
+     * @param tokenBalanceOut - Balance of the swapped-out token inside the Pool
+     * @param tokenWeightOut - Denormalized weight of the swapped-out token inside the Pool
+     * @param poolSupply - Current supply of the pool token
+     * @param totalWeight - Total denormalized weight of the pool
+     * @param poolAmountIn - Amount of pool tokens that will be sent
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Amount of the swapped-out token you'll receive
+     *
+     ***********************************************************************************************
+     // calcSingleOutGivenPoolIn                                                                  //
+     // tAo = tokenAmountOut            /      /                                             \\   //
+     // bO = tokenBalanceOut           /      // pS - (pAi * (1 - eF)) \     /    1    \      \\  //
+     // pAi = poolAmountIn            | bO - || ----------------------- | ^ | --------- | * b0 || //
+     // ps = poolSupply                \      \\          pS           /     \(wO / tW)/      //  //
+     // wI = tokenWeightIn      tAo =   \      \                                             //   //
+     // tW = totalWeight                    /     /      wO \       \                             //
+     // sF = swapFee                    *  | 1 - |  1 - ---- | * sF  |                            //
+     // eF = exitFee                        \     \      tW /       /                             //
+     **********************************************************************************************/
     function calcSingleOutGivenPoolIn(
         uint tokenBalanceOut,
         uint tokenWeightOut,
@@ -219,17 +291,29 @@ abstract contract Math is IMath {
         return KassandraSafeMath.bmul(tokenAmountOutBeforeSwapFee, (KassandraConstants.ONE - zaz));
     }
 
-    /**********************************************************************************************
-    // calcPoolInGivenSingleOut                                                                  //
-    // pAi = poolAmountIn               // /               tAo             \\     / wO \     \   //
-    // bO = tokenBalanceOut            // | bO - -------------------------- |\   | ---- |     \  //
-    // tAo = tokenAmountOut      pS - ||   \     1 - ((1 - (tO / tW)) * sF)/  | ^ \ tW /  * pS | //
-    // ps = poolSupply                 \\ -----------------------------------/                /  //
-    // wO = tokenWeightOut  pAi =       \\               bO                 /                /   //
-    // tW = totalWeight           -------------------------------------------------------------  //
-    // sF = swapFee                                        ( 1 - eF )                            //
-    // eF = exitFee                                                                              //
-    **********************************************************************************************/
+    /**
+     * @notice Get amount that must be sent of pool tokens to receive an exact amount of a single token
+     *
+     * @param tokenBalanceOut - Balance of the swapped-out token inside the Pool
+     * @param tokenWeightOut - Denormalized weight of the swapped-out token inside the Pool
+     * @param poolSupply - Current supply of the pool token
+     * @param totalWeight - Total denormalized weight of the pool
+     * @param tokenAmountOut - Amount of swapped-out token that you want to receive
+     * @param swapFee - Fee for performing swap (percentage)
+     *
+     * @return Amount of pool tokens to send
+     *
+     ***********************************************************************************************
+     // calcPoolInGivenSingleOut                                                                  //
+     // pAi = poolAmountIn               // /               tAo             \\     / wO \     \   //
+     // bO = tokenBalanceOut            // | bO - -------------------------- |\   | ---- |     \  //
+     // tAo = tokenAmountOut      pS - ||   \     1 - ((1 - (tO / tW)) * sF)/  | ^ \ tW /  * pS | //
+     // ps = poolSupply                 \\ -----------------------------------/                /  //
+     // wO = tokenWeightOut  pAi =       \\               bO                 /                /   //
+     // tW = totalWeight           -------------------------------------------------------------  //
+     // sF = swapFee                                        ( 1 - eF )                            //
+     // eF = exitFee                                                                              //
+     **********************************************************************************************/
     function calcPoolInGivenSingleOut(
         uint tokenBalanceOut,
         uint tokenWeightOut,
@@ -239,7 +323,7 @@ abstract contract Math is IMath {
         uint swapFee
     )
         public pure override
-        returns (uint poolAmountIn)
+        returns (uint)
     {
 
         // charge swap fee on the output token side

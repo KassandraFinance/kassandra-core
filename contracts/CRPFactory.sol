@@ -12,7 +12,9 @@ import "../libraries/KassandraConstants.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)
+ *
  * @title Configurable Rights Pool Factory - create parameterized smart pools
+ *
  * @dev Rights are held in a corresponding struct in ConfigurableRightsPool
  *      Index values are as follows:
  *      0: canPauseSwapping - can setPublicSwap back to false after turning it on
@@ -25,27 +27,30 @@ import "../libraries/KassandraConstants.sol";
  *      5: canChangeCap - can change the KSP cap (max # of pool tokens)
  */
 contract CRPFactory is IcrpFactory, Ownable {
-    // State variables
-
     // Keep a list of all Configurable Rights Pools
     mapping(address=>bool) private _isCrp;
 
-    // Event declarations
-
-    // Log the address of each new smart pool, and its creator
+    /**
+     * @notice Log the address of each new smart pool, and its creator
+     *
+     * @param caller - Address that created the pool
+     * @param pool - Address of the created pool
+     */
     event LogNewCrp(
         address indexed caller,
         address indexed pool
     );
 
-    // Function declarations
-
     /**
      * @notice Create a new CRP
+     *
      * @dev emits a LogNewCRP event
+     *
      * @param factoryAddress - the Factory instance used to create the underlying pool
      * @param poolParams - struct containing the names, tokens, weights, balances, and swap fee
      * @param rights - struct of permissions, configuring this CRP instance (see above for definitions)
+     *
+     * @return crp - ConfigurableRightPool instance of the created CRP
      */
     function newCrp(
         address factoryAddress,
@@ -77,7 +82,9 @@ contract CRPFactory is IcrpFactory, Ownable {
 
     /**
      * @notice Check to see if a given address is a CRP
-     * @param addr - address to check
+     *
+     * @param addr - Address to check
+     *
      * @return boolean indicating whether it is a CRP
      */
     function isCrp(address addr)

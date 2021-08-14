@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-// Interface declarations
-
 /* solhint-disable ordering */
 
+/**
+ * @title An ERC20 compatible token interface
+ */
 interface IERC20 {
     // Emitted when the allowance of a spender for an owner is set by a call to approve.
     // Value is the new allowance

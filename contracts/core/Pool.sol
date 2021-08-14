@@ -15,32 +15,58 @@ import "../../interfaces/IPool.sol";
 import "../../libraries/KassandraConstants.sol";
 import "../../libraries/KassandraSafeMath.sol";
 
+/**
+ * @title Core Pool - Where the tokens really stay
+ */
 contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
+    // holds information about one token in the pool
     struct Record {
         bool bound;   // is token bound to pool
         uint index;   // private
         uint denorm;  // denormalized weight
-        uint balance;
+        uint balance; // amount in the pool
     }
 
-    address private _factory;    // Factory address to push token exitFee to
-    bool private _publicSwap; // true if PUBLIC can call SWAP functions
+    // Factory address to push token exitFee to
+    address private _factory;
+    // true if PUBLIC can call SWAP functions
+    bool private _publicSwap;
 
     // `setSwapFee` and `finalize` require CONTROL
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     uint private _swapFee;
+    // when the pool is finalized it can't be changed anymore
     bool private _finalized;
 
+    // list of token addresses
     address[] private _tokens;
+    // list of token records
     mapping(address=>Record) private _records;
+    // total denormalized weight of all tokens in the pool
     uint private _totalWeight;
 
+    /**
+     * @notice Emitted when the swap fee changes
+     *
+     * @param pool - Address of the pool that changed the swap fee
+     * @param caller - Address of who changed the swap fee
+     * @param newFee - The new swap fee
+     */
     event NewSwapFee(
         address indexed pool,
         address indexed caller,
-        uint256 newFee
+        uint256         newFee
     );
 
+    /**
+     * @notice Emitted when a swap is done in the pool
+     *
+     * @param caller - Who made the swap
+     * @param tokenIn - Address of the token was sent to the pool
+     * @param tokenOut - Address of the token was swapped-out of the pool
+     * @param tokenAmountIn - How much of tokenIn was swapped-in
+     * @param tokenAmountOut - How much of tokenOut was swapped-out
+     */
     event LogSwap(
         address indexed caller,
         address indexed tokenIn,
@@ -49,29 +75,63 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         uint256         tokenAmountOut
     );
 
+    /**
+     * @notice Emitted when someone joins the pool
+     *         Also known as "Minted the pool token"
+     *
+     * @param caller - Adddress of who joined the pool
+     * @param tokenIn - Address of the token that was sent to the pool
+     * @param tokenAmountIn - Amount of the token added to the pool
+     */
     event LogJoin(
         address indexed caller,
         address indexed tokenIn,
         uint256         tokenAmountIn
     );
 
+    /**
+     * @notice Emitted when someone exits the pool
+     *         Also known as "Burned the pool token"
+     *
+     * @param caller - Adddress of who exited the pool
+     * @param tokenOut - Address of the token that was sent to the caller
+     * @param tokenAmountOut - Amount of the token sent to the caller
+     */
     event LogExit(
         address indexed caller,
         address indexed tokenOut,
         uint256         tokenAmountOut
     );
 
+    /**
+     * @notice Emitted on virtually every externally callable function
+     *
+     * @dev Anonymous logger event - can only be filtered by contract address
+     *
+     * @param sig - Function identifier
+     * @param caller - Caller of the function
+     * @param data - The full data of the call
+     */
     event LogCall(
         bytes4  indexed sig,
         address indexed caller,
         bytes           data
     ) anonymous;
 
+    /**
+     * @dev Logs a call to a function, only needed for external and public function
+     */
     modifier _logs_() {
         emit LogCall(msg.sig, msg.sender, msg.data);
         _;
     }
 
+    /**
+     * @notice Construct a new core Pool
+     *
+     * @param tokenSymbol - Symbol for the pool token
+     * @param tokenName - Name for the pool token
+     */
     constructor(string memory tokenSymbol, string memory tokenName)
         CPToken(tokenSymbol, tokenName)
     {
@@ -81,6 +141,11 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _finalized = false;
     }
 
+    /**
+     * @notice Set the swap fee
+     *
+     * @param swapFee - in Wei
+     */
     function setSwapFee(uint swapFee)
         external override
         lock
@@ -94,6 +159,11 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _swapFee = swapFee;
     }
 
+    /**
+     * @notice Set the public swap flag to allow or prevent swapping in the pool
+     *
+     * @param public_ - New value of the swap status
+     */
     function setPublicSwap(bool public_)
         external override
         lock
@@ -110,6 +180,9 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _publicSwap = public_;
     }
 
+    /**
+     * @notice Finalizes setting up the pool, once called the pool can't be modified ever again
+     */
     function finalize()
         external
         lock
@@ -131,11 +204,20 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushPoolShare(msg.sender, KassandraConstants.INIT_POOL_SUPPLY);
     }
 
+    /**
+     * @notice Bind/Add a new token to the pool, caller must have the tokens
+     *
+     * @dev Bind does not lock because it jumps to `rebind`, which does
+     *
+     * @param token - Address of the token being added
+     * @param balance - Amount of the token being sent
+     * @param denorm - Denormalized weight of the token in the pool
+     */
     function bind(address token, uint balance, uint denorm)
         external override
         _logs_
         onlyOwner
-        // lock  Bind does not lock because it jumps to `rebind`, which does
+        // lock  see explanation above
     {
         require(!_records[token].bound, "ERR_IS_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
@@ -152,6 +234,11 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         rebind(token, balance, denorm);
     }
 
+    /**
+     * @notice Unbind/Remove a token from the pool, caller will receive the tokens
+     *
+     * @param token - Address of the token being removed
+     */
     function unbind(address token)
         external override
         lock
@@ -185,7 +272,11 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushUnderlying(token, msg.sender, tokenBalance);
     }
 
-    // Absorb any tokens that have been sent to this contract into the pool
+    /**
+     * @notice Absorb any tokens that have been sent to this contract into the pool as long as it's bound to the pool
+     *
+     * @param token - Address of the token to absorb
+     */
     function gulp(address token)
         external
         lock
@@ -195,6 +286,14 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _records[token].balance = IERC20(token).balanceOf(address(this));
     }
 
+    /**
+     * @notice Join a pool - mint pool tokens with underlying assets
+     *
+     * @dev Emits a LogJoin event for each token
+     *
+     * @param poolAmountOut - Number of pool tokens to receive
+     * @param maxAmountsIn - Max amount of asset tokens to spend; will follow the pool order
+     */
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
         lock
@@ -220,6 +319,14 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushPoolShare(msg.sender, poolAmountOut);
     }
 
+    /**
+     * @notice Exit a pool - redeem/burn pool tokens for underlying assets
+     *
+     * @dev Emits a LogExit event for each token
+     *
+     * @param poolAmountIn - amount of pool tokens to redeem
+     * @param minAmountsOut - minimum amount of asset tokens to receive
+     */
     function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
         external
         lock
@@ -249,6 +356,20 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         }
     }
 
+    /**
+     * @notice Swap two tokens but sending a fixed amount
+     *         This makes sure you spend exactly what you define,
+     *         but you can't be sure of how much you'll receive
+     *
+     * @param tokenIn - Address of the token you are sending
+     * @param tokenAmountIn - Fixed amount of the token you are sending
+     * @param tokenOut - Address of the token you want to receive
+     * @param minAmountOut - Minimum amount of tokens you want to receive
+     * @param maxPrice - Maximum price you want to pay
+     *
+     * @return tokenAmountOut - Amount of tokens received
+     * @return spotPriceAfter - New price between assets
+     */
     function swapExactAmountIn(
         address tokenIn,
         uint tokenAmountIn,
@@ -311,6 +432,20 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
+    /**
+     * @notice Swap two tokens but receiving a fixed amount
+     *         This makes sure you receive exactly what you define,
+     *         but you can't be sure of how much you'll be spending
+     *
+     * @param tokenIn - Address of the token you are sending
+     * @param maxAmountIn - Maximum amount of the token you are sending you want to spend
+     * @param tokenOut - Address of the token you want to receive
+     * @param tokenAmountOut - Fixed amount of tokens you want to receive
+     * @param maxPrice - Maximum price you want to pay
+     *
+     * @return tokenAmountIn - Amount of tokens sent
+     * @return spotPriceAfter - New price between assets
+     */
     function swapExactAmountOut(
         address tokenIn,
         uint maxAmountIn,
@@ -373,6 +508,18 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
+    /**
+     * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
+     *         System calculates the pool token amount
+     *
+     * @dev emits a LogJoin event
+     *
+     * @param tokenIn - Which token we're transferring in
+     * @param tokenAmountIn - Amount of the deposit
+     * @param minPoolAmountOut - Minimum of pool tokens to receive
+     *
+     * @return poolAmountOut - Amount of pool tokens minted and transferred
+     */
     function joinswapExternAmountIn(address tokenIn, uint tokenAmountIn, uint minPoolAmountOut)
         external
         lock
@@ -408,6 +555,18 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
     }
 
+    /**
+     * @notice Join by swapping an external token in (must be present in the pool)
+     *         To receive an exact amount of pool tokens out. System calculates the deposit amount
+     *
+     * @dev emits a LogJoin event
+     *
+     * @param tokenIn - Which token we're transferring in (system calculates amount required)
+     * @param poolAmountOut - Amount of pool tokens to be received
+     * @param maxAmountIn - Maximum asset tokens that can be pulled to pay for the pool tokens
+     *
+     * @return tokenAmountIn - Amount of asset tokens transferred in to purchase the pool tokens
+     */
     function joinswapPoolAmountOut(address tokenIn, uint poolAmountOut, uint maxAmountIn)
         external
         lock
@@ -445,6 +604,18 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
     }
 
+    /**
+     * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
+     *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
+     *
+     * @dev Emits a LogExit event for the token
+     *
+     * @param tokenOut - Which token the caller wants to receive
+     * @param poolAmountIn - Amount of pool tokens to redeem
+     * @param minAmountOut - Minimum asset tokens to receive
+     *
+     * @return tokenAmountOut - Amount of asset tokens returned
+     */
     function exitswapPoolAmountIn(address tokenOut, uint poolAmountIn, uint minAmountOut)
         external
         lock
@@ -484,6 +655,18 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
+    /**
+     * @notice Exit a pool - redeem pool tokens for a specific amount of underlying assets
+     *         Asset must be present in the pool
+     *
+     * @dev Emits a LogExit event for the token
+     *
+     * @param tokenOut - Which token the caller wants to receive
+     * @param tokenAmountOut - Amount of underlying asset tokens to receive
+     * @param maxPoolAmountIn - Maximum pool tokens to be redeemed
+     *
+     * @return poolAmountIn - Amount of pool tokens redeemed
+     */
     function exitswapExternAmountOut(address tokenOut, uint tokenAmountOut, uint maxPoolAmountIn)
         external
         lock
@@ -523,41 +706,90 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
+    /**
+     * @notice Getter for the publicSwap field
+     *
+     * @dev viewLock, because setPublicSwap is lock
+     *
+     * @return Current value of PublicSwap
+     */
     function isPublicSwap()
         external view override
+        viewlock
         returns (bool)
     {
         return _publicSwap;
     }
 
+    /**
+     * @notice Check if pool is finalized, a finalized pool can't be modified ever again
+     *
+     * @dev viewLock, because finalize is lock
+     *
+     * @return Boolean indicating if pool is finalized
+     */
     function isFinalized()
         external view
+        viewlock
         returns (bool)
     {
         return _finalized;
     }
 
+    /**
+     * @notice Check if token is bound to the pool
+     *
+     * @dev viewLock, because bind and unbind are lock
+     *
+     * @param t - Address of the token to verify
+     *
+     * @return Boolean telling if token is part of the pool
+     */
     function isBound(address t)
         external view override
+        viewlock
         returns (bool)
     {
         return _records[t].bound;
     }
 
+    /**
+     * @notice Get how many tokens there are in the pool
+     *
+     * @dev viewLock, because bind and unbind are lock
+     *
+     * @return How many tokens the pool contains
+     */
     function getNumTokens()
         external view
+        viewlock
         returns (uint)
     {
         return _tokens.length;
     }
 
+    /**
+     * @notice Get addresses of all tokens in the pool
+     *
+     * @dev viewLock, because bind and unbind are lock
+     *
+     * @return tokens - List of addresses for ERC20 tokens
+     */
     function getCurrentTokens()
-        external view override viewlock
+        external view override
+        viewlock
         returns (address[] memory tokens)
     {
         return _tokens;
     }
 
+    /**
+     * @notice Get addresses of all tokens in the pool but only if pool is finalized
+     *
+     * @dev viewLock, because bind and unbind are lock
+     *
+     * @return tokens - List of addresses for ERC20 tokens
+     */
     function getFinalTokens()
         external view
         viewlock
@@ -567,16 +799,27 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return _tokens;
     }
 
+    /**
+     * @notice Get denormalized weight of one token
+     *
+     * @param token - Address of the token
+     *
+     * @return Denormalized weight inside the pool
+     */
     function getDenormalizedWeight(address token)
         external view override
         viewlock
         returns (uint)
     {
-
         require(_records[token].bound, "ERR_NOT_BOUND");
         return _records[token].denorm;
     }
 
+    /**
+     * @notice Get the sum of denormalized weights of all tokens in the pool
+     *
+     * @return Total denormalized weight of the pool
+     */
     function getTotalDenormalizedWeight()
         external view override
         viewlock
@@ -585,6 +828,14 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return _totalWeight;
     }
 
+    /**
+     * @notice Get normalized weight of one token
+     *         With 100% = 10^18
+     *
+     * @param token - Address of the token
+     *
+     * @return Normalized weight/participation inside the pool
+     */
     function getNormalizedWeight(address token)
         external view override
         viewlock
@@ -595,6 +846,13 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return KassandraSafeMath.bdiv(denorm, _totalWeight);
     }
 
+    /**
+     * @notice Get token balance inside the pool
+     *
+     * @param token - Address of the token
+     *
+     * @return How much of that token is in the pool
+     */
     function getBalance(address token)
         external view override
         viewlock
@@ -604,6 +862,14 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return _records[token].balance;
     }
 
+    /**
+     * @notice Get the current swap fee of the pool
+     *         Won't change if the pool is "finalized"
+     *
+     * @dev viewlock, because setSwapFee is lock
+     *
+     * @return Current swap fee
+     */
     function getSwapFee()
         external view override
         viewlock
@@ -612,6 +878,14 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return _swapFee;
     }
 
+    /**
+     * @notice Get the spot price between two tokens considering the swap fee
+     *
+     * @param tokenIn - Address of the token being swapped-in
+     * @param tokenOut - Address of the token being swapped-out
+     *
+     * @return Spot price as amount of swapped-in for every swapped-out
+     */
     function getSpotPrice(address tokenIn, address tokenOut)
         external view
         viewlock
@@ -624,6 +898,14 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return calcSpotPrice(inRecord.balance, inRecord.denorm, outRecord.balance, outRecord.denorm, _swapFee);
     }
 
+    /**
+     * @notice Get the spot price between two tokens if there's no swap fee
+     *
+     * @param tokenIn - Address of the token being swapped-in
+     * @param tokenOut - Address of the token being swapped-out
+     *
+     * @return Spot price as amount of swapped-in for every swapped-out
+     */
     function getSpotPriceSansFee(address tokenIn, address tokenOut)
         external view
         viewlock
@@ -636,6 +918,13 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         return calcSpotPrice(inRecord.balance, inRecord.denorm, outRecord.balance, outRecord.denorm, 0);
     }
 
+    /**
+     * @notice Modify token balance, weights or both
+     *
+     * @param token - Address of the token being modifier
+     * @param balance - New balance; must send if increasing or will receive if reducing
+     * @param denorm - New denormalized weight; will cause prices to change
+     */
     function rebind(address token, uint balance, uint denorm)
         public override
         lock
@@ -674,6 +963,13 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     // 'Underlying' token-manipulation functions make external calls but are NOT locked
     // You must `lock` or otherwise ensure reentry-safety
 
+    /**
+     * @dev Pull tokens from address to pool
+     *
+     * @param erc20 - Address of the token being pulled
+     * @param from - Address of the owner of the tokens being pulled
+     * @param amount - How much tokens are being transferred
+     */
     function _pullUnderlying(address erc20, address from, uint amount)
         internal
     {
@@ -681,6 +977,13 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(xfer, "ERR_ERC20_FALSE");
     }
 
+    /**
+     * @dev Push tokens from pool to address
+     *
+     * @param erc20 - Address of the token being sent
+     * @param to - Address where the tokens are being pushed to
+     * @param amount - How much tokens are being transferred
+     */
     function _pushUnderlying(address erc20, address to, uint amount)
         internal
     {
@@ -688,24 +991,46 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(xfer, "ERR_ERC20_FALSE");
     }
 
+    /**
+     * @dev Get/Receive pool tokens from someone
+     *
+     * @param from - From whom should tokens be received
+     * @param amount - How much to get from address
+     */
     function _pullPoolShare(address from, uint amount)
         internal
     {
         _pull(from, amount);
     }
 
+    /**
+     * @dev Send pool tokens to someone
+     *
+     * @param to - Who should receive the tokens
+     * @param amount - How much to send to the address
+     */
     function _pushPoolShare(address to, uint amount)
         internal
     {
         _push(to, amount);
     }
 
+    /**
+     * @dev Mint pool tokens
+     *
+     * @param amount - How much to mint
+     */
     function _mintPoolShare(uint amount)
         internal
     {
         _mint(amount);
     }
 
+    /**
+     * @dev Burn pool tokens
+     *
+     * @param amount - How much to burn
+     */
     function _burnPoolShare(uint amount)
         internal
     {

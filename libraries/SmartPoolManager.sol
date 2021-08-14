@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-// Imports
-
 import "../interfaces/IERC20.sol";
 import "../interfaces/IConfigurableRightsPool.sol";
 import "../interfaces/IPool.sol";
@@ -11,14 +9,15 @@ import "./KassandraConstants.sol";
 import "./KassandraSafeMath.sol";
 import "./SafeApprove.sol";
 
-
 /**
  * @author Kassandra (and Balancer Labs)
- * @title Factor out the weight updates
+ *
+ * @title Library for keeping CRP contract in a managable size
+ * 
+ * @notice Factor out weight updates, pool joining, pool exiting and token compliance
  */
 library SmartPoolManager {
-    // Type declarations
-
+    // paramaters for adding a new token to the pool
     struct NewTokenParams {
         address addr;
         bool isCommitted;
@@ -42,11 +41,15 @@ library SmartPoolManager {
 
     /**
      * @notice Update the weight of an existing token
+     *
      * @dev Refactored to library to make CRPFactory deployable
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param token - token to be reweighted
-     * @param newWeight - new weight of the token
+     * @param token - Address of the token to be reweighted
+     * @param newWeight - New weight of the token
+     * @param minimumKacy - Minimum amount of $KACY to be enforced
+     * @param kacyToken - $KACY address to be enforced
     */
     function updateWeight(
         IConfigurableRightsPool self,
@@ -144,8 +147,9 @@ library SmartPoolManager {
 
     /**
      * @notice External function called to make the contract update weights according to plan
+     *
      * @param corePool - Core Pool the CRP is wrapping
-     * @param gradualUpdate - gradual update parameters from the CRP
+     * @param gradualUpdate - Gradual update parameters from the CRP
     */
     function pokeWeights(
         IPool corePool,
@@ -230,10 +234,11 @@ library SmartPoolManager {
     /**
      * @notice Schedule (commit) a token to be added; must call applyAddToken after a fixed
      *         number of blocks to actually add the token
+     *
      * @param corePool - Core Pool the CRP is wrapping
-     * @param token - the token to be added
-     * @param balance - how much to be added
-     * @param denormalizedWeight - the desired token weight
+     * @param token - Address of the token to be added
+     * @param balance - How much to be added
+     * @param denormalizedWeight - The desired token denormalized weight
      * @param newToken - NewTokenParams struct used to hold the token data (in CRP storage)
      */
     function commitAddToken(
@@ -264,9 +269,10 @@ library SmartPoolManager {
 
     /**
      * @notice Add the token previously committed (in commitAddToken) to the pool
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param addTokenTimeLockInBlocks -  Wait time between committing and applying a new token
+     * @param addTokenTimeLockInBlocks - Wait time between committing and applying a new token
      * @param newToken - NewTokenParams struct used to hold the token data (in CRP storage)
      */
     function applyAddToken(
@@ -312,14 +318,16 @@ library SmartPoolManager {
 
     /**
      * @notice Remove a token from the pool
-     * @dev Logic in the CRP controls when ths can be called. There are two related permissions:
+     *
+     * @dev Logic in the CRP controls when this can be called. There are two related permissions:
      *      AddRemoveTokens - which allows removing down to the underlying Pool limit of two
      *      RemoveAllTokens - which allows completely draining the pool by removing all tokens
      *                        This can result in a non-viable pool with 0 or 1 tokens (by design),
      *                        meaning all swapping or binding operations would fail in this state
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param token - token to remove
+     * @param token - Address of the token to remove
      */
     function removeToken(
         IConfigurableRightsPool self,
@@ -355,7 +363,9 @@ library SmartPoolManager {
 
     /**
      * @notice Non ERC20-conforming tokens are problematic; don't allow them in pools
+     *
      * @dev Will revert if invalid
+     *
      * @param token - The prospective token to verify
      */
     function verifyTokenCompliance(address token) external {
@@ -364,8 +374,13 @@ library SmartPoolManager {
 
     /**
      * @notice Non ERC20-conforming tokens are problematic; don't allow them in pools
+     *
      * @dev Will revert if invalid - overloaded to save space in the main contract
-     * @param tokens - The prospective tokens to verify
+     *
+     * @param tokens - Array of addresses of prospective tokens to verify
+     * @param tokenWeights - Array of denormalized weights of prospective tokens
+     * @param minimumKacy - Minimum amount of $KACY to be enforced
+     * @param kacyToken - $KACY address to be enforced
      */
     function verifyTokenCompliance(
         address[] calldata tokens,
@@ -393,11 +408,14 @@ library SmartPoolManager {
     /**
      * @notice Update weights in a predetermined way, between startBlock and endBlock,
      *         through external cals to pokeWeights
+     *
      * @param corePool - Core Pool the CRP is wrapping
-     * @param newWeights - final weights we want to get to
-     * @param startBlock - when weights should start to change
-     * @param endBlock - when weights will be at their final values
-     * @param minimumWeightChangeBlockPeriod - needed to validate the block period
+     * @param newWeights - Final weights we want to get to
+     * @param startBlock - When weights should start to change
+     * @param endBlock - When weights will be at their final values
+     * @param minimumWeightChangeBlockPeriod - Needed to validate the block period
+     * @param minimumKacy - Minimum amount of $KACY to be enforced
+     * @param kacyToken - $KACY address to be enforced
     */
     function updateWeightsGradually(
         IPool corePool,
@@ -462,11 +480,13 @@ library SmartPoolManager {
 
     /**
      * @notice Join a pool
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param poolAmountOut - number of pool tokens to receive
+     * @param poolAmountOut - Number of pool tokens to receive
      * @param maxAmountsIn - Max amount of asset tokens to spend
-     * @return actualAmountsIn - calculated values of the tokens to pull in
+     *
+     * @return actualAmountsIn - Calculated values of the tokens to pull in
      */
     function joinPool(
         IConfigurableRightsPool self,
@@ -509,13 +529,15 @@ library SmartPoolManager {
 
     /**
      * @notice Exit a pool - redeem pool tokens for underlying assets
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param poolAmountIn - amount of pool tokens to redeem
-     * @param minAmountsOut - minimum amount of asset tokens to receive
-     * @return exitFee - calculated exit fee
-     * @return pAiAfterExitFee - final amount in (after accounting for exit fee)
-     * @return actualAmountsOut - calculated amounts of each token to pull
+     * @param poolAmountIn - Amount of pool tokens to redeem
+     * @param minAmountsOut - Minimum amount of asset tokens to receive
+     *
+     * @return exitFee - Calculated exit fee
+     * @return pAiAfterExitFee - Final amount in (after accounting for exit fee)
+     * @return actualAmountsOut - Calculated amounts of each token to pull
      */
     function exitPool(
         IConfigurableRightsPool self,
@@ -566,12 +588,14 @@ library SmartPoolManager {
     /**
      * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
      *         System calculates the pool token amount
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param tokenIn - which token we're transferring in
-     * @param tokenAmountIn - amount of deposit
-     * @param minPoolAmountOut - minimum of pool tokens to receive
-     * @return poolAmountOut - amount of pool tokens minted and transferred
+     * @param tokenIn - Which token we're transferring in
+     * @param tokenAmountIn - Amount of deposit
+     * @param minPoolAmountOut - Minimum of pool tokens to receive
+     *
+     * @return poolAmountOut - Amount of pool tokens minted and transferred
      */
     function joinswapExternAmountIn(
         IConfigurableRightsPool self,
@@ -605,11 +629,13 @@ library SmartPoolManager {
     /**
      * @notice Join by swapping an external token in (must be present in the pool)
      *         To receive an exact amount of pool tokens out. System calculates the deposit amount
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param tokenIn - which token we're transferring in (system calculates amount required)
-     * @param poolAmountOut - amount of pool tokens to be received
+     * @param tokenIn - Which token we're transferring in (system calculates amount required)
+     * @param poolAmountOut - Amount of pool tokens to be received
      * @param maxAmountIn - Maximum asset tokens that can be pulled to pay for the pool tokens
+     *
      * @return tokenAmountIn - amount of asset tokens transferred in to purchase the pool tokens
      */
     function joinswapPoolAmountOut(
@@ -646,13 +672,15 @@ library SmartPoolManager {
     /**
      * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
      *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param tokenOut - which token the caller wants to receive
-     * @param poolAmountIn - amount of pool tokens to redeem
-     * @param minAmountOut - minimum asset tokens to receive
-     * @return exitFee - calculated exit fee
-     * @return tokenAmountOut - amount of asset tokens returned
+     * @param tokenOut - Which token the caller wants to receive
+     * @param poolAmountIn - Amount of pool tokens to redeem
+     * @param minAmountOut - Minimum asset tokens to receive
+     *
+     * @return exitFee - Calculated exit fee
+     * @return tokenAmountOut - Amount of asset tokens returned
      */
     function exitswapPoolAmountIn(
         IConfigurableRightsPool self,
@@ -688,13 +716,15 @@ library SmartPoolManager {
     /**
      * @notice Exit a pool - redeem pool tokens for a specific amount of underlying assets
      *         Asset must be present in the pool
+     *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
-     * @param tokenOut - which token the caller wants to receive
-     * @param tokenAmountOut - amount of underlying asset tokens to receive
-     * @param maxPoolAmountIn - maximum pool tokens to be redeemed
-     * @return exitFee - calculated exit fee
-     * @return poolAmountIn - amount of pool tokens redeemed
+     * @param tokenOut - Which token the caller wants to receive
+     * @param tokenAmountOut - Amount of underlying asset tokens to receive
+     * @param maxPoolAmountIn - Maximum pool tokens to be redeemed
+     *
+     * @return exitFee - Calculated exit fee
+     * @return poolAmountIn - Amount of pool tokens redeemed
      */
     function exitswapExternAmountOut(
         IConfigurableRightsPool self,
@@ -731,9 +761,11 @@ library SmartPoolManager {
         }
     }
 
-    // Internal functions
-
-    // Check for zero transfer, and make sure it returns true to returnValue
+    /**
+     * @dev Check for zero transfer, and make sure it returns true to returnValue
+     *
+     * @param token - Address of the possible token
+     */
     function verifyTokenComplianceInternal(address token) internal {
         bool returnValue = IERC20(token).transfer(msg.sender, 0);
         require(returnValue, "ERR_NONCONFORMING_TOKEN");

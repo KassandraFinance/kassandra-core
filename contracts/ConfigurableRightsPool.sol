@@ -18,8 +18,11 @@ import "../libraries/SmartPoolManager.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)
+ *
  * @title Smart Pool with customizable features
+ *
  * @notice SPToken is the "Kassandra Smart Pool" token (transferred upon finalization)
+ *
  * @dev Rights are defined as follows (index values into the array)
  *      0: canPauseSwapping - can setPublicSwap back to false after turning it on
  *                            by default, it is off on initialization and can only be turned on
@@ -37,34 +40,37 @@ import "../libraries/SmartPoolManager.sol";
 contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable, ReentrancyGuard {
     using SafeApprove for IERC20;
 
-    // Type declarations
-
+    // struct used on pool creation
     struct PoolParams {
         // Kassandra Pool Token (representing shares of the pool)
-        string poolTokenSymbol;
-        string poolTokenName;
+        string poolTokenSymbol; // symbol of the pool token
+        string poolTokenName;   // name of the pool token
         // Tokens inside the Pool
-        address[] constituentTokens;
-        uint[] tokenBalances;
-        uint[] tokenWeights;
+        address[] constituentTokens; // addresses
+        uint[] tokenBalances;        // balances
+        uint[] tokenWeights;         // denormalized weights
+        // pool swap fee
         uint swapFee;
     }
 
-    // State variables
-
+    /// Address of the contract that handles the strategy
     address public strategyUpdater;
 
+    /// Address of the core factory contract; for creating the core pool and enforcing $KACY
     IFactory public coreFactory;
+    /// Address of the core pool for this CRP; holds the tokens
     IPool public override corePool;
 
-    // Struct holding the rights configuration
+    /// Struct holding the rights configuration
     RightsManager.Rights public rights;
 
-    // Hold the parameters used in updateWeightsGradually
+    /// Hold the parameters used in updateWeightsGradually
     SmartPoolManager.GradualUpdateParams public gradualUpdate;
 
-    // This is for adding a new (currently unbound) token to the pool
-    // It's a two-step process: commitAddToken(), then applyAddToken()
+    /**
+     * @notice This is for adding a new (currently unbound) token to the pool
+     *         It's a two-step process: commitAddToken(), then applyAddToken()
+     */
     SmartPoolManager.NewTokenParams public newToken;
 
     // Fee is initialized on creation, and can be changed if permission is set
@@ -79,103 +85,156 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     address[] private _initialTokens;
     uint[] private _initialBalances;
 
-    // Enforce a minimum time between the start and end blocks
+    /// Enforce a minimum time between the start and end blocks on updateWeightsGradually
     uint public minimumWeightChangeBlockPeriod;
-    // Enforce a mandatory wait time between updates
-    // This is also the wait time between committing and applying a new token
+    /// Enforce a wait time between committing and applying a new token
     uint public addTokenTimeLockInBlocks;
 
-    // Whitelist of LPs (if configured)
-    mapping(address => bool) private _liquidityProviderWhitelist;
-
-    // Cap on the pool size (i.e., # of tokens minted when joining)
-    // Limits the risk of experimental pools; failsafe/backup for fixed-size pools
-    uint public tokenCap;
-
-    // Default values for these variables (used only in updateWeightsGradually), set in the constructor
-    // Pools without permission to update weights cannot use them anyway, and should call
-    //   the default createPool() function.
+    // Default values for the above variables, set in the constructor
+    // Pools without permission to update weights or add tokens cannot use them anyway,
+    //   and should call the default createPool() function.
     // To override these defaults, pass them into the overloaded createPool()
     // Period is in blocks; 500 blocks ~ 2 hours; 5,700 blocks ~< 1 day
     uint private constant _DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD = 5700;
     uint private constant _DEFAULT_ADD_TOKEN_TIME_LOCK_IN_BLOCKS = 500;
 
-    // Event declarations
+    /**
+     * @notice Cap on the pool size (i.e., # of tokens minted when joining)
+     *         Limits the risk of experimental pools; failsafe/backup for fixed-size pools
+     */
+    uint public tokenCap;
 
+    // Whitelist of LPs (if configured)
+    mapping(address => bool) private _liquidityProviderWhitelist;
+
+    /**
+     * @notice Emitted when the maximum cap (`tokenCap`) has changed
+     *
+     * @param caller - Address of who changed the cap
+     * @param oldCap - Previous maximum cap
+     * @param newCap - New maximum cap
+     */
     event CapChanged(
         address indexed caller,
         uint oldCap,
         uint newCap
     );
 
+    /**
+     * @notice Emitted when a new token has been committed to be added to the pool
+     *         The token has not been added yet, but eventually will be once pass `addTokenTimeLockInBlocks`
+     *
+     * param token - Address of the token being added
+     * param pool - Address of the CRP pool that will have the new token
+     * param caller - Address of who committed this new token
+     */ 
     event NewTokenCommitted(
         address indexed token,
         address indexed pool,
         address indexed caller
     );
 
+    /**
+     * @notice Emitted when the strategy contract has been changed
+     *
+     * @param newAddr - Address of the new strategy contract
+     * @param pool - Address of the CRP pool that changed the strategy contract
+     * @param caller - Address of who changed the strategy contract
+     */
     event NewStrategy(
         address indexed newAddr,
         address indexed pool,
         address indexed caller
     );
 
-    // Anonymous logger event - can only be filtered by contract address
+    /**
+     * @notice Emitted on virtually every externally callable function
+     *
+     * @dev Anonymous logger event - can only be filtered by contract address
+     *
+     * @param sig - Function identifier
+     * @param caller - Caller of the function
+     * @param data - The full data of the call
+     */
     event LogCall(
         bytes4  indexed sig,
         address indexed caller,
         bytes data
     ) anonymous;
 
+    /**
+     * @notice Emitted when someone joins the pool
+     *         Also known as "Minted the pool token"
+     *
+     * @param caller - Adddress of who joined the pool
+     * @param tokenIn - Address of the token that was sent to the pool
+     * @param tokenAmountIn - Amount of the token added to the pool
+     */
     event LogJoin(
         address indexed caller,
         address indexed tokenIn,
         uint tokenAmountIn
     );
 
+    /**
+     * @notice Emitted when someone exits the pool
+     *         Also known as "Burned the pool token"
+     *
+     * @param caller - Adddress of who exited the pool
+     * @param tokenOut - Address of the token that was sent to the caller
+     * @param tokenAmountOut - Amount of the token sent to the caller
+     */
     event LogExit(
         address indexed caller,
         address indexed tokenOut,
         uint tokenAmountOut
     );
 
-    // Modifiers
-
+    /**
+     * @dev Logs a call to a function, only needed for external and public function
+     */
     modifier logs() {
         emit LogCall(msg.sig, msg.sender, msg.data);
         _;
     }
 
-    // Mark functions that require delegation to the underlying Pool
+    /**
+     * @dev Mark functions that require delegation to the underlying Pool
+     */
     modifier needsCorePool() {
         require(address(corePool) != address(0), "ERR_NOT_CREATED");
         _;
     }
 
+    /**
+     * @dev Turn off swapping on the underlying pool during joins
+     *      Otherwise tokens with callbacks would enable attacks involving simultaneous swaps and joins
+     */
     modifier lockUnderlyingPool() {
-        // Turn off swapping on the underlying pool during joins
-        // Otherwise tokens with callbacks would enable attacks involving simultaneous swaps and joins
         bool origSwapState = corePool.isPublicSwap();
         corePool.setPublicSwap(false);
         _;
         corePool.setPublicSwap(origSwapState);
     }
 
+    /**
+     * @dev Mark functions that only the strategy contract can control
+     */
     modifier onlyStrategy() {
         require(msg.sender == strategyUpdater, "ERR_NOT_STRATEGY");
         _;
     }
 
-    // Function declarations
-
     /**
      * @notice Construct a new Configurable Rights Pool (wrapper around core Pool)
+     *
      * @dev _initialTokens and _swapFee are only used for temporary storage between construction
      *      and create pool, and should not be used thereafter! _initialTokens is destroyed in
      *      createPool to prevent this, and _swapFee is kept in sync (defensively), but
      *      should never be used except in this constructor and createPool()
-     * @param factoryAddress - the core Pool Factory used to create the underlying pool
-     * @param poolParams - struct containing pool parameters
+     *
+     * @param factoryAddress - Core Pool Factory used to create the underlying pool
+     * @param poolParams - Struct containing pool parameters
      * @param rightsStruct - Set of permissions we are assigning to this smart pool
      */
     constructor(
@@ -227,13 +286,13 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         tokenCap = KassandraConstants.MAX_UINT;
     }
 
-    // External functions
-
     /**
      * @notice Set the swap fee on the underlying pool
+     *
      * @dev Keep the local version and core in sync (see below)
      *      corePool is a contract interface; function calls on it are external
-     * @param swapFee in Wei
+     *
+     * @param swapFee - in Wei
      */
     function setSwapFee(uint swapFee)
         external
@@ -251,12 +310,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Set the cap (max # of pool tokens)
+     *
      * @dev tokenCap defaults in the constructor to unlimited
      *      Can set to 0 (or anywhere below the current supply), to halt new investment
      *      Prevent setting it before creating a pool, since createPool sets to intialSupply
      *      (it does this to avoid an unlimited cap window between construction and createPool)
      *      Therefore setting it before then has no effect, so should not be allowed
-     * @param newCap - new value of the cap
+     *
+     * @param newCap - New value of the cap
      */
     function setCap(uint newCap)
         external
@@ -273,7 +334,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     }
 
     /**
-     * @notice Set the public swap flag on the underlying pool
+     * @notice Set the public swap flag on the underlying pool to allow or prevent swapping in the pool
+     *
      * @dev If this smart pool has canPauseSwapping enabled, we can turn publicSwap off if it's already on
      *      Note that if they turn swapping off - but then finalize the pool - finalizing will turn the
      *      swapping back on. They're not supposed to finalize the underlying pool... would defeat the
@@ -281,7 +343,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      *      so there is no risk from outside.)
      *
      *      corePool is a contract interface; function calls on it are external
-     * @param publicSwap new value of the swap
+     *
+     * @param publicSwap - New value of the swap status
      */
     function setPublicSwap(bool publicSwap)
         external
@@ -298,10 +361,11 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Set a contract/address that will be allowed to update weights and add/remove tokens
-     * @dev If this smart pool has canUpdateWeigths enabled, not only can the
-     *      controller update the weights but another smart contract with defined
-     *      rules and formulas could update it.
-     * @param updaterAddr - contract address that will be able to update weights
+     *
+     * @dev If this smart pool has canUpdateWeigths enabled, another smart contract with defined
+     *      rules and formulas could update them
+     *
+     * @param updaterAddr - Contract address that will be able to update weights
      */
     function setStrategist(address updaterAddr)
         external
@@ -315,17 +379,19 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Create a new Smart Pool - and set the block period time parameters
+     *
      * @dev Initialize the swap fee to the value provided in the CRP constructor
      *      Can be changed if the canChangeSwapFee permission is enabled
      *      Time parameters will be fixed at these values
+     *      Delegates to internal function
      *
      *      If this contract doesn't have canChangeWeights permission - or you want to use the default
      *      values, the block time arguments are not needed, and you can just call the single-argument
      *      createPool()
+     *
      * @param initialSupply - Starting token balance
      * @param minimumWeightChangeBlockPeriodParam - Enforce a minimum time between the start and end blocks
-     * @param addTokenTimeLockInBlocksParam - Enforce a mandatory wait time between updates
-     *                                   This is also the wait time between committing and applying a new token
+     * @param addTokenTimeLockInBlocksParam - Enforce a mandatory wait time between committing and applying a new token
      */
     function createPool(
         uint initialSupply,
@@ -351,8 +417,12 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Create a new Smart Pool
-     * @dev Delegates to internal function
-     * @param initialSupply starting token balance
+     *
+     * @dev Initialize the swap fee to the value provided in the CRP constructor
+     *      Can be changed if the canChangeSwapFee permission is enabled
+     *      Delegates to internal function
+     *
+     * @param initialSupply - Starting token balance
      */
     function createPool(uint initialSupply)
         external
@@ -366,12 +436,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Update the weight of an existing token
+     *
      * @dev Notice Balance is not an input (like with rebind on core Pool) since we will require prices not to change
      *      This is achieved by forcing balances to change proportionally to weights, so that prices don't change
      *      If prices could be changed, this would allow the controller to drain the pool by arbing price changes
-     * @param token - token to be reweighted
-     * @param newWeight - new weight of the token
-    */
+     *
+     * @param token - Address of the token to be reweighted
+     * @param newWeight - New weight of the token
+     */
     function updateWeight(address token, uint newWeight)
         external
         override
@@ -400,18 +472,20 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     /**
      * @notice Update weights in a predetermined way, between startBlock and endBlock,
      *         through external calls to pokeWeights
+     *
      * @dev Must call pokeWeights at least once past the end for it to do the final update
      *      and enable calling this again.
      *      It is possible to call updateWeightsGradually during an update in some use cases
      *      For instance, setting newWeights to currentWeights to stop the update where it is
-     * @param newWeights - final weights we want to get to. Note that the ORDER (and number) of
+     *
+     * @param newWeights - Final weights we want to get to. Note that the ORDER (and number) of
      *                     tokens can change if you have added or removed tokens from the pool
      *                     It ensures the counts are correct, but can't help you with the order!
      *                     You can get the underlying core Pool (it's public), and call
      *                     getCurrentTokens() to see the current ordering, if you're not sure
-     * @param startBlock - when weights should start to change
-     * @param endBlock - when weights will be at their final values
-    */
+     * @param startBlock - When weights should start to change
+     * @param endBlock - When weights will be at their final values
+     */
     function updateWeightsGradually(
         uint[] calldata newWeights,
         uint startBlock,
@@ -445,9 +519,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice External function called to make the contract update weights according to plan
+     *
      * @dev Still works if we poke after the end of the period; also works if the weights don't change
      *      Resets if we are poking beyond the end, so that we can do it again
-    */
+     */
     function pokeWeights()
         external
         override
@@ -471,9 +546,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      *      then drain the pool through price manipulation. Of course, there are many
      *      legitimate purposes, such as adding additional collateral tokens.
      *
-     * @param token - the token to be added
-     * @param balance - how much to be added
-     * @param denormalizedWeight - the desired token weight
+     * @param token - Address of the token to be added
+     * @param balance - How much to be added
+     * @param denormalizedWeight - Desired token weight
      */
     function commitAddToken(
         address token,
@@ -509,6 +584,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Add the token previously committed (in commitAddToken) to the pool
+     *
+     * @dev Caller must have the token available to include it in the pool
      */
     function applyAddToken()
         external
@@ -532,8 +609,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Remove a token from the pool
+     *
      * @dev corePool is a contract interface; function calls on it are external
-     * @param token - token to remove
+     *
+     * @param token - Address of the token to remove
      */
     function removeToken(address token)
         external
@@ -557,11 +636,13 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     }
 
     /**
-     * @notice Join a pool
-     * @dev Emits a LogJoin event (for each token)
+     * @notice Join a pool - mint pool tokens with underlying assets
+     *
+     * @dev Emits a LogJoin event for each token
      *      corePool is a contract interface; function calls on it are external
-     * @param poolAmountOut - number of pool tokens to receive
-     * @param maxAmountsIn - Max amount of asset tokens to spend
+     *
+     * @param poolAmountOut - Number of pool tokens to receive
+     * @param maxAmountsIn - Max amount of asset tokens to spend; will follow the pool order
      */
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
@@ -603,9 +684,11 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     }
 
     /**
-     * @notice Exit a pool - redeem pool tokens for underlying assets
+     * @notice Exit a pool - redeem/burn pool tokens for underlying assets
+     *
      * @dev Emits a LogExit event for each token
      *      corePool is a contract interface; function calls on it are external
+     *
      * @param poolAmountIn - amount of pool tokens to redeem
      * @param minAmountsOut - minimum amount of asset tokens to receive
      */
@@ -651,11 +734,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     /**
      * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
      *         System calculates the pool token amount
+     *
      * @dev emits a LogJoin event
-     * @param tokenIn - which token we're transferring in
-     * @param tokenAmountIn - amount of deposit
-     * @param minPoolAmountOut - minimum of pool tokens to receive
-     * @return poolAmountOut - amount of pool tokens minted and transferred
+     *
+     * @param tokenIn - Which token we're transferring in
+     * @param tokenAmountIn - Amount of the deposit
+     * @param minPoolAmountOut - Minimum of pool tokens to receive
+     *
+     * @return poolAmountOut - Amount of pool tokens minted and transferred
      */
     function joinswapExternAmountIn(
         address tokenIn,
@@ -690,11 +776,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     /**
      * @notice Join by swapping an external token in (must be present in the pool)
      *         To receive an exact amount of pool tokens out. System calculates the deposit amount
+     *
      * @dev emits a LogJoin event
-     * @param tokenIn - which token we're transferring in (system calculates amount required)
-     * @param poolAmountOut - amount of pool tokens to be received
+     *
+     * @param tokenIn - Which token we're transferring in (system calculates amount required)
+     * @param poolAmountOut - Amount of pool tokens to be received
      * @param maxAmountIn - Maximum asset tokens that can be pulled to pay for the pool tokens
-     * @return tokenAmountIn - amount of asset tokens transferred in to purchase the pool tokens
+     *
+     * @return tokenAmountIn - Amount of asset tokens transferred in to purchase the pool tokens
      */
     function joinswapPoolAmountOut(
         address tokenIn,
@@ -729,11 +818,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     /**
      * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
      *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
+     *
      * @dev Emits a LogExit event for the token
-     * @param tokenOut - which token the caller wants to receive
-     * @param poolAmountIn - amount of pool tokens to redeem
-     * @param minAmountOut - minimum asset tokens to receive
-     * @return tokenAmountOut - amount of asset tokens returned
+     *
+     * @param tokenOut - Which token the caller wants to receive
+     * @param poolAmountIn - Amount of pool tokens to redeem
+     * @param minAmountOut - Minimum asset tokens to receive
+     *
+     * @return tokenAmountOut - Amount of asset tokens returned
      */
     function exitswapPoolAmountIn(
         address tokenOut,
@@ -771,11 +863,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     /**
      * @notice Exit a pool - redeem pool tokens for a specific amount of underlying assets
      *         Asset must be present in the pool
+     *
      * @dev Emits a LogExit event for the token
-     * @param tokenOut - which token the caller wants to receive
-     * @param tokenAmountOut - amount of underlying asset tokens to receive
-     * @param maxPoolAmountIn - maximum pool tokens to be redeemed
-     * @return poolAmountIn - amount of pool tokens redeemed
+     *
+     * @param tokenOut - Which token the caller wants to receive
+     * @param tokenAmountOut - Amount of underlying asset tokens to receive
+     * @param maxPoolAmountIn - Maximum pool tokens to be redeemed
+     *
+     * @return poolAmountIn - Amount of pool tokens redeemed
      */
     function exitswapExternAmountOut(
         address tokenOut,
@@ -812,6 +907,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Add to the whitelist of liquidity providers (if enabled)
+     *
      * @param provider - address of the liquidity provider
      */
     function whitelistLiquidityProvider(address provider)
@@ -828,6 +924,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Remove from the whitelist of liquidity providers (if enabled)
+     *
      * @param provider - address of the liquidity provider
      */
     function removeWhitelistedLiquidityProvider(address provider)
@@ -845,8 +942,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Getter for the publicSwap field on the underlying pool
+     *
      * @dev viewLock, because setPublicSwap is lock
      *      corePool is a contract interface; function calls on it are external
+     *
      * @return Current value of isPublicSwap
      */
     function isPublicSwap()
@@ -862,8 +961,12 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Check if an address is a liquidity provider
+     *
      * @dev If the whitelist feature is not enabled, anyone can provide liquidity (assuming finalized)
-     * @return boolean value indicating whether the address can join a pool
+     *
+     * @param provider - Address to check if it can become a liquidity provider
+     *
+     * @return Boolean value indicating whether the address can join a pool
      */
     function canProvideLiquidity(address provider)
         external
@@ -882,9 +985,13 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Getter for specific permissions
+     *
      * @dev value of the enum is just the 0-based index in the enumeration
      *      For instance canPauseSwapping is 0; canChangeWeights is 2
-     * @return token boolean true if we have the given permission
+     *
+     * @param permission - What permission to check
+     *
+     * @return Boolean true if we have the given permission
     */
     function hasPermission(RightsManager.Permissions permission)
         external
@@ -897,8 +1004,12 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Get the denormalized weight of a token
+     *
      * @dev viewlock to prevent calling if it's being updated
-     * @return token weight
+     *
+     * @param token - Address of the token to get the denormalized weight
+     *
+     * @return Denormalized token weight
      */
     function getDenormalizedWeight(address token)
         external
@@ -912,8 +1023,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Getter for the RightsManager contract
+     *
      * @dev Convenience function to get the address of the RightsManager library (so clients can check version)
-     * @return address of the RightsManager library
+     *
+     * @return Address of the RightsManager library
     */
     function getRightsManagerVersion() external pure returns (address) {
         return address(RightsManager);
@@ -921,36 +1034,41 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Getter for the SmartPoolManager contract
+     *
      * @dev Convenience function to get the address of the SmartPoolManager library (so clients can check version)
-     * @return address of the SmartPoolManager library
+     *
+     * @return Address of the SmartPoolManager library
     */
     function getSmartPoolManagerVersion() external pure returns (address) {
         return address(SmartPoolManager);
     }
 
     // Public functions
-
     // "Public" versions that can safely be called from SmartPoolManager
     // Allows only the contract itself to call them (not the controller or any external account)
 
+    /// Can only be called by the SmartPoolManager library, will fail otherwise
     function mintPoolShareFromLib(uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _mint(amount);
     }
 
+    /// Can only be called by the SmartPoolManager library, will fail otherwise
     function pushPoolShareFromLib(address to, uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _push(to, amount);
     }
 
+    /// Can only be called by the SmartPoolManager library, will fail otherwise
     function pullPoolShareFromLib(address from, uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _pull(from, amount);
     }
 
+    /// Can only be called by the SmartPoolManager library, will fail otherwise
     function burnPoolShareFromLib(uint amount) public override {
         require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
@@ -958,15 +1076,16 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     }
 
     // Internal functions
-
     // Lint wants the function to have a leading underscore too
     /* solhint-disable private-vars-leading-underscore */
 
     /**
      * @notice Create a new Smart Pool
+     *
      * @dev Initialize the swap fee to the value provided in the CRP constructor
      *      Can be changed if the canChangeSwapFee permission is enabled
-     * @param initialSupply starting token balance
+     *
+     * @param initialSupply - Starting pool token balance
      */
     function createPoolInternal(uint initialSupply) internal {
         require(address(corePool) == address(0), "ERR_IS_CREATED");
@@ -1022,50 +1141,96 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /* solhint-enable private-vars-leading-underscore */
 
-    // Rebind core Pool and pull tokens from address
-    // corePool is a contract interface; function calls on it are external
+    /**
+     * @dev Rebind core Pool and pull tokens from address
+     *      Will get tokens from somewhere to send to the underlying core pool
+     *
+     *      corePool is a contract interface; function calls on it are external
+     *
+     * @param erc20 - Address of the token being pulled
+     * @param from - Address of the owner of the tokens being pulled
+     * @param amount - How much tokens are being transferred
+     */
     function _pullUnderlying(address erc20, address from, uint amount) internal needsCorePool {
         // Gets current Balance of token i, Bi, and weight of token i, Wi, from core Pool.
         uint tokenBalance = corePool.getBalance(erc20);
         uint tokenWeight = corePool.getDenormalizedWeight(erc20);
 
+        // transfer tokens to this contract
         bool xfer = IERC20(erc20).transferFrom(from, address(this), amount);
         require(xfer, "ERR_ERC20_FALSE");
+        // and then send it to the core pool
         corePool.rebind(erc20, tokenBalance + amount, tokenWeight);
     }
 
-    // Rebind core Pool and push tokens to address
-    // corePool is a contract interface; function calls on it are external
+    /**
+     * @dev Rebind core Pool and push tokens to address
+     *      Will get tokens from the core pool and send to some address
+     *
+     *      corePool is a contract interface; function calls on it are external
+     *
+     * @param erc20 - Address of the token being sent
+     * @param to - Address where the tokens are being pushed to
+     * @param amount - How much tokens are being transferred
+     */
     function _pushUnderlying(address erc20, address to, uint amount) internal needsCorePool {
         // Gets current Balance of token i, Bi, and weight of token i, Wi, from core Pool.
         uint tokenBalance = corePool.getBalance(erc20);
         uint tokenWeight = corePool.getDenormalizedWeight(erc20);
+        // get the amount of tokens from the underlying pool to this contract
         corePool.rebind(erc20, tokenBalance - amount, tokenWeight);
 
+        // and transfer them to the address
         bool xfer = IERC20(erc20).transfer(to, amount);
         require(xfer, "ERR_ERC20_FALSE");
     }
 
     // Wrappers around corresponding core functions
 
-    //
+    /**
+     * @dev Wrapper to mint and enforce maximum cap
+     *
+     * @param amount - Amount to mint
+     */
     function _mint(uint amount) internal override {
         super._mint(amount);
         require(_totalSupply <= tokenCap, "ERR_CAP_LIMIT_REACHED");
     }
 
+    /**
+     * @dev Mint pool tokens
+     *
+     * @param amount - How much to mint
+     */
     function _mintPoolShare(uint amount) internal {
         _mint(amount);
     }
 
+    /**
+     * @dev Send pool tokens to someone
+     *
+     * @param to - Who should receive the tokens
+     * @param amount - How much to send to the address
+     */
     function _pushPoolShare(address to, uint amount) internal {
         _push(to, amount);
     }
 
+    /**
+     * @dev Get/Receive pool tokens from someone
+     *
+     * @param from - From whom should tokens be received
+     * @param amount - How much to get from address
+     */
     function _pullPoolShare(address from, uint amount) internal  {
         _pull(from, amount);
     }
 
+    /**
+     * @dev Burn pool tokens
+     *
+     * @param amount - How much to burn
+     */
     function _burnPoolShare(uint amount) internal  {
         _burn(amount);
     }

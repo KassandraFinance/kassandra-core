@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-
-// Imports
-
 import "./KassandraConstants.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)
- * @title SafeMath - wrap Solidity operators to prevent underflow/overflow
+ *
+ * @title SafeMath - Wrap Solidity operators to prevent underflow/overflow
+ *
  * @dev mul/div have extra checks from OpenZeppelin SafeMath
+ *      Most of this math is for dealing with 1 being 10^18
  */
 library KassandraSafeMath {
     /**
      * @notice Safe signed subtraction
-     * @param a - first operand
-     * @param b - second operand
+     *
      * @dev Do a signed subtraction
-     * @return - difference between a and b, and a flag indicating a negative result
+     *
+     * @param a - First operand
+     * @param b - Second operand
+     *
+     * @return Difference between a and b, and a flag indicating a negative result
      *           (i.e., a - b if a is greater than or equal to b; otherwise b - a)
      */
     function bsubSign(uint a, uint b) internal pure returns (uint, bool) {
@@ -30,10 +33,13 @@ library KassandraSafeMath {
 
     /**
      * @notice Safe multiplication
-     * @param a - first operand
-     * @param b - second operand
+     *
      * @dev Multiply safely (and efficiently), rounding down
-     * @return - product of operands; throws if overflow or rounding error
+     *
+     * @param a - First operand
+     * @param b - Second operand
+     *
+     * @return Product of operands; throws if overflow or rounding error
      */
     function bmul(uint a, uint b) internal pure returns (uint) {
         // Gas optimization (see github.com/OpenZeppelin/openzeppelin-contracts/pull/522)
@@ -50,10 +56,13 @@ library KassandraSafeMath {
 
     /**
      * @notice Safe division
-     * @param dividend - first operand
-     * @param divisor - second operand
+     *
      * @dev Divide safely (and efficiently), rounding down
-     * @return - quotient; throws if overflow or rounding error
+     *
+     * @param dividend - First operand
+     * @param divisor - Second operand
+     *
+     * @return Quotient; throws if overflow or rounding error
      */
     function bdiv(uint dividend, uint divisor) internal pure returns (uint) {
         require(divisor != 0, "ERR_DIV_ZERO");
@@ -74,6 +83,7 @@ library KassandraSafeMath {
 
     /**
      * @notice Safe unsigned integer modulo
+     *
      * @dev Returns the remainder of dividing two unsigned integers.
      *      Reverts when dividing by zero.
      *
@@ -81,9 +91,10 @@ library KassandraSafeMath {
      * opcode (which leaves remaining gas untouched) while Solidity uses an
      * invalid opcode to revert (consuming all remaining gas).
      *
-     * @param dividend - first operand
-     * @param divisor - second operand -- cannot be zero
-     * @return - quotient; throws if overflow or rounding error
+     * @param dividend - First operand
+     * @param divisor - Second operand -- cannot be zero
+     *
+     * @return Quotient; throws if overflow or rounding error
      */
     function bmod(uint dividend, uint divisor) internal pure returns (uint) {
         require(divisor != 0, "ERR_MODULO_BY_ZERO");
@@ -93,11 +104,11 @@ library KassandraSafeMath {
 
     /**
      * @notice Safe unsigned integer max
-     * @dev Returns the greater of the two input values
      *
-     * @param a - first operand
-     * @param b - second operand
-     * @return - the maximum of a and b
+     * @param a - First operand
+     * @param b - Second operand
+     *
+     * @return Maximum of a and b
      */
     function bmax(uint a, uint b) internal pure returns (uint) {
         return a > b ? a : b;
@@ -105,11 +116,11 @@ library KassandraSafeMath {
 
     /**
      * @notice Safe unsigned integer min
-     * @dev returns b, if b < a; otherwise returns a
      *
-     * @param a - first operand
-     * @param b - second operand
-     * @return - the lesser of the two input values
+     * @param a - First operand
+     * @param b - Second operand
+     *
+     * @return Minimum of a and b
      */
     function bmin(uint a, uint b) internal pure returns (uint) {
         return a < b ? a : b;
@@ -117,11 +128,13 @@ library KassandraSafeMath {
 
     /**
      * @notice Safe unsigned integer average
+     *
      * @dev Guard against (a+b) overflow by dividing each operand separately
      *
-     * @param a - first operand
-     * @param b - second operand
-     * @return - the average of the two values
+     * @param a - First operand
+     * @param b - Second operand
+     *
+     * @return Average of the two values
      */
     function baverage(uint a, uint b) internal pure returns (uint) {
         // (a + b) / 2 can overflow, so we distribute
@@ -130,9 +143,12 @@ library KassandraSafeMath {
 
     /**
      * @notice Babylonian square root implementation
+     *
      * @dev (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
-     * @param y - operand
-     * @return z - the square root result
+     *
+     * @param y - Operand
+     *
+     * @return z - Square root result
      */
     function sqrt(uint y) internal pure returns (uint z) {
         if (y > 3) {
@@ -148,15 +164,42 @@ library KassandraSafeMath {
         }
     }
 
+    /**
+     * @notice Remove the fractional part
+     *
+     * @dev Assumes the fractional part being everything below 10^18
+     *
+     * @param a - Operand
+     *
+     * @return Integer part of `a`
+     */
     function btoi(uint a) internal pure returns (uint) {
         return a / KassandraConstants.ONE;
     }
 
+    /**
+     * @notice Floor function - Zeros the fractional part
+     *
+     * @dev Assumes the fractional part being everything below 10^18
+     *
+     * @param a - Operand
+     *
+     * @return Greatest integer less than or equal to x
+     */
     function bfloor(uint a) internal pure returns (uint) {
         return btoi(a) * KassandraConstants.ONE;
     }
 
-    // DSMath.wpow
+    /**
+     * @notice Compute a^n where `n` does not have a fractional part
+     *
+     * @dev Based on code by _DSMath_, `n` must not have a fractional part
+     *
+     * @param a - Base that will be raised to the power of `n`
+     * @param n - Integer exponent
+     *
+     * @return z - `a` raise to the power of `n`
+     */
     function bpowi(uint a, uint n) internal pure returns (uint z) {
         z = n % 2 != 0 ? a : KassandraConstants.ONE;
 
@@ -169,9 +212,18 @@ library KassandraSafeMath {
         }
     }
 
-    // Compute b^(e.w) by splitting it into (b^e)*(b^0.w).
-    // Use `bpowi` for `b^e` and `bpowK` for k iterations
-    // of approximation of b^0.w
+    /**
+     * @notice Compute b^e where `e` has a fractional part
+     *
+     * @dev Compute b^e by splitting it into (b^i)*(b^f)
+     *      Where `i` is the integer part and `f` the fractional part
+     *      Uses `bpowi` for `b^e` and `bpowK` for k iterations of approximation of b^0.f
+     *
+     * @param base - Base that will be raised to the power of exp
+     * @param exp - Exponent
+     *
+     * @return Approximation of b^e
+     */
     function bpow(uint base, uint exp) internal pure returns (uint) {
         require(base >= KassandraConstants.MIN_BPOW_BASE, "ERR_BPOW_BASE_TOO_LOW");
         require(base <= KassandraConstants.MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
@@ -189,6 +241,17 @@ library KassandraSafeMath {
         return bmul(wholePow, partialResult);
     }
 
+    /**
+     * @notice Compute an approximation of b^e where `e` is a fractional part
+     *
+     * @dev Computes b^e for k iterations of approximation of b^0.f
+     *
+     * @param base - Base that will be raised to the power of exp
+     * @param exp - Fractional exponent
+     * @param precision - When the adjustment term goes below this number the function stops
+     *
+     * @return sum - Approximation of b^e according to precision
+     */
     function bpowApprox(uint base, uint exp, uint precision) internal pure returns (uint sum) {
         // term 0:
         uint a = exp;
@@ -206,10 +269,13 @@ library KassandraSafeMath {
             (uint c, bool cneg) = bsubSign(a, (bigK - KassandraConstants.ONE));
             term = bmul(term, bmul(c, x));
             term = bdiv(term, bigK);
+
             if (term == 0) break;
 
             if (xneg) negative = !negative;
+
             if (cneg) negative = !negative;
+
             if (negative) {
                 sum -= term;
             } else {
