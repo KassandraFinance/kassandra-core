@@ -227,17 +227,17 @@ library KassandraSafeMath {
         require(base >= KassandraConstants.MIN_BPOW_BASE, "ERR_BPOW_BASE_TOO_LOW");
         require(base <= KassandraConstants.MAX_BPOW_BASE, "ERR_BPOW_BASE_TOO_HIGH");
 
-        uint whole  = bfloor(exp);
-        uint remain = exp - whole;
+        uint integerPart  = btoi(exp);
+        uint fractionPart = exp - (integerPart * KassandraConstants.ONE);
 
-        uint wholePow = bpowi(base, btoi(whole));
+        uint integerPartPow = bpowi(base, integerPart);
 
-        if (remain == 0) {
-            return wholePow;
+        if (fractionPart == 0) {
+            return integerPartPow;
         }
 
-        uint partialResult = bpowApprox(base, remain, KassandraConstants.BPOW_PRECISION);
-        return bmul(wholePow, partialResult);
+        uint fractionPartPow = bpowApprox(base, fractionPart, KassandraConstants.BPOW_PRECISION);
+        return bmul(integerPartPow, fractionPartPow);
     }
 
     /**
@@ -253,19 +253,18 @@ library KassandraSafeMath {
      */
     function bpowApprox(uint base, uint exp, uint precision) internal pure returns (uint sum) {
         // term 0:
-        uint a = exp;
         (uint x, bool xneg) = bsubSign(base, KassandraConstants.ONE);
         uint term = KassandraConstants.ONE;
         bool negative = false;
         sum = term;
 
         // term(k) = numer / denom
-        //         = (product(a - i - 1, i=1-->k) * x^k) / (k!)
-        // each iteration, multiply previous term by (a-(k-1)) * x / k
+        //         = (product(exp - i - 1, i=1-->k) * x^k) / (k!)
+        // each iteration, multiply previous term by (exp-(k-1)) * x / k
         // continue until term is less than precision
         for (uint i = 1; term >= precision; i++) {
             uint bigK = i * KassandraConstants.ONE;
-            (uint c, bool cneg) = bsubSign(a, (bigK - KassandraConstants.ONE));
+            (uint c, bool cneg) = bsubSign(exp, (bigK - KassandraConstants.ONE));
             term = bmul(term, bmul(c, x));
             term = bdiv(term, bigK);
 
