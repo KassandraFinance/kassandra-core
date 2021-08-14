@@ -202,8 +202,8 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         _finalized = true;
         _publicSwap = true;
 
-        _mintPoolShare(KassandraConstants.INIT_POOL_SUPPLY);
-        _pushPoolShare(msg.sender, KassandraConstants.INIT_POOL_SUPPLY);
+        _mintPoolShare(KassandraConstants.MIN_POOL_SUPPLY);
+        _pushPoolShare(msg.sender, KassandraConstants.MIN_POOL_SUPPLY);
     }
 
     /**

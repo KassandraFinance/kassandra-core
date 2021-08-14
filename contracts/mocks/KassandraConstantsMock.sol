@@ -23,9 +23,9 @@ contract KassandraConstantsMock {
     function MIN_BALANCE() public pure returns (uint) {
         return KassandraConstants.MIN_BALANCE;
     }
-    function MAX_BALANCE() public pure returns (uint) {
+    /*function MAX_BALANCE() public pure returns (uint) {
         return KassandraConstants.MAX_BALANCE;
-    }
+    }*/
     function MIN_POOL_SUPPLY() public pure returns (uint) {
         return KassandraConstants.MIN_POOL_SUPPLY;
     }
@@ -58,9 +58,6 @@ contract KassandraConstantsMock {
     }
     function MIN_CORE_BALANCE() public pure returns (uint) {
         return KassandraConstants.MIN_CORE_BALANCE;
-    }
-    function INIT_POOL_SUPPLY() public pure returns (uint) {
-        return KassandraConstants.INIT_POOL_SUPPLY;
     }
     function MIN_BPOW_BASE() public pure returns (uint) {
         return KassandraConstants.MIN_BPOW_BASE;

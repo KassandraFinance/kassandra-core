@@ -21,7 +21,8 @@ library KassandraConstants {
 
     /// Minimum token balance inside the pool
     uint public constant MIN_BALANCE       = ONE / 10**6;
-    uint public constant MAX_BALANCE       = ONE * 10**12;
+    // Maximum token balance inside the pool
+    // uint public constant MAX_BALANCE       = ONE * 10**12;
 
     /// Minimum supply of pool tokens
     uint public constant MIN_POOL_SUPPLY   = ONE * 100;
@@ -51,7 +52,6 @@ library KassandraConstants {
     // Core Pools
     /// Minimum token balance inside the core pool
     uint public constant MIN_CORE_BALANCE  = ONE / 10**12;
-    uint public constant INIT_POOL_SUPPLY  = ONE * 100;
 
     // Core Num
     /// Minimum base for doing a power of operation
