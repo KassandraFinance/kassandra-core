@@ -50,11 +50,13 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
      *
      * @param pool - Address of the pool that changed the swap fee
      * @param caller - Address of who changed the swap fee
+     * @param oldFee - The old swap fee
      * @param newFee - The new swap fee
      */
     event NewSwapFee(
         address indexed pool,
         address indexed caller,
+        uint256         oldFee,
         uint256         newFee
     );
 
@@ -155,7 +157,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(swapFee >= KassandraConstants.MIN_FEE, "ERR_MIN_FEE");
         require(swapFee <= KassandraConstants.MAX_FEE, "ERR_MAX_FEE");
-        emit NewSwapFee(address(this), msg.sender, swapFee);
+        emit NewSwapFee(address(this), msg.sender, _swapFee, swapFee);
         _swapFee = swapFee;
     }
 
