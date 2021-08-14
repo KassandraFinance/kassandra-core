@@ -976,11 +976,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         if (rights.canWhitelistLPs) {
             return _liquidityProviderWhitelist[provider];
         }
-        else {
-            // Probably don't strictly need this (could just return true)
-            // But the null address can't provide funds
-            return provider != address(0);
-        }
+        // Probably don't strictly need this (could just return true)
+        // But the null address can't provide funds
+        return provider != address(0);
     }
 
     /**

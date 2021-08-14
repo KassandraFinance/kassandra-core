@@ -26,9 +26,8 @@ library KassandraSafeMath {
     function bsubSign(uint a, uint b) internal pure returns (uint, bool) {
         if (b <= a) {
             return (a - b, false);
-        } else {
-            return (b - a, true);
         }
+        return (b - a, true);
     }
 
     /**

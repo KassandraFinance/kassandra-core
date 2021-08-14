@@ -63,9 +63,7 @@ library RightsManager {
                 DEFAULT_CAN_CHANGE_CAP
             );
         }
-        else {
-            return Rights(a[0], a[1], a[2], a[3], a[4], a[5]);
-        }
+        return Rights(a[0], a[1], a[2], a[3], a[4], a[5]);
     }
 
     /**
