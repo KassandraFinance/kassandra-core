@@ -88,9 +88,6 @@ library RightsManager {
         return result;
     }
 
-    // Though it is actually simple, the number of branches triggers code-complexity
-    /* solhint-disable code-complexity */
-
     /**
      * @notice Externally check permissions using the Enum
      *
@@ -101,26 +98,11 @@ library RightsManager {
      * @return Boolean true if it has the permission
      */
     function hasPermission(Rights calldata self, Permissions permission) external pure returns (bool) {
-        if (Permissions.PAUSE_SWAPPING == permission) {
-            return self.canPauseSwapping;
+        // assembly allows us to heavily optmise this by reading padding the location instead of using expensive ifs
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            calldatacopy(0, add(self, mul(permission, 32)), 32)
+            return(0, 32)
         }
-        else if (Permissions.CHANGE_SWAP_FEE == permission) {
-            return self.canChangeSwapFee;
-        }
-        else if (Permissions.CHANGE_WEIGHTS == permission) {
-            return self.canChangeWeights;
-        }
-        else if (Permissions.ADD_REMOVE_TOKENS == permission) {
-            return self.canAddRemoveTokens;
-        }
-        else if (Permissions.WHITELIST_LPS == permission) {
-            return self.canWhitelistLPs;
-        }
-        else if (Permissions.CHANGE_CAP == permission) {
-            return self.canChangeCap;
-        }
-        return false;
     }
-
-    /* solhint-enable code-complexity */
 }
