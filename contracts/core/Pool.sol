@@ -61,6 +61,23 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     );
 
     /**
+     * @notice Emitted when a token has its weight changed in the pool
+     *
+     * @param pool - Address of the pool where the operation ocurred
+     * @param caller - Address of who initiated this change
+     * @param token - Address of the token that had its weight changed
+     * @param oldWeight - The old denormalized weight
+     * @param newWeight - The new denormalized weight
+     */
+    event WeightChanged(
+        address indexed pool,
+        address indexed caller,
+        address indexed token,
+        uint256         oldWeight,
+        uint256         newWeight
+    );
+
+    /**
      * @notice Emitted when a swap is done in the pool
      *
      * @param caller - Who made the swap
@@ -256,6 +273,8 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         uint tokenBalance = _records[token].balance;
 
         _totalWeight -= _records[token].denorm;
+
+        emit WeightChanged(address(this), msg.sender, token, _records[token].denorm, 0);
 
         // Swap the token-to-unbind with the last token,
         // then delete the last token
@@ -945,8 +964,10 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         if (denorm > oldWeight) {
             _totalWeight += denorm - oldWeight;
             require(_totalWeight <= KassandraConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
+            emit WeightChanged(address(this), msg.sender, token, oldWeight, denorm);
         } else if (denorm < oldWeight) {
             _totalWeight -= oldWeight - denorm;
+            emit WeightChanged(address(this), msg.sender, token, oldWeight, denorm);
         }
         _records[token].denorm = denorm;
 
