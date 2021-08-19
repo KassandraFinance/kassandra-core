@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IMath.sol";
+import "../interfaces/IMath.sol";
 
-import "../../libraries/KassandraConstants.sol";
-import "../../libraries/KassandraSafeMath.sol";
+import "../libraries/KassandraConstants.sol";
+import "../libraries/KassandraSafeMath.sol";
 
 /**
  * @title Math functions for price, balance and swap calculations

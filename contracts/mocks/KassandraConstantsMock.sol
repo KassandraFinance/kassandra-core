@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL3-or-later
 pragma solidity ^0.8.0;
 
-import "../../libraries/KassandraConstants.sol";
+import "../libraries/KassandraConstants.sol";
 
 /*
  * @title Wrap KassandraConstant for tests

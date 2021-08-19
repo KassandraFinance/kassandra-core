@@ -3,6 +3,8 @@ module.exports = {
   testrpcOptions: "-p 8555 -d",
   skipFiles: [
     'Migrations.sol',
-    'test'
+    'interfaces',
+    'mocks',
+    'test',
   ],
 };

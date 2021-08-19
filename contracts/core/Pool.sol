@@ -8,12 +8,12 @@ import "../Token.sol";
 import "../utils/Ownable.sol";
 import "../utils/ReentrancyGuard.sol";
 
-import "../../interfaces/IERC20.sol";
-import "../../interfaces/IFactory.sol";
-import "../../interfaces/IPool.sol";
+import "../interfaces/IERC20.sol";
+import "../interfaces/IFactory.sol";
+import "../interfaces/IPool.sol";
 
-import "../../libraries/KassandraConstants.sol";
-import "../../libraries/KassandraSafeMath.sol";
+import "../libraries/KassandraConstants.sol";
+import "../libraries/KassandraSafeMath.sol";
 
 /**
  * @title Core Pool - Where the tokens really stay

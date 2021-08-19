@@ -6,12 +6,12 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "../contracts/utils/Ownable.sol";
 
-import "../interfaces/IConfigurableRightsPool.sol";
-import "../interfaces/IFactory.sol";
-import "../interfaces/IPool.sol";
-import "../interfaces/IStrategy.sol";
+import "../contracts/interfaces/IConfigurableRightsPool.sol";
+import "../contracts/interfaces/IFactory.sol";
+import "../contracts/interfaces/IPool.sol";
+import "../contracts/interfaces/IStrategy.sol";
 
-import "../libraries/KassandraConstants.sol";
+import "../contracts/libraries/KassandraConstants.sol";
 
 /**
  * @title $HEIM strategy

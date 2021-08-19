@@ -8,12 +8,12 @@ import "./Pool.sol";
 
 import "../utils/Ownable.sol";
 
-import "../../interfaces/IERC20.sol";
-import "../../interfaces/IFactory.sol";
-import "../../interfaces/IcrpFactory.sol";
+import "../interfaces/IERC20.sol";
+import "../interfaces/IFactory.sol";
+import "../interfaces/IcrpFactory.sol";
 
-import "../../libraries/KassandraConstants.sol";
-import "../../libraries/SmartPoolManager.sol";
+import "../libraries/KassandraConstants.sol";
+import "../libraries/SmartPoolManager.sol";
 
 /**
  * @title Core Pool Factory

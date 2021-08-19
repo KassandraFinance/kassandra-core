@@ -5,10 +5,10 @@ import "./ConfigurableRightsPool.sol";
 
 import "./utils/Ownable.sol";
 
-import "../interfaces/IcrpFactory.sol";
+import "./interfaces/IcrpFactory.sol";
 
-import { RightsManager } from "../libraries/RightsManager.sol";
-import "../libraries/KassandraConstants.sol";
+import { RightsManager } from "./libraries/RightsManager.sol";
+import "./libraries/KassandraConstants.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)

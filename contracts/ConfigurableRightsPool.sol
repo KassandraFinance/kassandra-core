@@ -6,15 +6,15 @@ import "./Token.sol";
 import "./utils/Ownable.sol";
 import "./utils/ReentrancyGuard.sol";
 
-import "../interfaces/IERC20.sol";
-import "../interfaces/IConfigurableRightsPool.sol";
-import "../interfaces/IFactory.sol";
-import "../interfaces/IPool.sol";
+import "./interfaces/IERC20.sol";
+import "./interfaces/IConfigurableRightsPool.sol";
+import "./interfaces/IFactory.sol";
+import "./interfaces/IPool.sol";
 
-import { RightsManager } from "../libraries/RightsManager.sol";
-import "../libraries/KassandraConstants.sol";
-import "../libraries/SafeApprove.sol";
-import "../libraries/SmartPoolManager.sol";
+import { RightsManager } from "./libraries/RightsManager.sol";
+import "./libraries/KassandraConstants.sol";
+import "./libraries/SafeApprove.sol";
+import "./libraries/SmartPoolManager.sol";
 
 /**
  * @author Kassandra (and Balancer Labs)
