@@ -96,16 +96,16 @@ contract('Token Cap', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        const capRight = await crpPool.hasPermission(5);
-        assert.isTrue(capRight);
-
-        let x;
-        for (x = 0; x < permissions.length; x++) {
-            if (x !== 5) {
-                const otherPerm = await crpPool.hasPermission(x);
-                assert.isFalse(otherPerm);
-            }
-        }
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 
     it('Should not allow setting the cap with no pool yet', async () => {

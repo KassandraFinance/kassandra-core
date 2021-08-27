@@ -105,15 +105,13 @@ contract('CRPFactory', async (accounts) => {
     });
 
     it('CRPFactory should have new crpPool registered', async () => {
-        console.log(CRPPOOL_ADDRESS);
         const isPoolRegistered = await crpFactory.isCrp(CRPPOOL_ADDRESS);
-
-        assert.equal(isPoolRegistered, true, `Expected ${CRPPOOL_ADDRESS} to be registered.`);
+        assert.isTrue(isPoolRegistered, `Expected ${CRPPOOL_ADDRESS} to be registered.`);
     });
 
     it('CRPFactory should not have random address registered', async () => {
         const isPoolRegistered = await crpFactory.isCrp(WETH);
-        assert.equal(isPoolRegistered, false, 'Expected not to be registered.');
+        assert.isFalse(isPoolRegistered, 'Expected not to be registered.');
     });
 
     it('should not be able to create with mismatched start Weights', async () => {

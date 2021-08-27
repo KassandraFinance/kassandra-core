@@ -95,16 +95,16 @@ contract('configurableSwapFee', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        const swapRight = await crpPool.hasPermission(1);
-        assert.isTrue(swapRight);
-
-        let x;
-        for (x = 0; x < permissions.length; x++) {
-            if (x !== 1) {
-                const otherPerm = await crpPool.hasPermission(x);
-                assert.isFalse(otherPerm);
-            }
-        }
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 
     it('Non Controller account should not be able to change swapFee', async () => {

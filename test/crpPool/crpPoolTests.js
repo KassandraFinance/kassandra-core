@@ -133,12 +133,17 @@ contract('crpPoolTests', async (accounts) => {
         assert.equal(controllerAddr, admin);
     });
 
-    it('crpPool should have all rights set to true', async () => {
-        let x;
-        for (x = 0; x < permissions.length; x++) {
-            const perm = await crpPool.hasPermission(x);
-            assert.isTrue(perm);
-        }
+    it('crpPool should have all rights as expected', async () => {
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 
     it('Admin should have no initial Tokens', async () => {

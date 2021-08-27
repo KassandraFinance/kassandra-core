@@ -113,11 +113,16 @@ contract('configurableLPNoWhitelist', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        let x;
-        for (x = 0; x < permissions.length; x++) {
-            const perm = await crpPool.hasPermission(x);
-            assert.isFalse(perm);
-        }
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 });
 
@@ -199,14 +204,16 @@ contract('configurableLP', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        const lpRight = await crpPool.hasPermission(4);
-        assert.isTrue(lpRight);
-
-        let x;
-        for (x = 0; x < permissions.length - 1; x++) {
-            const otherPerm = await crpPool.hasPermission(x);
-            assert.isFalse(otherPerm);
-        }
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 
     it('With whitelisting on, no one can be an LP initially', async () => {

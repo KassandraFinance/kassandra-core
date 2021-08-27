@@ -117,15 +117,16 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        let x;
-        for (x = 0; x < permissions.length; x++) {
-            const perm = await crpPool.hasPermission(x);
-            if (x === 5) {
-                assert.isFalse(perm);
-            } else {
-                assert.isTrue(perm);
-            }
-        }
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 
     it('ConfigurableRightsPool cap should be MAX after creation', async () => {

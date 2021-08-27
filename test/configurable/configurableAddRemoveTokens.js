@@ -123,18 +123,16 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        const addRemoveRight = await crpPool.hasPermission(3);
-        assert.isTrue(addRemoveRight);
-        const changeWeightRight = await crpPool.hasPermission(2);
-        assert.isTrue(changeWeightRight);
-
-        let x;
-        for (x = 0; x < permissions.length; x++) {
-            if (x !== 3 && x !== 2) {
-                const otherPerm = await crpPool.hasPermission(x);
-                assert.isFalse(otherPerm);
-            }
-        }
+        const response = [];
+        const perms = await Promise.all(
+            Object.values(permissions).map(
+                (value, x) => {
+                    response.push(value);
+                    return crpPool.hasPermission(x);
+                },
+            ),
+        );
+        assert.sameOrderedMembers(perms, response);
     });
 
     it('Controller should not be able to commitAddToken with invalid weight', async () => {
