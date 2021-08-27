@@ -9,17 +9,23 @@ const Factory = artifacts.require('Factory');
 
 module.exports = async function (deployer, network, accounts) {
     if (network === 'development') {
-        await deployer.deploy(KassandraConstantsMock);
-        await deployer.deploy(KassandraSafeMathMock);
+        await Promise.all([
+            deployer.deploy(KassandraConstantsMock),
+            deployer.deploy(KassandraSafeMathMock),
+        ]);
     }
 
-    await deployer.deploy(KassandraSafeMath);
-    await deployer.deploy(RightsManager);
-    await deployer.deploy(SmartPoolManager);
+    await Promise.all([
+        deployer.deploy(KassandraSafeMath),
+        deployer.deploy(RightsManager),
+        deployer.deploy(SmartPoolManager),
+    ]);
 
-    await deployer.link(KassandraSafeMath, CRPFactory);
-    await deployer.link(RightsManager, CRPFactory);
-    await deployer.link(SmartPoolManager, CRPFactory);
+    await Promise.all([
+        deployer.link(KassandraSafeMath, CRPFactory),
+        deployer.link(RightsManager, CRPFactory),
+        deployer.link(SmartPoolManager, CRPFactory),
 
-    await deployer.link(SmartPoolManager, Factory);
+        deployer.link(SmartPoolManager, Factory),
+    ]);
 };
