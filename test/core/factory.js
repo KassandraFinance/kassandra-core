@@ -64,10 +64,6 @@ contract('Factory', async (accounts) => {
             assert.isTrue(isPool);
         });
 
-        it('fails nonAdmin calls collect', async () => {
-            await truffleAssert.reverts(factory.collect(nonAdmin, { from: nonAdmin }), 'ERR_NOT_CONTROLLER');
-        });
-
         it('admin collects fees', async () => {
             await pool.bind(WETH, toWei('5'), toWei('5'));
             await pool.bind(DAI, toWei('200'), toWei('5'));
@@ -76,8 +72,6 @@ contract('Factory', async (accounts) => {
 
             await pool.joinPool(toWei('10'), [MAX, MAX], { from: nonAdmin });
             await pool.exitPool(toWei('10'), [toWei('0'), toWei('0')], { from: nonAdmin });
-
-            await factory.collect(POOL);
 
             const adminBalance = await pool.balanceOf(admin);
             // start balance + fee from exitPool of 10 tokens above

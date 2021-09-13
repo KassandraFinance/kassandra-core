@@ -97,21 +97,6 @@ contract Factory is IFactoryDef, Ownable {
     }
 
     /**
-     * @notice Collect fees generated from exit fees
-     *
-     * @dev When someone exists a pool the fees are collected here
-     *
-     * @param pool - Address of the Pool token that will be collected
-     */
-    function collect(Pool pool)
-        external onlyOwner
-    {
-        uint collected = IERC20(pool).balanceOf(address(this));
-        bool xfer = pool.transfer(this.getController(), collected);
-        require(xfer, "ERR_ERC20_FAILED");
-    }
-
-    /**
      * @notice Set address of CRPFactory
      *
      * @dev This address is used to allow CRPPools to create Pools as well

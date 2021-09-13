@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./IPool.sol";
+import "./IOwnable.sol";
 
 /**
  * @title Core factory definition interface
@@ -16,6 +17,6 @@ interface IFactoryDef {
  *
  * @dev If `newPool` must be called and an interface must be returned this interface does that
  */
-interface IFactory is IFactoryDef {
+interface IFactory is IFactoryDef, IOwnable {
     function newPool() external returns (IPool pool);
 }

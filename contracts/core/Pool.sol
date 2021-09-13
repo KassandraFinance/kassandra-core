@@ -28,7 +28,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     // Factory address to push token exitFee to
-    address private _factory;
+    IFactory private _factory;
     // true if PUBLIC can call SWAP functions
     bool private _publicSwap;
 
@@ -154,7 +154,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     constructor(string memory tokenSymbol, string memory tokenName)
         CPToken(tokenSymbol, tokenName)
     {
-        _factory = msg.sender;
+        _factory = IFactory(msg.sender);
         _swapFee = KassandraConstants.MIN_FEE;
         _publicSwap = false;
         _finalized = false;
@@ -191,9 +191,8 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
-        IFactory factory = IFactory(_factory);
         require(
-            factory.minimumKacy() <= KassandraSafeMath.bdiv(_records[factory.kacyToken()].denorm, _totalWeight),
+            _factory.minimumKacy() <= KassandraSafeMath.bdiv(_records[_factory.kacyToken()].denorm, _totalWeight),
             "ERR_MIN_KACY"
         );
         _publicSwap = public_;
@@ -210,9 +209,8 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     {
         require(!_finalized, "ERR_IS_FINALIZED");
         require(_tokens.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_MIN_TOKENS");
-        IFactory factory = IFactory(_factory);
         require(
-            factory.minimumKacy() <= KassandraSafeMath.bdiv(_records[factory.kacyToken()].denorm, _totalWeight),
+            _factory.minimumKacy() <= KassandraSafeMath.bdiv(_records[_factory.kacyToken()].denorm, _totalWeight),
             "ERR_MIN_KACY"
         );
 
@@ -267,8 +265,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(_records[token].bound, "ERR_NOT_BOUND");
         require(!_finalized, "ERR_IS_FINALIZED");
         // can't remove kacy
-        IFactory factory = IFactory(_factory);
-        require(token != factory.kacyToken(), "ERR_MIN_KACY");
+        require(token != _factory.kacyToken(), "ERR_MIN_KACY");
 
         uint tokenBalance = _records[token].balance;
 
@@ -362,7 +359,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(ratio != 0, "ERR_MATH_APPROX");
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(_factory, exitFee);
+        _pushPoolShare(_factory.getController(), exitFee);
         _burnPoolShare(pAiAfterExitFee);
 
         for (uint i = 0; i < _tokens.length; i++) {
@@ -672,7 +669,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(poolAmountIn - exitFee);
-        _pushPoolShare(_factory, exitFee);
+        _pushPoolShare(_factory.getController(), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
@@ -723,7 +720,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(poolAmountIn - exitFee);
-        _pushPoolShare(_factory, exitFee);
+        _pushPoolShare(_factory.getController(), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
