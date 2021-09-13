@@ -10,7 +10,7 @@ contract('Pool', async (accounts) => {
 
     const { toWei, fromWei } = web3.utils;
 
-    let tokens;
+    const tokens = [];
     let extraToken;
     let factory; // factory address
     let pool; // first pool w/ defaults
@@ -42,7 +42,8 @@ contract('Pool', async (accounts) => {
 
         for (let i = 0; i < maxAssets; i++) {
             const symbol = randomTokenName(i);
-            await TToken.new(symbol, symbol, 18);
+            const token = await TToken.new(symbol, symbol, 18);
+            tokens.push(token);
         }
 
         extraToken = tokens.pop();

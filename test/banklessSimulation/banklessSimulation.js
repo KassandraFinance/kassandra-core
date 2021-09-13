@@ -419,9 +419,10 @@ contract('Bankless Simulation', async (accounts) => {
                 );
                 cnt++;
 
+                poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
+                poolShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
+
                 if (verbose) {
-                    poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
-                    poolShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
                     console.log(`Pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
                     console.log(`Pool shirt balance: ${Decimal(fromWei(poolShirtBalance)).toFixed(4)}`);
                 }
