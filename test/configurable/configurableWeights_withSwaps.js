@@ -9,6 +9,8 @@ const Factory = artifacts.require('Factory');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('configurableWeights_withSwaps', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
@@ -107,14 +109,21 @@ contract('configurableWeights_withSwaps', async (accounts) => {
             const startBlock = block.number + 3;
             const endBlock = startBlock + blockRange;
             const endWeights = [toWei('39'), toWei('1')];
-            console.log(`Start block for June -> July flipping: ${startBlock}`);
-            console.log(`End   block for June -> July flipping: ${endBlock}`);
+
+            if (verbose) {
+                console.log(`Start block for June -> July flipping: ${startBlock}`);
+                console.log(`End   block for June -> July flipping: ${endBlock}`);
+            }
+
             await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
         });
 
         it('Should revert because too early to pokeWeights()', async () => {
-            const block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);
+            if (verbose) {
+                const block = await web3.eth.getBlock('latest');
+                console.log(`Block: ${block.number}`);
+            }
+
             await truffleAssert.reverts(
                 controller.pokeWeights(),
                 'ERR_CANT_POKE_YET',
@@ -122,10 +131,6 @@ contract('configurableWeights_withSwaps', async (accounts) => {
         });
 
         it('Should be able to pokeWeights()', async () => {
-            let i;
-            let weightXYZ;
-            let weightWETH;
-            let block;
             const corePoolAddr = await controller.corePool();
             const underlyingPool = await Pool.at(corePoolAddr);
 
@@ -164,26 +169,36 @@ contract('configurableWeights_withSwaps', async (accounts) => {
 
             const poolSwapFee = await underlyingPool.getSwapFee();
 
-            for (i = 0; i < blockRange + 10; i++) {
-                weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                weightWETH = await controller.getDenormalizedWeight(WETH);
-                block = await web3.eth.getBlock('latest');
-                console.log(
-                    `Block: ${block.number}. `
-                    + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                    + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                );
+            for (let i = 0; i < blockRange + 10; i++) {
+                if (verbose) {
+                    const weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                    const weightWETH = await controller.getDenormalizedWeight(WETH);
+                    const block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `Block: ${block.number}. `
+                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                        + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                    );
+                }
+
                 await controller.pokeWeights();
 
                 if (i % 3 === 0) {
                     // Randomly transfer tokens to the pool
                     const xferAmount = Math.floor((Math.random() * 3) + 1).toString();
+
                     if (Math.random() > 0.5) {
-                        console.log(`Randomly transferring ${xferAmount} WETH into pool`);
-                        weth.transfer(underlyingPool.address, toWei(xferAmount), { from: user1 });
+                        if (verbose) {
+                            console.log(`Randomly transferring ${xferAmount} WETH into pool`);
+                        }
+
+                        await weth.transfer(underlyingPool.address, toWei(xferAmount), { from: user1 });
                     } else {
-                        console.log(`Randomly transferring ${xferAmount} XYZ into pool`);
-                        xyz.transfer(underlyingPool.address, toWei(xferAmount), { from: user2 });
+                        if (verbose) {
+                            console.log(`Randomly transferring ${xferAmount} XYZ into pool`);
+                        }
+
+                        await xyz.transfer(underlyingPool.address, toWei(xferAmount), { from: user2 });
                     }
 
                     // Transferring tokens randomly into the pool causes
@@ -197,7 +212,10 @@ contract('configurableWeights_withSwaps', async (accounts) => {
                 // Swap back and forth
                 if (i % 2 === 0) {
                     swapAmount = Math.floor((Math.random() * 10) + 1).toString();
-                    console.log(`Swapping ${swapAmount} XYZ for WETH`);
+
+                    if (verbose) {
+                        console.log(`Swapping ${swapAmount} XYZ for WETH`);
+                    }
 
                     tokenIn = XYZ;
                     tokenOut = WETH;
@@ -229,7 +247,10 @@ contract('configurableWeights_withSwaps', async (accounts) => {
                     assert.isAtMost(relDif.toNumber(), errorDelta);
                 } else {
                     swapAmount = Math.floor((Math.random() * 10) + 1).toString();
-                    console.log(`Swapping ${swapAmount} WETH for XYZ`);
+
+                    if (verbose) {
+                        console.log(`Swapping ${swapAmount} WETH for XYZ`);
+                    }
 
                     tokenIn = WETH;
                     tokenOut = XYZ;

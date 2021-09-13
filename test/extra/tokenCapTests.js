@@ -8,6 +8,8 @@ const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('Token Cap', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
@@ -193,16 +195,24 @@ contract('Token Cap', async (accounts) => {
                 // Because it's random, might go over - need to adjust so that it ends with exactly 200
                 if (expectedSupply + amountOut > 200) {
                     const newAmountOut = 200 - expectedSupply;
-                    console.log(`Adjusting last entry from ${amountOut} to ${newAmountOut}`);
+
+                    if (verbose) {
+                        console.log(`Adjusting last entry from ${amountOut} to ${newAmountOut}`);
+                    }
+
                     amountOut = newAmountOut;
                 }
 
-                const daiCost = await crpPool.joinswapPoolAmountOut.call(
-                    DAI, toWei(amountOut.toString()), MAX, { from: user },
-                );
-                console.log(
-                    `User ${userIdx + 1} bought ${amountOut} shares for ${Decimal(fromWei(daiCost)).toFixed(2)} DAI`,
-                );
+                if (verbose) {
+                    const daiCost = await crpPool.joinswapPoolAmountOut.call(
+                        DAI, toWei(amountOut.toString()), MAX, { from: user },
+                    );
+                    console.log(
+                        `User ${userIdx + 1} bought ${amountOut} shares for ${
+                            Decimal(fromWei(daiCost)).toFixed(2)} DAI`,
+                    );
+                }
+
                 userBalances[userIdx] += amountOut;
                 expectedSupply += amountOut;
 
@@ -210,7 +220,11 @@ contract('Token Cap', async (accounts) => {
                 await crpPool.joinswapPoolAmountOut(DAI, toWei(amountOut.toString()), MAX, { from: user });
 
                 supply = await crpPool.totalSupply();
-                console.log(`Total supply is now ${fromWei(supply)}`);
+
+                if (verbose) {
+                    console.log(`Total supply is now ${fromWei(supply)}`);
+                }
+
                 assert.equal(Decimal(fromWei(supply)), expectedSupply);
 
                 balance = await crpPool.balanceOf.call(user);

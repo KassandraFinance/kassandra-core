@@ -12,6 +12,8 @@ const TToken = artifacts.require('TToken');
 // Refer to this article for background:
 // https://medium.com/balancer-protocol/building-liquidity-into-token-distribution-a49d4286e0d4
 
+const verbose = process.env.VERBOSE;
+
 contract('Liquidity Bootstrapping', async (accounts) => {
     const admin = accounts[0];
     const { toWei, fromWei } = web3.utils;
@@ -121,40 +123,56 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 blockRange = 50;
                 // get current block number
                 const block = await web3.eth.getBlock('latest');
-                console.log(`Block of updateWeightsGradually() called at ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Block of updateWeightsGradually() called at ${block.number}`);
+                }
+
                 startBlock = block.number;
                 const endBlock = startBlock + blockRange;
                 // "Flip" weights, from 80/20% to 20/80% by the end
                 const endWeights = [toWei('8'), toWei('32')];
-                console.log(`Start block for XYZ bootstrapping: ${startBlock}`);
-                console.log(`End   block for XYZ bootstrapping: ${endBlock}`);
+
+                if (verbose) {
+                    console.log(`Start block for XYZ bootstrapping: ${startBlock}`);
+                    console.log(`End   block for XYZ bootstrapping: ${endBlock}`);
+                }
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
             });
 
             it('Should be able to pokeWeights()', async () => {
-                let i;
                 let weightXYZ;
                 let weightDAI;
 
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Block: ${block.number}`);
+                }
+
                 while (block.number < startBlock) {
                     // Wait for the start block, if necessary
                     block = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${block.number}`);
+
+                    if (verbose) {
+                        console.log(`Still waiting. Block: ${block.number}`);
+                    }
+
                     await time.advanceBlock();
                 }
 
-                for (i = 0; i < blockRange + 3; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightDAI = await controller.getDenormalizedWeight(DAI);
-                    block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
-                        + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
-                    );
+                for (let i = 0; i < blockRange + 3; i++) {
+                    if (verbose) {
+                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        weightDAI = await controller.getDenormalizedWeight(DAI);
+                        block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
+                            + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
+                        );
+                    }
 
                     // Cause the weights to change
                     // Since a smart contract can do nothing on its own, an external caller
@@ -277,11 +295,15 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightDAI = await controller.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
-                        + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
-                    );
+
+                    if (verbose) {
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
+                            + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
+                        );
+                    }
+
                     await time.advanceBlock();
 
                     // Calculate the percentages (rounded to 3 decimals to avoid numeric issues)
@@ -292,24 +314,28 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                     const normXYZ = Math.floor(pctXYZ * 40 * 1000) / 1000;
                     const normDAI = Math.floor(pctDAI * 40 * 1000) / 1000;
 
-                    console.log(`\nNew weights: XYZ weight: ${normXYZ}; DAI weight: ${normDAI}`);
+                    if (verbose) {
+                        console.log(`\nNew weights: XYZ weight: ${normXYZ}; DAI weight: ${normDAI}`);
+                    }
 
                     // Changing weghts transfers tokens!
                     await controller.updateWeight(XYZ, toWei(normXYZ.toFixed(4)));
                     await controller.updateWeight(DAI, toWei(normDAI.toFixed(4)));
 
-                    const adminXYZ = await xyz.balanceOf.call(admin);
-                    const adminDAI = await dai.balanceOf.call(admin);
-                    console.log(
-                        `Admin balances after: ${Decimal(fromWei(adminXYZ)).toFixed(2)} XYZ; `
-                        + `${Decimal(fromWei(adminDAI)).toFixed(2)} DAI`,
-                    );
-                    const poolXYZ = await xyz.balanceOf.call(underlyingPool.address);
-                    const poolDAI = await dai.balanceOf.call(underlyingPool.address);
-                    console.log(
-                        `Pool balances after: ${Decimal(fromWei(poolXYZ)).toFixed(2)} XYZ; `
-                        + `${Decimal(fromWei(poolDAI)).toFixed(2)} DAI`,
-                    );
+                    if (verbose) {
+                        const adminXYZ = await xyz.balanceOf.call(admin);
+                        const adminDAI = await dai.balanceOf.call(admin);
+                        console.log(
+                            `Admin balances after: ${Decimal(fromWei(adminXYZ)).toFixed(2)} XYZ; `
+                            + `${Decimal(fromWei(adminDAI)).toFixed(2)} DAI`,
+                        );
+                        const poolXYZ = await xyz.balanceOf.call(underlyingPool.address);
+                        const poolDAI = await dai.balanceOf.call(underlyingPool.address);
+                        console.log(
+                            `Pool balances after: ${Decimal(fromWei(poolXYZ)).toFixed(2)} XYZ; `
+                            + `${Decimal(fromWei(poolDAI)).toFixed(2)} DAI`,
+                        );
+                    }
                 }
 
                 // End weights are the reverse of the starting weights
@@ -318,14 +344,16 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 await controller.updateWeightsGradually(endWeights, block.number, block.number + 15);
 
                 for (i = 1; i <= 15; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightDAI = await controller.getDenormalizedWeight(DAI);
-                    block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
-                        + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
-                    );
+                    if (verbose) {
+                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        weightDAI = await controller.getDenormalizedWeight(DAI);
+                        block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> XYZ: ${(fromWei(weightXYZ) * 2.5).toFixed(4)}%`
+                            + `\tDAI: ${(fromWei(weightDAI) * 2.5).toFixed(4)}%`,
+                        );
+                    }
 
                     await controller.pokeWeights();
                 }

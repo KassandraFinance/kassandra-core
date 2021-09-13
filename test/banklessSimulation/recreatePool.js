@@ -12,6 +12,8 @@ const Factory = artifacts.require('Factory');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('Bankless Simulation (recreate pool)', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
@@ -160,12 +162,19 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             const blockRange = 50;
             // get current block number
             const block = await web3.eth.getBlock('latest');
-            console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+            }
+
             startBlock = block.number + 10;
             const endBlock = startBlock + blockRange;
             const endWeights = [toWei('34'), toWei('6')];
-            console.log(`Start block for Dai -> Bap0 flipping: ${startBlock}`);
-            console.log(`End   block for Dai -> Bap0 flipping: ${endBlock}`);
+
+            if (verbose) {
+                console.log(`Start block for Dai -> Bap0 flipping: ${startBlock}`);
+                console.log(`End   block for Dai -> Bap0 flipping: ${endBlock}`);
+            }
 
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
         });
@@ -175,11 +184,19 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             let weightDai;
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block: ${block.number}`);
+            }
+
             while (block.number < startBlock) {
                 // Wait for the start block
                 block = await web3.eth.getBlock('latest');
-                console.log(`Still waiting. Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Still waiting. Block: ${block.number}`);
+                }
+
                 await time.advanceBlock();
             }
 
@@ -201,11 +218,14 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
                 weightDai = await crpPool.getDenormalizedWeight(DAI);
                 block = await web3.eth.getBlock('latest');
-                console.log(
-                    `\nBlock: ${block.number}. `
-                    + `Weights -> BAP0: ${((weightBap0 * 2.5) / 10 ** 18).toString()}%`
-                    + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
-                );
+
+                if (verbose) {
+                    console.log(
+                        `\nBlock: ${block.number}. `
+                        + `Weights -> BAP0: ${((weightBap0 * 2.5) / 10 ** 18).toString()}%`
+                        + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
+                    );
+                }
 
                 const tokenInBalance = await dai.balanceOf.call(underlyingPool.address);
                 const tokenInWeight = await underlyingPool.getDenormalizedWeight(DAI);
@@ -215,22 +235,28 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 // Rotate users
                 user = users[userIdx];
 
-                const daiBalance = await dai.balanceOf.call(user);
-                const bap0Balance = await bap0.balanceOf.call(user);
-                console.log(
-                    `User ${userIdx + 1} has ${Math.round(fromWei(daiBalance))} Dai `
-                    + `and ${fromWei(bap0Balance)} shirts.`,
-                );
-                console.log(
-                    `Pool has ${fromWei(tokenOutBalance)} shirts / ${Math.round(fromWei(tokenInBalance))} Dai left`,
-                );
+                if (verbose) {
+                    const daiBalance = await dai.balanceOf.call(user);
+                    const bap0Balance = await bap0.balanceOf.call(user);
+
+                    console.log(
+                        `User ${userIdx + 1} has ${Math.round(fromWei(daiBalance))} Dai `
+                        + `and ${fromWei(bap0Balance)} shirts.`,
+                    );
+                    console.log(
+                        `Pool has ${fromWei(tokenOutBalance)} shirts / ${Math.round(fromWei(tokenInBalance))} Dai left`,
+                    );
+                }
 
                 if (++userIdx === 3) {
                     userIdx = 0;
                 }
 
-                const bap0SpotPrice = await underlyingPool.getSpotPrice(DAI, BAP0);
-                console.log(`Spot price of 1 BAP0 = ${Decimal(fromWei(bap0SpotPrice)).toFixed(4)}`);
+                if (verbose) {
+                    const bap0SpotPrice = await underlyingPool.getSpotPrice(DAI, BAP0);
+                    console.log(`Spot price of 1 BAP0 = ${Decimal(fromWei(bap0SpotPrice)).toFixed(4)}`);
+                }
+
                 let amountOut = '1';
 
                 if (userIdx === 2) {
@@ -258,12 +284,14 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 );
 
                 const tokenAmountIn = swapResult[0];
-                const spotPriceAfter = swapResult[1];
 
-                console.log(
-                    `Actual cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}; `
-                    + `spot price after is ${Decimal(fromWei(spotPriceAfter)).toFixed(2)}`,
-                );
+                if (verbose) {
+                    const spotPriceAfter = swapResult[1];
+                    console.log(
+                        `Actual cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}; `
+                        + `spot price after is ${Decimal(fromWei(spotPriceAfter)).toFixed(2)}`,
+                    );
+                }
 
                 const relDiff = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn));
                 assert.isAtMost(relDiff.toNumber(), errorDelta);
@@ -280,8 +308,10 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
 
                 // What if we swap the token back in?
                 if (userIdx === 0) {
-                    const daiSpotPrice = await underlyingPool.getSpotPrice(BAP0, DAI);
-                    console.log(`Spot price of 1 DAI = ${Decimal(fromWei(daiSpotPrice)).toFixed(2)}`);
+                    if (verbose) {
+                        const daiSpotPrice = await underlyingPool.getSpotPrice(BAP0, DAI);
+                        console.log(`Spot price of 1 DAI = ${Decimal(fromWei(daiSpotPrice)).toFixed(2)}`);
+                    }
 
                     const bapInBalance = await bap0.balanceOf.call(underlyingPool.address);
                     const bapInWeight = await underlyingPool.getDenormalizedWeight(BAP0);
@@ -306,9 +336,11 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                         { from: user1 },
                     );
 
-                    console.log(
-                        `User put the token back, and got ${Decimal(fromWei(daiAmountOut[0])).toFixed(2)} Dai back`,
-                    );
+                    if (verbose) {
+                        console.log(
+                            `User put the token back, and got ${Decimal(fromWei(daiAmountOut[0])).toFixed(2)} Dai back`,
+                        );
+                    }
 
                     const relDif = calcRelativeDiff(expectedTotalOut, fromWei(daiAmountOut[0]));
                     assert.isAtMost(relDif.toNumber(), errorDelta);
@@ -339,9 +371,12 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             await crpPool.setPublicSwap(false);
 
             const poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
-            console.log(`Final pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
-            const poolShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
-            console.log(`Final pool shirt balance: ${Decimal(fromWei(poolShirtBalance)).toFixed(4)}`);
+
+            if (verbose) {
+                const poolShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
+                console.log(`Final pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
+                console.log(`Final pool shirt balance: ${Decimal(fromWei(poolShirtBalance)).toFixed(4)}`);
+            }
 
             // Destroy the pool by simply removing both tokens
             // If we just remove both, the pool will be destroyed
@@ -355,7 +390,10 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             assert.equal(numTokens, 1);
 
             const adminDaiBalance = await dai.balanceOf.call(admin);
-            console.log(`Final admin Dai balance: ${Decimal(fromWei(adminDaiBalance)).toFixed(2)}`);
+
+            if (verbose) {
+                console.log(`Final admin Dai balance: ${Decimal(fromWei(adminDaiBalance)).toFixed(2)}`);
+            }
 
             // Make sure they recovered all collateral
             assert.equal(poolDaiBalance - adminDaiBalance, 0);
@@ -365,9 +403,11 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             const corePoolAddr = await crpPool.corePool();
             const underlyingPool = await Pool.at(corePoolAddr);
 
-            console.log(`DAI address = ${DAI}`);
-            console.log(`BAP0 address = ${BAP0}`);
-            console.log(`BAP1 address = ${BAP1}`);
+            if (verbose) {
+                console.log(`DAI address = ${DAI}`);
+                console.log(`BAP0 address = ${BAP0}`);
+                console.log(`BAP1 address = ${BAP1}`);
+            }
 
             // The pool currently only contains BAP0, with the end weight of 6
             // Now add the new project token, with weight 38
@@ -379,26 +419,31 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
 
             // BAP0 and BAP1
             let numTokens = await underlyingPool.getNumTokens.call();
-            console.log(`Num tokens = ${numTokens}`);
 
-            assert.equal(numTokens, 2);
-            let tokens = await underlyingPool.getCurrentTokens.call();
-            let i;
-            for (i = 0; i < tokens.length; i++) {
-                console.log(tokens[i]);
+            if (verbose) {
+                console.log(`Num tokens = ${numTokens}`);
             }
 
-            console.log('Getting Bap0 balance');
+            assert.equal(numTokens, 2);
 
-            let poolBAP0Balance = await bap0.balanceOf.call(underlyingPool.address);
-            console.log(`Pool BAP0 balance: ${Decimal(fromWei(poolBAP0Balance)).toFixed(2)}`);
-            let poolBAP0Weight = await crpPool.getDenormalizedWeight(BAP0);
-            console.log(`Pool BAP0 weight: ${Decimal(fromWei(poolBAP0Weight)).toFixed(2)}`);
+            let tokens = await underlyingPool.getCurrentTokens.call();
 
-            let poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
-            console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
-            let poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
-            console.log(`Pool BAP1 weight: ${Decimal(fromWei(poolBAP1Weight)).toFixed(2)}`);
+            if (verbose) {
+                for (let i = 0; i < tokens.length; i++) {
+                    console.log(tokens[i]);
+                }
+
+                console.log('Getting Bap0 balance');
+                const poolBAP0Balance = await bap0.balanceOf.call(underlyingPool.address);
+                const poolBAP0Weight = await crpPool.getDenormalizedWeight(BAP0);
+                const poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
+                const poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
+
+                console.log(`Pool BAP0 balance: ${Decimal(fromWei(poolBAP0Balance)).toFixed(2)}`);
+                console.log(`Pool BAP0 weight: ${Decimal(fromWei(poolBAP0Weight)).toFixed(2)}`);
+                console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
+                console.log(`Pool BAP1 weight: ${Decimal(fromWei(poolBAP1Weight)).toFixed(2)}`);
+            }
 
             // Now add DAI collateral
             await crpPool.commitAddToken(DAI, toWei('3000'), toWei('2'));
@@ -408,25 +453,28 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             // BAP0, BAP1, DAI
             numTokens = await underlyingPool.getNumTokens.call();
             assert.equal(numTokens, 3);
-            tokens = await underlyingPool.getCurrentTokens.call();
-            for (i = 0; i < tokens.length; i++) {
-                console.log(tokens[i]);
+
+            if (verbose) {
+                tokens = await underlyingPool.getCurrentTokens.call();
+
+                for (let i = 0; i < tokens.length; i++) {
+                    console.log(tokens[i]);
+                }
+
+                const poolBAP0Balance = await bap0.balanceOf.call(underlyingPool.address);
+                const poolBAP0Weight = await crpPool.getDenormalizedWeight(BAP0);
+                const poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
+                const poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
+                const poolDAIBalance = await dai.balanceOf.call(underlyingPool.address);
+                const poolDAIWeight = await crpPool.getDenormalizedWeight(DAI);
+
+                console.log(`Pool BAP0 balance: ${Decimal(fromWei(poolBAP0Balance)).toFixed(2)}`);
+                console.log(`Pool BAP0 weight: ${Decimal(fromWei(poolBAP0Weight)).toFixed(2)}`);
+                console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
+                console.log(`Pool BAP1 weight: ${Decimal(fromWei(poolBAP1Weight)).toFixed(2)}`);
+                console.log(`Pool DAI balance: ${Decimal(fromWei(poolDAIBalance)).toFixed(2)}`);
+                console.log(`Pool DAI weight: ${Decimal(fromWei(poolDAIWeight)).toFixed(2)}`);
             }
-
-            poolBAP0Balance = await bap0.balanceOf.call(underlyingPool.address);
-            console.log(`Pool BAP0 balance: ${Decimal(fromWei(poolBAP0Balance)).toFixed(2)}`);
-            poolBAP0Weight = await crpPool.getDenormalizedWeight(BAP0);
-            console.log(`Pool BAP0 weight: ${Decimal(fromWei(poolBAP0Weight)).toFixed(2)}`);
-
-            poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
-            console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
-            poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
-            console.log(`Pool BAP1 weight: ${Decimal(fromWei(poolBAP1Weight)).toFixed(2)}`);
-
-            let poolDAIBalance = await dai.balanceOf.call(underlyingPool.address);
-            console.log(`Pool DAI balance: ${Decimal(fromWei(poolDAIBalance)).toFixed(2)}`);
-            let poolDAIWeight = await crpPool.getDenormalizedWeight(DAI);
-            console.log(`Pool DAI weight: ${Decimal(fromWei(poolDAIWeight)).toFixed(2)}`);
 
             // Finally, recover BAP0 tokens
             await crpPool.removeToken(BAP0);
@@ -434,27 +482,43 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             // BAP1, DAI
             numTokens = await underlyingPool.getNumTokens.call();
             assert.equal(numTokens, 2);
-            tokens = await underlyingPool.getCurrentTokens.call();
-            for (i = 0; i < tokens.length; i++) {
-                console.log(tokens[i]);
+
+            if (verbose) {
+                tokens = await underlyingPool.getCurrentTokens.call();
+
+                for (let i = 0; i < tokens.length; i++) {
+                    console.log(tokens[i]);
+                }
             }
 
             const adminBAP0Balance = await bap0.balanceOf.call(admin);
-            console.log(`Admin BAP0 balance: ${Decimal(fromWei(adminBAP0Balance)).toFixed(2)}`);
+
+            if (verbose) {
+                console.log(`Admin BAP0 balance: ${Decimal(fromWei(adminBAP0Balance)).toFixed(2)}`);
+            }
+
             // Ensure we recovered all the original tokens
             assert.equal(Decimal(fromWei(adminBAP0Balance)), 2);
 
-            poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
-            console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
-            poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
-            console.log(`Pool BAP1 weight: ${Decimal(fromWei(poolBAP1Weight)).toFixed(2)}`);
+            const poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
+            const poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
+
+            if (verbose) {
+                console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
+                console.log(`Pool BAP1 weight: ${Decimal(fromWei(poolBAP1Weight)).toFixed(2)}`);
+            }
+
             assert.equal(Decimal(fromWei(poolBAP1Balance)), 150);
             assert.equal(Decimal(fromWei(poolBAP1Weight)), 38);
 
-            poolDAIBalance = await dai.balanceOf.call(underlyingPool.address);
-            console.log(`Pool DAI balance: ${Decimal(fromWei(poolDAIBalance)).toFixed(2)}`);
-            poolDAIWeight = await crpPool.getDenormalizedWeight(DAI);
-            console.log(`Pool DAI weight: ${Decimal(fromWei(poolDAIWeight)).toFixed(2)}`);
+            const poolDAIBalance = await dai.balanceOf.call(underlyingPool.address);
+            const poolDAIWeight = await crpPool.getDenormalizedWeight(DAI);
+
+            if (verbose) {
+                console.log(`Pool DAI balance: ${Decimal(fromWei(poolDAIBalance)).toFixed(2)}`);
+                console.log(`Pool DAI weight: ${Decimal(fromWei(poolDAIWeight)).toFixed(2)}`);
+            }
+
             assert.equal(Decimal(fromWei(poolDAIBalance)), 3000);
             assert.equal(Decimal(fromWei(poolDAIWeight)), 2);
         });
@@ -463,12 +527,19 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             const blockRange = 50;
             // get current block number
             const block = await web3.eth.getBlock('latest');
-            console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+            }
+
             startBlock = block.number + 10;
             const endBlock = startBlock + blockRange;
             const endWeights = [toWei('34'), toWei('6')];
-            console.log(`Start block for Dai -> Bap1 flipping: ${startBlock}`);
-            console.log(`End   block for Dai -> Bap1 flipping: ${endBlock}`);
+
+            if (verbose) {
+                console.log(`Start block for Dai -> Bap1 flipping: ${startBlock}`);
+                console.log(`End   block for Dai -> Bap1 flipping: ${endBlock}`);
+            }
 
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
             // Need to turn public swapping back on!
@@ -476,15 +547,20 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
         });
 
         it('Should be able to poke weights (and buy BAP1 items)', async () => {
-            let weightBap1;
-            let weightDai;
-
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block: ${block.number}`);
+            }
+
             while (block.number < startBlock) {
                 // Wait for the start block
                 block = await web3.eth.getBlock('latest');
-                console.log(`Still waiting. Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Still waiting. Block: ${block.number}`);
+                }
+
                 await time.advanceBlock();
             }
 
@@ -498,14 +574,16 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             let shirtsLeft = true;
 
             while (shirtsLeft) {
-                weightBap1 = await crpPool.getDenormalizedWeight(BAP1);
-                weightDai = await crpPool.getDenormalizedWeight(DAI);
-                block = await web3.eth.getBlock('latest');
-                console.log(
-                    `\nBlock: ${block.number}. `
-                    + `Weights -> BAP1: ${((weightBap1 * 2.5) / 10 ** 18).toString()}%`
-                    + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
-                );
+                if (verbose) {
+                    const weightBap1 = await crpPool.getDenormalizedWeight(BAP1);
+                    const weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `\nBlock: ${block.number}. `
+                        + `Weights -> BAP1: ${((weightBap1 * 2.5) / 10 ** 18).toString()}%`
+                        + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
+                    );
+                }
 
                 const tokenInBalance = await dai.balanceOf.call(underlyingPool.address);
                 const tokenInWeight = await underlyingPool.getDenormalizedWeight(DAI);
@@ -515,22 +593,27 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 // Rotate users
                 user = users[userIdx];
 
-                const daiBalance = await dai.balanceOf.call(user);
-                const bap1Balance = await bap1.balanceOf.call(user);
-                console.log(
-                    `User ${userIdx + 1} has ${Math.round(fromWei(daiBalance))} `
-                    + `Dai and ${fromWei(bap1Balance)} shirts.`,
-                );
-                console.log(
-                    `Pool has ${fromWei(tokenOutBalance)} caps / ${Math.round(fromWei(tokenInBalance))} Dai left`,
-                );
+                if (verbose) {
+                    const daiBalance = await dai.balanceOf.call(user);
+                    const bap1Balance = await bap1.balanceOf.call(user);
+                    console.log(
+                        `User ${userIdx + 1} has ${Math.round(fromWei(daiBalance))} `
+                        + `Dai and ${fromWei(bap1Balance)} shirts.`,
+                    );
+                    console.log(
+                        `Pool has ${fromWei(tokenOutBalance)} caps / ${Math.round(fromWei(tokenInBalance))} Dai left`,
+                    );
+                }
 
                 if (++userIdx === 3) {
                     userIdx = 0;
                 }
 
-                const bap1SpotPrice = await underlyingPool.getSpotPrice(DAI, BAP1);
-                console.log(`Spot price of 1 BAP1 = ${Decimal(fromWei(bap1SpotPrice)).toFixed(4)}`);
+                if (verbose) {
+                    const bap1SpotPrice = await underlyingPool.getSpotPrice(DAI, BAP1);
+                    console.log(`Spot price of 1 BAP1 = ${Decimal(fromWei(bap1SpotPrice)).toFixed(4)}`);
+                }
+
                 const amountOut = '1';
 
                 const expectedTotalIn = calcInGivenOut(
@@ -554,12 +637,14 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 );
 
                 const tokenAmountIn = swapResult[0];
-                const spotPriceAfter = swapResult[1];
 
-                console.log(
-                    `Actual cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}; `
-                    + `spot price after is ${Decimal(fromWei(spotPriceAfter)).toFixed(2)}`,
-                );
+                if (verbose) {
+                    const spotPriceAfter = swapResult[1];
+                    console.log(
+                        `Actual cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}; `
+                        + `spot price after is ${Decimal(fromWei(spotPriceAfter)).toFixed(2)}`,
+                    );
+                }
 
                 const relDiff = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn));
                 assert.isAtMost(relDiff.toNumber(), errorDelta);
@@ -590,12 +675,18 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             await crpPool.setPublicSwap(false);
 
             const poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
-            console.log(`Final pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
             const poolShirtBalance = await bap1.balanceOf.call(underlyingPool.address);
-            console.log(`Final pool cap balance: ${Decimal(fromWei(poolShirtBalance)).toFixed(4)}`);
+
+            if (verbose) {
+                console.log(`Final pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
+                console.log(`Final pool cap balance: ${Decimal(fromWei(poolShirtBalance)).toFixed(4)}`);
+            }
 
             const initialAdminDaiBalance = await dai.balanceOf.call(admin);
-            console.log(`Initial admin Dai balance: ${Decimal(fromWei(initialAdminDaiBalance)).toFixed(2)}`);
+
+            if (verbose) {
+                console.log(`Initial admin Dai balance: ${Decimal(fromWei(initialAdminDaiBalance)).toFixed(2)}`);
+            }
 
             // Destroy the pool by simply removing both tokens
             await crpPool.removeToken(DAI);
@@ -605,9 +696,12 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             assert.equal(numTokens, 0);
 
             const adminDaiBalance = await dai.balanceOf.call(admin);
-            console.log(`Final admin Dai balance: ${Decimal(fromWei(adminDaiBalance)).toFixed(2)}`);
             const adminBap1Balance = await bap1.balanceOf.call(admin);
-            console.log(`Final admin BAP1 balance: ${Decimal(fromWei(adminBap1Balance)).toFixed(2)}`);
+
+            if (verbose) {
+                console.log(`Final admin Dai balance: ${Decimal(fromWei(adminDaiBalance)).toFixed(2)}`);
+                console.log(`Final admin BAP1 balance: ${Decimal(fromWei(adminBap1Balance)).toFixed(2)}`);
+            }
 
             // Make sure they recovered all collateral and tokens
             // Tolerate being 2 cents off (rounding, etc.)

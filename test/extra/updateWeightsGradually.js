@@ -7,6 +7,8 @@ const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('updateWeightsGradually', async (accounts) => {
     const admin = accounts[0];
     const { toWei } = web3.utils;
@@ -87,64 +89,87 @@ contract('updateWeightsGradually', async (accounts) => {
                 blockRange = 20;
                 // get current block number
                 const block = await web3.eth.getBlock('latest');
-                console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+                }
+
                 startBlock = block.number + 10;
                 endBlock = startBlock + blockRange;
                 const endWeights = [toWei('39'), toWei('1')];
-                console.log(`Start block: ${startBlock}`);
-                console.log(`End   block: ${endBlock}`);
+
+                if (verbose) {
+                    console.log(`Start block: ${startBlock}`);
+                    console.log(`End   block: ${endBlock}`);
+                }
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
             });
 
             it('Should be able to pokeWeights(), stop in middle, and freeze', async () => {
-                let i;
                 let weightXYZ;
                 let weightWETH;
 
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Block: ${block.number}`);
+                }
+
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${block.number}`);
+
+                    if (verbose) {
+                        console.log(`Still waiting. Block: ${block.number}`);
+                    }
+
                     await time.advanceBlock();
                 }
 
                 // Only go half-way
-                for (i = 0; i < blockRange - 10; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                        + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                    );
+                for (let i = 0; i < blockRange - 10; i++) {
+                    if (verbose) {
+                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        weightWETH = await controller.getDenormalizedWeight(WETH);
+                        block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                            + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                        );
+                    }
+
                     await controller.pokeWeights();
                 }
 
                 // Call update with current weights to "freeze"
-                console.log('Freeze at current weight');
+                if (verbose) {
+                    console.log('Freeze at current weight');
+                }
+
                 weightXYZ = await controller.getDenormalizedWeight(XYZ);
                 weightWETH = await controller.getDenormalizedWeight(WETH);
                 const endWeights = [weightXYZ, weightWETH];
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock + 10);
 
-                for (i = 0; i < blockRange + 10; i++) {
+                for (let i = 0; i < blockRange + 10; i++) {
                     weightXYZ = await controller.getDenormalizedWeight(XYZ);
                     weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock('latest');
 
                     assert.isTrue(weightXYZ - endWeights[0] === 0);
                     assert.isTrue(weightWETH - endWeights[1] === 0);
 
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                        + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                    );
+                    if (verbose) {
+                        block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                            + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                        );
+                    }
+
                     await controller.pokeWeights();
                 }
             });
@@ -156,17 +181,28 @@ contract('updateWeightsGradually', async (accounts) => {
                 startBlock = block.number + 10;
                 endBlock = startBlock + blockRange;
                 const endWeights = [toWei('1'), toWei('39')];
-                console.log(`Start block: ${startBlock}`);
-                console.log(`End   block: ${endBlock}`);
 
-                console.log('Go back down');
+                if (verbose) {
+                    console.log(`Start block: ${startBlock}`);
+                    console.log(`End   block: ${endBlock}`);
+
+                    console.log('Go back down');
+                }
+
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
 
-                console.log(`Block: ${block.number}`);
+                if (verbose) {
+                    console.log(`Block: ${block.number}`);
+                }
+
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${block.number}`);
+
+                    if (verbose) {
+                        console.log(`Still waiting. Block: ${block.number}`);
+                    }
+
                     await time.advanceBlock();
                 }
 
@@ -174,14 +210,17 @@ contract('updateWeightsGradually', async (accounts) => {
                 let weightWETH;
 
                 for (let i = 0; i < blockRange + 5; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                        + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                    );
+                    if (verbose) {
+                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        weightWETH = await controller.getDenormalizedWeight(WETH);
+                        block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                            + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                        );
+                    }
+
                     await controller.pokeWeights();
                 }
 
@@ -205,22 +244,27 @@ contract('updateWeightsGradually', async (accounts) => {
                         startBlock = await web3.eth.getBlock('latest');
                         endBlock = startBlock.number + 20;
 
-                        console.log(`XYZ target weight: ${currXYZWeight}`);
-                        console.log(`WETH target weight: ${currWETHWeight}`);
+                        if (verbose) {
+                            console.log(`XYZ target weight: ${currXYZWeight}`);
+                            console.log(`WETH target weight: ${currWETHWeight}`);
+                        }
 
                         const endWeights = [toWei(currXYZWeight), toWei(currWETHWeight)];
 
                         await controller.updateWeightsGradually(endWeights, startBlock.number, endBlock);
 
                         for (let j = 0; j < 5; j++) {
-                            const weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                            const weightWETH = await controller.getDenormalizedWeight(WETH);
-                            const block = await web3.eth.getBlock('latest');
-                            console.log(
-                                `Block: ${block.number}. `
-                                + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                                + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                            );
+                            if (verbose) {
+                                const weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                                const weightWETH = await controller.getDenormalizedWeight(WETH);
+                                const block = await web3.eth.getBlock('latest');
+                                console.log(
+                                    `Block: ${block.number}. `
+                                    + `Weights -> XYZ: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                                    + `\tWETH: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                                );
+                            }
+
                             await controller.pokeWeights();
                         }
                     }

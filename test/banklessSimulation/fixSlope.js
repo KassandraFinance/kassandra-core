@@ -12,6 +12,8 @@ const Factory = artifacts.require('Factory');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
     const admin = accounts[0];
     const user = accounts[1];
@@ -127,19 +129,29 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             const blockRange = 50;
             // get current block number
             const block = await web3.eth.getBlock('latest');
-            console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+            }
+
             const startBlock = block.number + 10;
             const endBlock = startBlock + blockRange;
             const endWeights = [toWei('34'), toWei('6')];
-            console.log(`Start block for Dai -> Bap0 flipping: ${startBlock}`);
-            console.log(`End   block for Dai -> Bap0 flipping: ${endBlock}`);
+
+            if (verbose) {
+                console.log(`Start block for Dai -> Bap0 flipping: ${startBlock}`);
+                console.log(`End   block for Dai -> Bap0 flipping: ${endBlock}`);
+            }
 
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
         });
 
         it('Should revert because too early to pokeWeights()', async () => {
-            const block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);
+            if (verbose) {
+                const block = await web3.eth.getBlock('latest');
+                console.log(`Block: ${block.number}`);
+            }
+
             await truffleAssert.reverts(
                 crpPool.pokeWeights(),
                 'ERR_CANT_POKE_YET',
@@ -149,11 +161,19 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
         it('Should be able to poke weights (and buy shirts)', async () => {
             let block = await web3.eth.getBlock('latest');
             const startBlock = block.number + 10;
-            console.log(`Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block: ${block.number}`);
+            }
+
             while (block.number < startBlock) {
                 // Wait for the start block
                 block = await web3.eth.getBlock('latest');
-                console.log(`Still waiting. Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Still waiting. Block: ${block.number}`);
+                }
+
                 await time.advanceBlock();
             }
 
@@ -163,37 +183,41 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             await dai.approve(underlyingPool.address, MAX, { from: user });
 
             for (let i = 0; i < 5; i++) {
-                const weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                const weightDai = await crpPool.getDenormalizedWeight(DAI);
-                block = await web3.eth.getBlock('latest');
-                console.log(
-                    `\nBlock: ${block.number}. `
-                    + `Weights -> BAP0: ${((weightBap0 * 2.5) / 10 ** 18).toString()}%`
-                    + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
-                );
-                console.log(
-                    `Raw weights: ${
-                        Decimal(fromWei(weightBap0)).toFixed(4)
-                    } / ${
-                        Decimal(fromWei(weightDai)).toFixed(2)
-                    }`,
-                );
+                if (verbose) {
+                    const weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
+                    const weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `\nBlock: ${block.number}. `
+                        + `Weights -> BAP0: ${((weightBap0 * 2.5) / 10 ** 18).toString()}%`
+                        + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
+                    );
+                    console.log(
+                        `Raw weights: ${
+                            Decimal(fromWei(weightBap0)).toFixed(4)
+                        } / ${
+                            Decimal(fromWei(weightDai)).toFixed(2)
+                        }`,
+                    );
+                }
 
                 const tokenInBalance = await dai.balanceOf.call(underlyingPool.address);
                 const tokenInWeight = await underlyingPool.getDenormalizedWeight(DAI);
                 const tokenOutBalance = await bap0.balanceOf.call(underlyingPool.address);
                 const tokenOutWeight = await underlyingPool.getDenormalizedWeight(BAP0);
 
-                const daiBalance = await dai.balanceOf.call(user);
-                const bap0Balance = await bap0.balanceOf.call(user);
-                console.log(
-                    `User has ${Decimal(fromWei(daiBalance)).toFixed(2)} Dai `
-                    + `and ${Decimal(fromWei(bap0Balance)).toFixed(1)} shirts.`,
-                );
-                console.log(
-                    `Pool has ${Decimal(fromWei(tokenOutBalance)).toFixed(1)} shirts `
-                    + `/ ${Decimal(fromWei(tokenInBalance)).toFixed(2)} Dai left`,
-                );
+                if (verbose) {
+                    const daiBalance = await dai.balanceOf.call(user);
+                    const bap0Balance = await bap0.balanceOf.call(user);
+                    console.log(
+                        `User has ${Decimal(fromWei(daiBalance)).toFixed(2)} Dai `
+                        + `and ${Decimal(fromWei(bap0Balance)).toFixed(1)} shirts.`,
+                    );
+                    console.log(
+                        `Pool has ${Decimal(fromWei(tokenOutBalance)).toFixed(1)} shirts `
+                        + `/ ${Decimal(fromWei(tokenInBalance)).toFixed(2)} Dai left`,
+                    );
+                }
 
                 // Buy 1-3 shirts at a time - get "ahead" of the curve
                 const amountOut = (Math.floor(Math.random() * 3) + 1).toString();
@@ -220,7 +244,9 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
 
                 const tokenAmountIn = swapResult[0];
 
-                console.log(`Cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}`);
+                if (verbose) {
+                    console.log(`Cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}`);
+                }
 
                 const relDiff = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn));
                 assert.isAtMost(relDiff.toNumber(), errorDelta);
@@ -247,19 +273,34 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             const newDaiWeight = Decimal(fromWei(weightDai)).plus(10);
 
             const startBlock = await web3.eth.getBlock('latest');
-            console.log(`Block of updateWeightsGradually() call: ${startBlock.number}`);
+
+            if (verbose) {
+                console.log(`Block of updateWeightsGradually() call: ${startBlock.number}`);
+            }
+
             const endBlock = startBlock.number + 12; // 10 is the minimum
             const adjustmentEndWeights = [toWei(newDaiWeight.toString()), toWei(newBap0Weight.toString())];
-            console.log(`Start block for fast adjustment: ${startBlock.number}`);
-            console.log(`End   block for fast adjustment: ${endBlock}`);
+
+            if (verbose) {
+                console.log(`Start block for fast adjustment: ${startBlock.number}`);
+                console.log(`End   block for fast adjustment: ${endBlock}`);
+            }
 
             await crpPool.updateWeightsGradually(adjustmentEndWeights, startBlock.number, endBlock);
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block: ${block.number}`);
+            }
+
             while (block.number < startBlock.number) {
                 block = await web3.eth.getBlock('latest');
-                console.log(`Still waiting. Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Still waiting. Block: ${block.number}`);
+                }
+
                 await time.advanceBlock();
             }
 
@@ -270,21 +311,29 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             while (adjusting) {
                 await crpPool.pokeWeights();
 
-                block = await web3.eth.getBlock('latest');
-                console.log(`Poked at block: ${block.number}`);
+                if (verbose) {
+                    block = await web3.eth.getBlock('latest');
+                    console.log(`Poked at block: ${block.number}`);
+                }
 
                 weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                weightDai = await crpPool.getDenormalizedWeight(DAI);
-                console.log(
-                    `Raw weights: ${
-                        Decimal(fromWei(weightBap0)).toFixed(4)
-                    } / ${
-                        Decimal(fromWei(weightDai)).toFixed(4)
-                    }`,
-                );
+
+                if (verbose) {
+                    weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    console.log(
+                        `Raw weights: ${
+                            Decimal(fromWei(weightBap0)).toFixed(4)
+                        } / ${
+                            Decimal(fromWei(weightDai)).toFixed(4)
+                        }`,
+                    );
+                }
 
                 const weightDiff = Decimal(fromWei(weightBap0)).minus(lastBap0Weight);
-                console.log(`Weight diff: ${weightDiff.toFixed(4)}`);
+
+                if (verbose) {
+                    console.log(`Weight diff: ${weightDiff.toFixed(4)}`);
+                }
 
                 if (weightDiff < 0.0001) {
                     adjusting = false;
@@ -306,55 +355,73 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
             const blockRange = 50;
             // get current block number
             const startBlock = await web3.eth.getBlock('latest');
-            console.log(`Block of resumption updateWeightsGradually() call: ${startBlock.number}`);
+
+            if (verbose) {
+                console.log(`Block of resumption updateWeightsGradually() call: ${startBlock.number}`);
+            }
+
             const endBlock = startBlock.number + blockRange;
             const endWeights = [toWei('39'), toWei('1')];
 
-            console.log(`Start block for schedule resumption: ${startBlock.number}`);
-            console.log(`End   block for schedule resumption: ${endBlock}`);
+            if (verbose) {
+                console.log(`Start block for schedule resumption: ${startBlock.number}`);
+                console.log(`End   block for schedule resumption: ${endBlock}`);
+            }
 
             await crpPool.updateWeightsGradually(endWeights, startBlock.number, endBlock);
 
             let block = await web3.eth.getBlock('latest');
-            console.log(`Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block: ${block.number}`);
+            }
+
             while (block.number < startBlock.number) {
                 block = await web3.eth.getBlock('latest');
-                console.log(`Still waiting. Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Still waiting. Block: ${block.number}`);
+                }
+
                 await time.advanceBlock();
             }
 
             for (let i = 0; i < 5; i++) {
-                weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                weightDai = await crpPool.getDenormalizedWeight(DAI);
-                block = await web3.eth.getBlock('latest');
-                console.log(
-                    `\nBlock: ${block.number}. `
-                    + `Weights -> BAP0: ${((weightBap0 * 2.5) / 10 ** 18).toString()}%`
-                    + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
-                );
-                console.log(
-                    `Raw weights: ${
-                        Decimal(fromWei(weightBap0)).toFixed(4)
-                    } / ${
-                        Decimal(fromWei(weightDai)).toFixed(4)
-                    }`,
-                );
+                if (verbose) {
+                    weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
+                    weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    block = await web3.eth.getBlock('latest');
+                    console.log(
+                        `\nBlock: ${block.number}. `
+                        + `Weights -> BAP0: ${((weightBap0 * 2.5) / 10 ** 18).toString()}%`
+                        + `\tDAI: ${((weightDai * 2.5) / 10 ** 18).toString()}%`,
+                    );
+                    console.log(
+                        `Raw weights: ${
+                            Decimal(fromWei(weightBap0)).toFixed(4)
+                        } / ${
+                            Decimal(fromWei(weightDai)).toFixed(4)
+                        }`,
+                    );
+                }
 
                 const tokenInBalance = await dai.balanceOf.call(underlyingPool.address);
                 const tokenInWeight = await underlyingPool.getDenormalizedWeight(DAI);
                 const tokenOutBalance = await bap0.balanceOf.call(underlyingPool.address);
                 const tokenOutWeight = await underlyingPool.getDenormalizedWeight(BAP0);
 
-                const daiBalance = await dai.balanceOf.call(user);
-                const bap0Balance = await bap0.balanceOf.call(user);
-                console.log(
-                    `User has ${Decimal(fromWei(daiBalance)).toFixed(2)} Dai `
-                    + `and ${Decimal(fromWei(bap0Balance)).toFixed(1)} shirts.`,
-                );
-                console.log(
-                    `Pool has ${Decimal(fromWei(tokenOutBalance)).toFixed(1)} shirts `
-                    + `/ ${Decimal(fromWei(tokenInBalance)).toFixed(2)} Dai left`,
-                );
+                if (verbose) {
+                    const daiBalance = await dai.balanceOf.call(user);
+                    const bap0Balance = await bap0.balanceOf.call(user);
+                    console.log(
+                        `User has ${Decimal(fromWei(daiBalance)).toFixed(2)} Dai `
+                        + `and ${Decimal(fromWei(bap0Balance)).toFixed(1)} shirts.`,
+                    );
+                    console.log(
+                        `Pool has ${Decimal(fromWei(tokenOutBalance)).toFixed(1)} shirts `
+                        + `/ ${Decimal(fromWei(tokenInBalance)).toFixed(2)} Dai left`,
+                    );
+                }
 
                 const amountOut = '1';
 
@@ -380,7 +447,9 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
 
                 const tokenAmountIn = swapResult[0];
 
-                console.log(`Cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}`);
+                if (verbose) {
+                    console.log(`Cost: ${Decimal(fromWei(tokenAmountIn)).toFixed(2)}`);
+                }
 
                 const relDiff = calcRelativeDiff(expectedTotalIn, fromWei(tokenAmountIn));
                 assert.isAtMost(relDiff.toNumber(), errorDelta);

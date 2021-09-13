@@ -7,6 +7,8 @@ const Factory = artifacts.require('Factory');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('configurableWeights_withTx', async (accounts) => {
     const admin = accounts[0];
     const user1 = accounts[1];
@@ -109,14 +111,21 @@ contract('configurableWeights_withTx', async (accounts) => {
                 const startBlock = block.number + 3;
                 const endBlock = startBlock + blockRange;
                 const endWeights = [toWei('39'), toWei('1')];
-                console.log(`Start block for June -> July flipping: ${startBlock}`);
-                console.log(`End   block for June -> July flipping: ${endBlock}`);
+
+                if (verbose) {
+                    console.log(`Start block for June -> July flipping: ${startBlock}`);
+                    console.log(`End   block for June -> July flipping: ${endBlock}`);
+                }
+
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
             });
 
             it('Should revert because too early to pokeWeights()', async () => {
-                const block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+                if (verbose) {
+                    const block = await web3.eth.getBlock('latest');
+                    console.log(`Block: ${block.number}`);
+                }
+
                 await truffleAssert.reverts(
                     controller.pokeWeights(),
                     'ERR_CANT_POKE_YET',
@@ -124,10 +133,6 @@ contract('configurableWeights_withTx', async (accounts) => {
             });
 
             it('Should be able to pokeWeights()', async () => {
-                let i;
-                let weightXYZ;
-                let weightWETH;
-                let block;
                 const poolAmountOut1 = '1';
                 const corePoolAddr = await controller.corePool();
                 const underlyingPool = await Pool.at(corePoolAddr);
@@ -158,15 +163,18 @@ contract('configurableWeights_withTx', async (accounts) => {
                 let wethSpotPrice;
                 let lastWethPrice;
 
-                for (i = 0; i < blockRange + 10; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                        + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                    );
+                for (let i = 0; i < blockRange + 10; i++) {
+                    if (verbose) {
+                        const weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        const weightWETH = await controller.getDenormalizedWeight(WETH);
+                        const block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                            + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                        );
+                    }
+
                     await controller.pokeWeights();
 
                     // Balances should not change

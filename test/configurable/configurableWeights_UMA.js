@@ -7,6 +7,8 @@ const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('configurableWeightsUMA', async (accounts) => {
     const admin = accounts[0];
     const { toWei } = web3.utils;
@@ -104,19 +106,29 @@ contract('configurableWeightsUMA', async (accounts) => {
                 blockRange = 20;
                 // get current block number
                 const block = await web3.eth.getBlock('latest');
-                console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+                }
+
                 startBlock = block.number + 10;
                 const endBlock = startBlock + blockRange;
                 const endWeights = [toWei('39'), toWei('1')];
-                console.log(`Start block for June -> July flipping: ${startBlock}`);
-                console.log(`End   block for June -> July flipping: ${endBlock}`);
+
+                if (verbose) {
+                    console.log(`Start block for June -> July flipping: ${startBlock}`);
+                    console.log(`End   block for June -> July flipping: ${endBlock}`);
+                }
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
             });
 
             it('Should revert because too early to pokeWeights()', async () => {
-                const block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+                if (verbose) {
+                    const block = await web3.eth.getBlock('latest');
+                    console.log(`Block: ${block.number}`);
+                }
+
                 await truffleAssert.reverts(
                     controller.pokeWeights(),
                     'ERR_CANT_POKE_YET',
@@ -124,8 +136,11 @@ contract('configurableWeightsUMA', async (accounts) => {
             });
 
             it('Cannot manually update when an automatic one is running', async () => {
-                const block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+                if (verbose) {
+                    const block = await web3.eth.getBlock('latest');
+                    console.log(`Block: ${block.number}`);
+                }
+
                 await truffleAssert.reverts(
                     controller.updateWeight(weth.address, toWei('20')),
                     'ERR_NO_UPDATE_DURING_GRADUAL',
@@ -133,8 +148,11 @@ contract('configurableWeightsUMA', async (accounts) => {
             });
 
             it('Cannot start adding a token when an automatic update is running', async () => {
-                const block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+                if (verbose) {
+                    const block = await web3.eth.getBlock('latest');
+                    console.log(`Block: ${block.number}`);
+                }
+
                 await truffleAssert.reverts(
                     // Need to add one that's not bound, and also have the add/remove token permission set
                     // to trigger this error
@@ -144,28 +162,35 @@ contract('configurableWeightsUMA', async (accounts) => {
             });
 
             it('Should be able to pokeWeights()', async () => {
-                let i;
-                let weightXYZ;
-                let weightWETH;
-
                 let block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+
+                if (verbose) {
+                    console.log(`Block: ${block.number}`);
+                }
+
                 while (block.number < startBlock) {
                     // Wait for the start block
                     block = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${block.number}`);
+
+                    if (verbose) {
+                        console.log(`Still waiting. Block: ${block.number}`);
+                    }
+
                     await time.advanceBlock();
                 }
 
-                for (i = 0; i < blockRange + 10; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightWETH = await controller.getDenormalizedWeight(WETH);
-                    block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                        + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                    );
+                for (let i = 0; i < blockRange + 10; i++) {
+                    if (verbose) {
+                        const weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        const weightWETH = await controller.getDenormalizedWeight(WETH);
+                        block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                            + `\tJune: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                        );
+                    }
+
                     await controller.pokeWeights();
                 }
             });
@@ -177,15 +202,21 @@ contract('configurableWeightsUMA', async (accounts) => {
                 startBlock = block.number + 10;
                 const endBlock = startBlock + blockRange;
                 const endWeights = [toWei('1'), toWei('39')];
-                console.log(`Start block for July -> August flipping: ${startBlock}`);
-                console.log(`End   block for July -> August flipping: ${endBlock}`);
+
+                if (verbose) {
+                    console.log(`Start block for July -> August flipping: ${startBlock}`);
+                    console.log(`End   block for July -> August flipping: ${endBlock}`);
+                }
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock);
             });
 
             it('Should revert because too early to pokeWeights()', async () => {
-                const block = await web3.eth.getBlock('latest');
-                console.log(`Block: ${block.number}`);
+                if (verbose) {
+                    const block = await web3.eth.getBlock('latest');
+                    console.log(`Block: ${block.number}`);
+                }
+
                 await truffleAssert.reverts(
                     controller.pokeWeights(),
                     'ERR_CANT_POKE_YET',
@@ -193,27 +224,37 @@ contract('configurableWeightsUMA', async (accounts) => {
             });
 
             it('Should be able to pokeWeights() again', async () => {
-                let i;
                 const endWeights = [toWei('1'), toWei('29')];
 
                 let currentBlock = await web3.eth.getBlock('latest');
-                console.log(`Block: ${currentBlock.number}`);
+
+                if (verbose) {
+                    console.log(`Block: ${currentBlock.number}`);
+                }
+
                 while (currentBlock.number < startBlock) {
                     // Wait for the start block
                     currentBlock = await web3.eth.getBlock('latest');
-                    console.log(`Still waiting. Block: ${currentBlock.number}`);
+
+                    if (verbose) {
+                        console.log(`Still waiting. Block: ${currentBlock.number}`);
+                    }
+
                     await time.advanceBlock();
                 }
 
-                for (i = 0; i < blockRange + 10; i++) {
-                    const weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    const weightWETH = await controller.getDenormalizedWeight(WETH);
-                    const block = await web3.eth.getBlock('latest');
-                    console.log(
-                        `Block: ${block.number}. `
-                        + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
-                        + `\tAugust: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
-                    );
+                for (let i = 0; i < blockRange + 10; i++) {
+                    if (verbose) {
+                        const weightXYZ = await controller.getDenormalizedWeight(XYZ);
+                        const weightWETH = await controller.getDenormalizedWeight(WETH);
+                        const block = await web3.eth.getBlock('latest');
+                        console.log(
+                            `Block: ${block.number}. `
+                            + `Weights -> July: ${((weightXYZ * 2.5) / 10 ** 18).toFixed(4)}%`
+                            + `\tAugust: ${((weightWETH * 2.5) / 10 ** 18).toFixed(4)}%`,
+                        );
+                    }
+
                     await controller.pokeWeights();
 
                     // Try to adust weights with mismatched tokens
@@ -234,7 +275,11 @@ contract('configurableWeightsUMA', async (accounts) => {
         it('Controller should not be able to call updateWeightsGradually() with range in the past', async () => {
             // get current block number
             const block = await web3.eth.getBlock('latest');
-            console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Block of updateWeightsGradually() call: ${block.number}`);
+            }
+
             const blockStart = block.number - 20;
             const blockEnd = blockStart + 10;
             // Here we are trying to updateWeightsGradually in the past: from 10-20 when we're on block 30

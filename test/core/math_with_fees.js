@@ -52,6 +52,7 @@ contract('Pool', async (accounts) => {
         let actual = await pool.totalSupply();
         actual = Decimal(fromWei(actual));
         let relDif = calcRelativeDiff(expected, actual);
+
         if (verbose) {
             console.log('Pool Balance');
             console.log(`expected: ${expected})`);
@@ -65,6 +66,7 @@ contract('Pool', async (accounts) => {
         actual = await pool.getBalance(WETH);
         actual = Decimal(fromWei(actual));
         relDif = calcRelativeDiff(expected, actual);
+
         if (verbose) {
             console.log('WETH Balance');
             console.log(`expected: ${expected})`);
@@ -78,6 +80,7 @@ contract('Pool', async (accounts) => {
         actual = await pool.getBalance(DAI);
         actual = Decimal(fromWei(actual));
         relDif = calcRelativeDiff(expected, actual);
+
         if (verbose) {
             console.log('Dai Balance');
             console.log(`expected: ${expected})`);
@@ -310,6 +313,7 @@ contract('Pool', async (accounts) => {
                 console.log(`actual  : ${actual})`);
                 console.log(`relDif  : ${relDif})`);
             }
+
             assert.isAtMost(relDif.toNumber(), errorDelta);
 
             // Print current balances after operation
@@ -344,6 +348,7 @@ contract('Pool', async (accounts) => {
                 console.log(`actual  : ${actual})`);
                 console.log(`relDif  : ${relDif})`);
             }
+
             assert.isAtMost(relDif.toNumber(), errorDelta);
 
             // Print current balances after operation

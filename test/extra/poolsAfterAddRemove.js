@@ -8,6 +8,8 @@ const Factory = artifacts.require('Factory');
 const TToken = artifacts.require('TToken');
 const Pool = artifacts.require('Pool');
 
+const verbose = process.env.VERBOSE;
+
 contract('configurableAddRemoveTokens - join/exit after add', async (accounts) => {
     const admin = accounts[0];
     const { toWei } = web3.utils;
@@ -113,8 +115,12 @@ contract('configurableAddRemoveTokens - join/exit after add', async (accounts) =
         it('Controller should be able to commitAddToken', async () => {
             const block = await web3.eth.getBlock('latest');
             applyAddTokenValidBlock = block.number + addTokenTimeLockInBlocks;
-            console.log(`Block commitAddToken for ABC: ${block.number}`);
-            console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
+
+            if (verbose) {
+                console.log(`Block commitAddToken for ABC: ${block.number}`);
+                console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
+            }
+
             await crpPool.commitAddToken(ABC, toWei('10000'), toWei('1.5'));
 
             // original has no ABC
@@ -135,7 +141,10 @@ contract('configurableAddRemoveTokens - join/exit after add', async (accounts) =
         it('Controller should be able to applyAddToken', async () => {
             let block = await web3.eth.getBlock('latest');
             while (block.number <= applyAddTokenValidBlock) {
-                console.log(`Waiting; block: ${block.number}`);
+                if (verbose) {
+                    console.log(`Waiting; block: ${block.number}`);
+                }
+
                 await time.advanceBlock();
                 block = await web3.eth.getBlock('latest');
             }

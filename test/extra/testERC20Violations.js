@@ -156,7 +156,11 @@ contract('testERC20 violations', async (accounts) => {
         const kncToken = await NoPriorApprovalToken.at(KNC);
 
         const currentAllowance = await kncToken.allowance(admin, CRPPOOL_ADDRESS);
-        // console.log(`Current allowance = ${currentAllowance}`);
+
+        if (process.env.VERBOSE) {
+            console.log(`Current allowance = ${currentAllowance}`);
+        }
+
         assert.notEqual(currentAllowance, 0);
 
         // This is going to call safeApprove (and it's already approved to MAX)

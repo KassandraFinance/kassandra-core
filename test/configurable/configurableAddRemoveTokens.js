@@ -11,6 +11,8 @@ const KassandraConstants = artifacts.require('KassandraConstantsMock');
 const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
+const verbose = process.env.VERBOSE;
+
 contract('configurableAddRemoveTokens', async (accounts) => {
     const admin = accounts[0];
     const { toBN, toWei, fromWei } = web3.utils;
@@ -186,8 +188,12 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     it('Controller should be able to commitAddToken', async () => {
         const block = await web3.eth.getBlock('latest');
         applyAddTokenValidBlock = block.number + addTokenTimeLockInBlocks;
-        console.log(`Block commitAddToken for ABC: ${block.number}`);
-        console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
+
+        if (verbose) {
+            console.log(`Block commitAddToken for ABC: ${block.number}`);
+            console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
+        }
+
         await crpPool.commitAddToken(ABC, toWei('10000'), toWei('1.5'));
 
         // original has no ABC
@@ -218,7 +224,9 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         assert(block.number < applyAddTokenValidBlock, 'Block Should Be Less Than Valid Block At Start Of Test');
 
         while (block.number < applyAddTokenValidBlock) {
-            console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}, current block: ${block.number} `);
+            if (verbose) {
+                console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}, current block: ${block.number} `);
+            }
 
             await truffleAssert.reverts(
                 crpPool.applyAddToken(),
@@ -297,14 +305,21 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         while (block.number < startBlock) {
             // Wait for the start block
             block = await web3.eth.getBlock('latest');
-            console.log(`Waiting for start. Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Waiting for start. Block: ${block.number}`);
+            }
+
             await time.advanceBlock();
         }
 
         while (block.number < endBlock) {
             await crpPool.pokeWeights();
 
-            console.log(`Waiting for end. Block: ${block.number}`);
+            if (verbose) {
+                console.log(`Waiting for end. Block: ${block.number}`);
+            }
+
             await time.advanceBlock();
 
             block = await web3.eth.getBlock('latest');
@@ -398,15 +413,19 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         // Tokens are now ABC, WETH (swaps XYZ with ABC, then deletes XYZ)
         const corePoolAddr = await crpPool.corePool();
         const corePool = await Pool.at(corePoolAddr);
-        let i;
 
-        console.log(`WETH = ${WETH}`);
-        console.log(`ABC = ${ABC}`);
+        if (verbose) {
+            console.log(`WETH = ${WETH}`);
+            console.log(`ABC = ${ABC}`);
+        }
 
         const poolTokens = await corePool.getCurrentTokens();
-        for (i = 0; i < poolTokens.length; i++) {
+        for (let i = 0; i < poolTokens.length; i++) {
             const tokenWeight = await corePool.getDenormalizedWeight(poolTokens[i]);
-            console.log(`Token[${i}] = ${poolTokens[i]}; weight ${fromWei(tokenWeight)}`);
+
+            if (verbose) {
+                console.log(`Token[${i}] = ${poolTokens[i]}; weight ${fromWei(tokenWeight)}`);
+            }
         }
 
         assert.equal(poolTokens.length, 2);
@@ -439,14 +458,21 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         while (block.number < startBlock) {
             // Wait for the start block
             block = await web3.eth.getBlock('latest');
-            console.log(`Waiting for start. Block: ${block.number}`);
+
+            if (verbose) {
+                console.log(`Waiting for start. Block: ${block.number}`);
+            }
+
             await time.advanceBlock();
         }
 
         while (block.number < endBlock) {
             await crpPool.pokeWeights();
 
-            console.log(`Waiting for end. Block: ${block.number}`);
+            if (verbose) {
+                console.log(`Waiting for end. Block: ${block.number}`);
+            }
+
             await time.advanceBlock();
 
             block = await web3.eth.getBlock('latest');
@@ -454,11 +480,19 @@ contract('configurableAddRemoveTokens', async (accounts) => {
 
         // Make sure right weights are on right tokens at the end
         const abcWeight = await crpPool.getDenormalizedWeight(ABC);
-        console.log(`ABC weight = ${fromWei(abcWeight)}`);
+
+        if (verbose) {
+            console.log(`ABC weight = ${fromWei(abcWeight)}`);
+        }
+
         assert.equal(Decimal(fromWei(abcWeight)), 3);
 
         const wethWeight = await crpPool.getDenormalizedWeight(WETH);
-        console.log(`WETH weight = ${fromWei(wethWeight)}`);
+
+        if (verbose) {
+            console.log(`WETH weight = ${fromWei(wethWeight)}`);
+        }
+
         assert.equal(Decimal(fromWei(wethWeight)), 4.5);
     });
 
@@ -479,8 +513,12 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     it('Should fail when adding a token without enough token balance', async () => {
         const block = await web3.eth.getBlock('latest');
         applyAddTokenValidBlock = block.number + addTokenTimeLockInBlocks;
-        console.log(`Block commitAddToken for DAI: ${block.number}`);
-        console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
+
+        if (verbose) {
+            console.log(`Block commitAddToken for DAI: ${block.number}`);
+            console.log(`applyAddToken valid block: ${applyAddTokenValidBlock}`);
+        }
+
         await crpPool.commitAddToken(DAI, toWei('150000'), toWei('1.5'));
 
         let advanceBlocks = addTokenTimeLockInBlocks + 2;
