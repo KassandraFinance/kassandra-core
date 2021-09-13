@@ -7,7 +7,7 @@ const SmartPoolManager = artifacts.require('SmartPoolManager');
 const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
 
-module.exports = async function (deployer, network, accounts) {
+module.exports = async function (deployer, network) {
     if (network === 'development') {
         await Promise.all([
             deployer.deploy(KassandraConstantsMock),
@@ -15,17 +15,13 @@ module.exports = async function (deployer, network, accounts) {
         ]);
     }
 
-    await Promise.all([
-        deployer.deploy(KassandraSafeMath),
-        deployer.deploy(RightsManager),
-        deployer.deploy(SmartPoolManager),
-    ]);
+    await deployer.deploy(KassandraSafeMath);
+    await deployer.deploy(RightsManager);
+    await deployer.deploy(SmartPoolManager);
 
-    await Promise.all([
-        deployer.link(KassandraSafeMath, CRPFactory),
-        deployer.link(RightsManager, CRPFactory),
-        deployer.link(SmartPoolManager, CRPFactory),
+    await deployer.link(KassandraSafeMath, CRPFactory);
+    await deployer.link(RightsManager, CRPFactory);
+    await deployer.link(SmartPoolManager, CRPFactory);
 
-        deployer.link(SmartPoolManager, Factory),
-    ]);
+    await deployer.link(SmartPoolManager, Factory);
 };
