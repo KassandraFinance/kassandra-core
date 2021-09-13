@@ -40,28 +40,27 @@ contract('Pool', async (accounts) => {
         maxAssets = await consts.MAX_ASSET_LIMIT();
         maxAssets = Number(fromWei(maxAssets, 'wei')) + 1;
 
-        tokens = await Promise.all(
-            Array(maxAssets).fill().map((a) => {
-                const symbol = randomTokenName(a);
-                return TToken.new(symbol, symbol, 18);
-            }),
-        );
+        for (let i = 0; i < maxAssets; i++) {
+            const symbol = randomTokenName(i);
+            await TToken.new(symbol, symbol, 18);
+        }
 
         extraToken = tokens.pop();
 
         // Admin balances
-        await Promise.all(tokens.map(
-            (token) => token.mint(admin, toWei('100')),
-        ));
+        for (let i = 0; i < tokens.length; i++) {
+            await tokens[i].mint(admin, toWei('100'));
+        }
     });
 
     describe('Binding Tokens', () => {
         it('Admin approves tokens', async () => {
             const MAX = web3.utils.toTwosComplement(-1);
             await extraToken.approve(POOL, MAX);
-            await Promise.all(tokens.map(
-                (token) => token.approve(POOL, MAX),
-            ));
+
+            for (let i = 0; i < tokens.length; i++) {
+                await tokens[i].approve(POOL, MAX);
+            }
         });
 
         it('Admin binds tokens', async () => {
@@ -70,13 +69,13 @@ contract('Pool', async (accounts) => {
                 'MAX_TOTAL_WEIGHT is surpassed with maximum amount of tokens',
             );
 
-            await Promise.all(tokens.map(
-                (token, i) => pool.bind(
-                    token.address,
+            for (let i = 0; i < tokens.length; i++) {
+                await pool.bind(
+                    tokens[i].address,
                     toWei((i + 1) % 3 ? '50' : '70'),
                     toWei(i > tokens.length / 2 ? '0.4' : '1'),
-                ),
-            ));
+                );
+            }
 
             const total = (4 * (tokens.length / 2 - 1) + 10 * (tokens.length / 2 + 1)) / 10;
 

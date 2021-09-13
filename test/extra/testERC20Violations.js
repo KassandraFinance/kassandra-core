@@ -121,15 +121,14 @@ contract('testERC20 violations', async (accounts) => {
 
     it('crpPool should have correct rights set', async () => {
         const response = [];
-        const perms = await Promise.all(
-            Object.values(permissions).map(
-                (value, x) => {
-                    response.push(value);
-                    return crpPool.hasPermission(x);
-                },
-            ),
-        );
-        assert.sameOrderedMembers(perms, response);
+        const original = Object.values(permissions);
+
+        for (let x = 0; x < original.length; x++) {
+            const perm = await crpPool.hasPermission(x);
+            response.push(perm);
+        }
+
+        assert.sameOrderedMembers(response, original);
     });
 
     it('should not be able to add a non-conforming token (0 transfer)', async () => {

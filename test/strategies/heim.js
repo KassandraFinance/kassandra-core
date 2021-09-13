@@ -29,28 +29,19 @@ contract('HEIM Strategy', async (accounts) => {
     const tokenSymbols = ['xyz', 'weth', 'dai'];
 
     before(async () => {
-        [
-            coreFactoryMock,
-            corePoolMock,
-            crpPoolMock,
-            airnodeMock,
-        ] = await Promise.all([
-            FactoryMock.new(),
-            PoolMock.new(),
-            CRPMock.new(),
-            AirnodeRrpMock.new(),
-        ]);
+        coreFactoryMock = await FactoryMock.new();
+        corePoolMock = await PoolMock.new();
+        crpPoolMock = await CRPMock.new();
+        airnodeMock = await AirnodeRrpMock.new();
 
         strategy = await StrategyHEIM.new(airnodeMock.address, tokenSymbols);
 
-        await Promise.all([
-            coreFactoryMock.setKacyToken(admin),
-            coreFactoryMock.setKacyMinimum(toBN(toWei('5')).div(toBN('100'))),
-            corePoolMock.mockCurrentTokens([admin, updater, watcher]),
-            crpPoolMock.mockCorePool(corePoolMock.address),
-            crpPoolMock.mockCoreFactory(coreFactoryMock.address),
-            airnodeMock.setStrategyAddress(strategy.address),
-        ]);
+        await coreFactoryMock.setKacyToken(admin);
+        await coreFactoryMock.setKacyMinimum(toBN(toWei('5')).div(toBN('100')));
+        await corePoolMock.mockCurrentTokens([admin, updater, watcher]);
+        await crpPoolMock.mockCorePool(corePoolMock.address);
+        await crpPoolMock.mockCoreFactory(coreFactoryMock.address);
+        await airnodeMock.setStrategyAddress(strategy.address);
     });
 
     describe('Check if functions are protected', () => {
@@ -330,21 +321,19 @@ contract('HEIM Strategy', async (accounts) => {
         it('Some functions should not work when strategy is paused', async () => {
             const lastRequestId = await airnodeMock.lastRequestId();
 
-            const [tx] = await Promise.all([
-                airnodeMock.callStrategy(lastRequestId, 0, 0),
-                truffleAssert.reverts(
-                    strategy.makeRequest(),
-                    'Pausable: paused',
-                ),
-                truffleAssert.reverts(
-                    strategy.commitAddToken('btc', nonAdmin, 0, 0),
-                    'Pausable: paused',
-                ),
-                truffleAssert.reverts(
-                    strategy.removeToken('btc', nonAdmin),
-                    'Pausable: paused',
-                ),
-            ]);
+            const [tx] = await airnodeMock.callStrategy(lastRequestId, 0, 0);
+            await truffleAssert.reverts(
+                strategy.makeRequest(),
+                'Pausable: paused',
+            );
+            await truffleAssert.reverts(
+                strategy.commitAddToken('btc', nonAdmin, 0, 0),
+                'Pausable: paused',
+            );
+            await truffleAssert.reverts(
+                strategy.removeToken('btc', nonAdmin),
+                'Pausable: paused',
+            );
 
             await eventEmitted(
                 tx, 'RequestFailed',
@@ -441,11 +430,9 @@ contract('HEIM Strategy', async (accounts) => {
         });
 
         it('First time should suspend the strategy for suspectDiff', async () => {
-            await Promise.all([
-                strategy.makeRequest({ from: updater }),
-                // set a percentage just to be sure
-                strategy.setSuspectDiff(7),
-            ]);
+            await strategy.makeRequest({ from: updater });
+            // set a percentage just to be sure
+            await strategy.setSuspectDiff(7);
 
             const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
                 .mul(toBN('-1'))
@@ -456,18 +443,16 @@ contract('HEIM Strategy', async (accounts) => {
             const requestId = await airnodeMock.lastRequestId();
             const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
 
-            const [lastScores, pendingScores] = await Promise.all([
-                strategy.lastScores(),
-                strategy.pendingScores(),
-                eventEmitted(
-                    tx, 'RequestFailed',
-                    { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-                ),
-                eventEmitted(
-                    tx, 'StrategyPaused',
-                    { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-                ),
-            ]);
+            const lastScores = await strategy.lastScores();
+            const pendingScores = await strategy.pendingScores();
+            await eventEmitted(
+                tx, 'RequestFailed',
+                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
+            );
+            await eventEmitted(
+                tx, 'StrategyPaused',
+                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
+            );
 
             for (let i = 0; i < lastScores.length; i++) {
                 lastScores[i] = lastScores[i].toNumber();
@@ -493,14 +478,12 @@ contract('HEIM Strategy', async (accounts) => {
             const oldPendingScores = await strategy.pendingScores();
             const tx = await strategy.resolveSuspension(true, { from: watcher });
 
-            const [lastScores, pendingScores] = await Promise.all([
-                strategy.lastScores(),
-                strategy.pendingScores(),
-                truffleAssert.eventEmitted(
-                    tx, 'StrategyResumed',
-                    { reason: padRight(toHex('ACCEPTED_SUSPENDED_REQUEST'), 64) },
-                ),
-            ]);
+            const lastScores = await strategy.lastScores();
+            const pendingScores = await strategy.pendingScores();
+            await truffleAssert.eventEmitted(
+                tx, 'StrategyResumed',
+                { reason: padRight(toHex('ACCEPTED_SUSPENDED_REQUEST'), 64) },
+            );
 
             for (let i = 0; i < lastScores.length; i++) {
                 lastScores[i] = lastScores[i].toNumber();
@@ -515,11 +498,9 @@ contract('HEIM Strategy', async (accounts) => {
         it('Should suspend the strategy for growing above suspectDiff', async () => {
             const suspectDiff = 7;
 
-            await Promise.all([
-                strategy.makeRequest({ from: updater }),
-                // set a percentage just to be sure
-                strategy.setSuspectDiff(suspectDiff),
-            ]);
+            await strategy.makeRequest({ from: updater });
+            // set a percentage just to be sure
+            await strategy.setSuspectDiff(suspectDiff);
 
             const aboveSuspectDiff = toBN('30000')
                 .mul(toBN(suspectDiff))
@@ -535,17 +516,15 @@ contract('HEIM Strategy', async (accounts) => {
             const requestId = await airnodeMock.lastRequestId();
             const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
 
-            const [pendingScores] = await Promise.all([
-                strategy.pendingScores(),
-                eventEmitted(
-                    tx, 'RequestFailed',
-                    { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-                ),
-                eventEmitted(
-                    tx, 'StrategyPaused',
-                    { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-                ),
-            ]);
+            const pendingScores = await strategy.pendingScores();
+            await eventEmitted(
+                tx, 'RequestFailed',
+                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
+            );
+            await eventEmitted(
+                tx, 'StrategyPaused',
+                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
+            );
 
             for (let i = 0; i < pendingScores.length; i++) {
                 pendingScores[i] = pendingScores[i].toNumber();
@@ -562,14 +541,12 @@ contract('HEIM Strategy', async (accounts) => {
             const oldLastScores = await strategy.lastScores();
             const tx = await strategy.resolveSuspension(false, { from: watcher });
 
-            const [lastScores, pendingScores] = await Promise.all([
-                strategy.lastScores(),
-                strategy.pendingScores(),
-                truffleAssert.eventEmitted(
-                    tx, 'StrategyResumed',
-                    { reason: padRight(toHex('REJECTED_SUSPENDED_REQUEST'), 64) },
-                ),
-            ]);
+            const lastScores = await strategy.lastScores();
+            const pendingScores = await strategy.pendingScores();
+            await truffleAssert.eventEmitted(
+                tx, 'StrategyResumed',
+                { reason: padRight(toHex('REJECTED_SUSPENDED_REQUEST'), 64) },
+            );
 
             for (let i = 0; i < lastScores.length; i++) {
                 lastScores[i] = lastScores[i].toNumber();
@@ -584,11 +561,9 @@ contract('HEIM Strategy', async (accounts) => {
         it('Should suspend the strategy for reducing below suspectDiff', async () => {
             const suspectDiff = 7;
 
-            await Promise.all([
-                strategy.makeRequest({ from: updater }),
-                // set a percentage just to be sure
-                strategy.setSuspectDiff(suspectDiff),
-            ]);
+            await strategy.makeRequest({ from: updater });
+            // set a percentage just to be sure
+            await strategy.setSuspectDiff(suspectDiff);
 
             const aboveSuspectDiff = toBN('30000')
                 .mul(toBN(-suspectDiff))
@@ -604,17 +579,15 @@ contract('HEIM Strategy', async (accounts) => {
             const requestId = await airnodeMock.lastRequestId();
             const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
 
-            const [pendingScores] = await Promise.all([
-                strategy.pendingScores(),
-                eventEmitted(
-                    tx, 'RequestFailed',
-                    { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-                ),
-                eventEmitted(
-                    tx, 'StrategyPaused',
-                    { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-                ),
-            ]);
+            const pendingScores = await strategy.pendingScores();
+            await eventEmitted(
+                tx, 'RequestFailed',
+                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
+            );
+            await eventEmitted(
+                tx, 'StrategyPaused',
+                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
+            );
 
             await strategy.resolveSuspension(false, { from: watcher });
 
@@ -653,10 +626,8 @@ contract('HEIM Strategy', async (accounts) => {
                 const requestId = await airnodeMock.lastRequestId();
                 const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
 
-                const [lastScores] = await Promise.all([
-                    strategy.lastScores(),
-                    eventNotEmitted(tx, 'RequestFailed'),
-                ]);
+                const lastScores = await strategy.lastScores();
+                await eventNotEmitted(tx, 'RequestFailed');
 
                 for (let i = 0; i < lastScores.length; i++) {
                     lastScores[i] = lastScores[i].toNumber();
@@ -684,27 +655,23 @@ contract('HEIM Strategy', async (accounts) => {
 
                 const commit = await strategy.commitAddToken(newToken, nonAdmin, toWei('10'), toWei('10'));
 
-                const [newTokenSymbols, paused] = await Promise.all([
-                    strategy.tokensSymbols(),
-                    strategy.paused(),
-                    truffleAssert.eventEmitted(
-                        commit, 'StrategyPaused',
-                        { reason: padRight(toHex('NEW_TOKEN_COMMITTED'), 64) },
-                    ),
-                ]);
+                const newTokenSymbols = await strategy.tokensSymbols();
+                const paused = await strategy.paused();
+                await truffleAssert.eventEmitted(
+                    commit, 'StrategyPaused',
+                    { reason: padRight(toHex('NEW_TOKEN_COMMITTED'), 64) },
+                );
 
                 assert.sameOrderedMembers(newTokenSymbols, oldTokenSymbols);
                 assert.isTrue(paused);
 
                 const apply = await strategy.applyAddToken();
 
-                const [stillPaused] = await Promise.all([
-                    strategy.paused(),
-                    truffleAssert.eventEmitted(
-                        apply, 'StrategyResumed',
-                        { reason: padRight(toHex('NEW_TOKEN_APPLIED'), 64) },
-                    ),
-                ]);
+                const stillPaused = await strategy.paused();
+                await truffleAssert.eventEmitted(
+                    apply, 'StrategyResumed',
+                    { reason: padRight(toHex('NEW_TOKEN_APPLIED'), 64) },
+                );
 
                 assert.isFalse(stillPaused);
             } while (tokens2Add.length > 0);
@@ -728,17 +695,15 @@ contract('HEIM Strategy', async (accounts) => {
             async function removeToken(symbol2Remove, testArray) {
                 const tx = await strategy.removeToken(symbol2Remove, nonAdmin);
 
-                const [newTokenSymbols] = await Promise.all([
-                    strategy.tokensSymbols(),
-                    truffleAssert.eventEmitted(
-                        tx, 'StrategyPaused',
-                        { reason: padRight(toHex('REMOVING_TOKEN'), 64) },
-                    ),
-                    truffleAssert.eventEmitted(
-                        tx, 'StrategyResumed',
-                        { reason: padRight(toHex('REMOVED_TOKEN'), 64) },
-                    ),
-                ]);
+                const newTokenSymbols = await strategy.tokensSymbols();
+                await truffleAssert.eventEmitted(
+                    tx, 'StrategyPaused',
+                    { reason: padRight(toHex('REMOVING_TOKEN'), 64) },
+                );
+                await truffleAssert.eventEmitted(
+                    tx, 'StrategyResumed',
+                    { reason: padRight(toHex('REMOVED_TOKEN'), 64) },
+                );
 
                 assert.sameOrderedMembers(newTokenSymbols, testArray);
             }

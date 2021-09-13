@@ -273,7 +273,7 @@ contract('Pool', async (accounts) => {
         it('Only controller can setPublicSwap', async () => {
             await factory.setKacyMinimum(toBN(33).mul(one).div(toBN(100)));
             await pool.setPublicSwap(true);
-            const publicSwap = pool.isPublicSwap();
+            const publicSwap = await pool.isPublicSwap();
             assert(publicSwap);
             await truffleAssert.reverts(pool.setPublicSwap(true, { from: user1 }), 'ERR_NOT_CONTROLLER');
         });
@@ -331,7 +331,7 @@ contract('Pool', async (accounts) => {
             const adminBal = await pool.balanceOf(admin);
             assert.equal(100, fromWei(adminBal));
             await truffleAssert.eventEmitted(tx, 'Transfer', (event) => event.to === admin);
-            const finalized = pool.isFinalized();
+            const finalized = await pool.isFinalized();
             assert(finalized);
         });
 
@@ -442,6 +442,7 @@ contract('Pool', async (accounts) => {
 
             const actual = fromWei(log.args[4]);
             const relDif = calcRelativeDiff(expected, actual);
+
             if (verbose) {
                 console.log('swapExactAmountIn');
                 console.log(`expected: ${expected})`);
@@ -481,6 +482,7 @@ contract('Pool', async (accounts) => {
 
             const actual = fromWei(log.args[3]);
             const relDif = calcRelativeDiff(expected, actual);
+
             if (verbose) {
                 console.log('swapExactAmountOut');
                 console.log(`expected: ${expected})`);

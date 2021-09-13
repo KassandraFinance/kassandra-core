@@ -168,7 +168,7 @@ contract('CRPFactory', async (accounts) => {
             swapFee,
         };
 
-        crpFactory.newCrp(
+        await crpFactory.newCrp(
             coreFactory.address,
             poolParams,
             permissions,
