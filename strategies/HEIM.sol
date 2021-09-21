@@ -464,11 +464,11 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
         require(_requestStatus == _SUSPEND, "ERR_NO_SUSPENDED_REQUEST");
 
         if (acceptRequest) {
-            emit StrategyResumed(msg.sender, "ACCEPTED_SUSPENDED_REQUEST");
             _lastScores = _pendingScores;
             // adjust weights before new update
             crpPool.pokeWeights();
             crpPool.updateWeightsGradually(_pendingWeights, block.number, block.number + _CHANGE_BLOCK_PERIOD); // 24h
+            emit StrategyResumed(msg.sender, "ACCEPTED_SUSPENDED_REQUEST");
         } else {
             emit StrategyResumed(msg.sender, "REJECTED_SUSPENDED_REQUEST");
         }
@@ -543,11 +543,17 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
         uint[] memory socialScores = new uint[](tokensLen);
         // we need to make sure the amount of $KACY meets the criteria specified by the protocol
         address kacyToken = coreFactory.kacyToken();
-        uint[2] memory kacyIdxFinder;
+        uint kacyIdx;
         bool suspectRequest = false;
 
         // get social scores
         for (uint i = 0; i < tokensLen; i++) {
+            if (kacyToken == tokenAddresses[i]) {
+                kacyIdx = i;
+                // $KACY is fixed
+                continue;
+            }
+
             /*
              * Heimdall API provides this endpoint for their Airnode so that up to 14 tokens can be checked
              * on a single request for gas savings. According to their documentation each coin uses 18 bits
@@ -558,20 +564,6 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
             uint socialScore = uint256(data >> (i * 18) & 0x3FFFF);
             _pendingScores[i] = uint24(socialScore);
             socialScores[i] = socialScore;
-
-            // get the index of $KACY
-            uint isKacy;
-            // apparently solidity can't do a bool to uint conversion (wtf?) so we use assembly to do that
-            // isKacy = kacyToken == tokenAddresses[i]
-            assembly { // solhint-disable no-inline-assembly
-                isKacy := eq(kacyToken, mload(add(tokenAddresses, mul(add(i, 1), 32))))
-            }
-            kacyIdxFinder[isKacy] = i;
-
-            if (isKacy == 1 && socialScore == 0) {
-                // ensure no division by zero, normal scores are around the thousands
-                socialScore = 1;
-            }
 
             // if all bits are true then the number has overflown and we should ignore the response (see Heimdall docs)
             // also fail if data is missing
@@ -589,38 +581,29 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
 
         // this prevents a possible problem that while weights change their sum could potentially go beyond maximum
         uint totalWeight = 40 * KassandraConstants.ONE; // KassandraConstants.MAX_WEIGHT - 10
-        uint kacyIdx = kacyIdxFinder[1];
         uint minimumKacy = coreFactory.minimumKacy();
+        // doesn't overflow because this is always below 10^37
         uint minimumWeight = totalWeight * minimumKacy / KassandraConstants.ONE;
-        uint kacyPercentage = socialScores[kacyIdx] * KassandraConstants.ONE / totalScore;
 
-        if (kacyPercentage < minimumKacy) {
-            totalWeight -= minimumWeight;
-        }
+        totalWeight -= minimumWeight;
 
         // transform social scores to de-normalized weights for CRP pool
         for (uint i = 0; i < tokensLen; i++) {
             socialScores[i] = (socialScores[i] * totalWeight) / totalScore;
         }
 
-        if (kacyPercentage < minimumKacy) {
-            socialScores[kacyIdx] = minimumWeight;
-        }
+        socialScores[kacyIdx] = minimumWeight;
+        _pendingWeights = socialScores;
+        _requestStatus = _SUSPEND;
+        super._pause();
 
-        // adjust weights before new update
-        crpPool.pokeWeights();
-
-        if (suspectRequest) {
-            _pendingWeights = socialScores;
-            emit RequestFailed(requestId, "ERR_SUSPECT_REQUEST");
-            emit StrategyPaused(msg.sender, "ERR_SUSPECT_REQUEST");
-            _requestStatus = _SUSPEND;
-            super._pause();
+        if (!suspectRequest) {
+            emit StrategyPaused(msg.sender, "WAITING_TO_CONTINUE");
             return;
         }
 
-        _lastScores = _pendingScores;
-        crpPool.updateWeightsGradually(socialScores, block.number, block.number + _CHANGE_BLOCK_PERIOD); // 24h
+        emit RequestFailed(requestId, "ERR_SUSPECT_REQUEST");
+        emit StrategyPaused(msg.sender, "ERR_SUSPECT_REQUEST");
     }
 
     /**

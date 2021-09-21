@@ -38,7 +38,7 @@ contract('HEIM Strategy', async (accounts) => {
 
         await coreFactoryMock.setKacyToken(admin);
         await coreFactoryMock.setKacyMinimum(toBN(toWei('5')).div(toBN('100')));
-        await corePoolMock.mockCurrentTokens([admin, updater, watcher]);
+        await corePoolMock.mockCurrentTokens([updater, watcher, admin]);
         await crpPoolMock.mockCorePool(corePoolMock.address);
         await crpPoolMock.mockCoreFactory(coreFactoryMock.address);
         await airnodeMock.setStrategyAddress(strategy.address);
@@ -321,7 +321,7 @@ contract('HEIM Strategy', async (accounts) => {
         it('Some functions should not work when strategy is paused', async () => {
             const lastRequestId = await airnodeMock.lastRequestId();
 
-            const [tx] = await airnodeMock.callStrategy(lastRequestId, 0, 0);
+            const tx = await airnodeMock.callStrategy(lastRequestId, 0, 0);
             await truffleAssert.reverts(
                 strategy.makeRequest(),
                 'Pausable: paused',
@@ -437,8 +437,7 @@ contract('HEIM Strategy', async (accounts) => {
             const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
                 .mul(toBN('-1'))
                 .add(toBN('30000'))
-                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)))
-                .add(toBN((BigInt(30000) << BigInt(36)).toString(10)));
+                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)));
 
             const requestId = await airnodeMock.lastRequestId();
             const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
@@ -463,7 +462,6 @@ contract('HEIM Strategy', async (accounts) => {
             const testArray = Array(14).fill(1);
             testArray[0] = 30000;
             testArray[1] = 30000;
-            testArray[2] = 30000;
             assert.sameOrderedMembers(pendingScores, testArray);
         });
 
@@ -510,8 +508,7 @@ contract('HEIM Strategy', async (accounts) => {
             const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
                 .mul(toBN('-1'))
                 .add(aboveSuspectDiff)
-                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)))
-                .add(toBN((BigInt(30000) << BigInt(36)).toString(10)));
+                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)));
 
             const requestId = await airnodeMock.lastRequestId();
             const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
@@ -533,7 +530,6 @@ contract('HEIM Strategy', async (accounts) => {
             const testArray = Array(14).fill(1);
             testArray[0] = aboveSuspectDiff.toNumber();
             testArray[1] = 30000;
-            testArray[2] = 30000;
             assert.sameOrderedMembers(pendingScores, testArray);
         });
 
@@ -573,8 +569,7 @@ contract('HEIM Strategy', async (accounts) => {
             const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
                 .mul(toBN('-1'))
                 .add(aboveSuspectDiff)
-                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)))
-                .add(toBN((BigInt(30000) << BigInt(36)).toString(10)));
+                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)));
 
             const requestId = await airnodeMock.lastRequestId();
             const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
@@ -598,11 +593,10 @@ contract('HEIM Strategy', async (accounts) => {
             const testArray = Array(14).fill(1);
             testArray[0] = aboveSuspectDiff.toNumber();
             testArray[1] = 30000;
-            testArray[2] = 30000;
             assert.sameOrderedMembers(pendingScores, testArray);
         });
 
-        it('The $KACY token should always respect the minimum', async () => {
+        it('The $KACY token should always be the minimum', async () => {
             const suspectDiff = 100;
             let startingWeight = toBN('30000');
 
@@ -619,12 +613,13 @@ contract('HEIM Strategy', async (accounts) => {
 
                 const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
                     .mul(toBN('-1'))
-                    .add(goodDiff)
-                    .add(toBN((BigInt(30000) << BigInt(18)).toString(10)))
-                    .add(toBN((BigInt(30000) << BigInt(36)).toString(10)));
+                    .add(toBN('30000'))
+                    .add(toBN('30000').shln(18))
+                    .add(toBN(goodDiff.shln(36)));
 
                 const requestId = await airnodeMock.lastRequestId();
                 const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
+                await strategy.resolveSuspension(true, { from: watcher });
 
                 const lastScores = await strategy.lastScores();
                 await eventNotEmitted(tx, 'RequestFailed');
@@ -634,9 +629,8 @@ contract('HEIM Strategy', async (accounts) => {
                 }
 
                 const testArray = Array(14).fill(1);
-                testArray[0] = goodDiff.toNumber();
+                testArray[0] = 30000;
                 testArray[1] = 30000;
-                testArray[2] = 30000;
                 assert.sameOrderedMembers(lastScores, testArray);
 
                 startingWeight = goodDiff;
