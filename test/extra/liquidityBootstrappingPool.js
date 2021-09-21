@@ -164,8 +164,10 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
                 for (let i = 0; i < blockRange + 3; i++) {
                     if (verbose) {
-                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        weightDAI = await controller.getDenormalizedWeight(DAI);
+                        const corePoolAddr = await controller.corePool();
+                        const underlyingPool = await Pool.at(corePoolAddr);
+                        weightXYZ = await underlyingPool.getDenormalizedWeight(XYZ);
+                        weightDAI = await underlyingPool.getDenormalizedWeight(DAI);
                         block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `
@@ -257,8 +259,11 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             it('Should be able to update weights directly', async () => {
                 let i;
 
-                let weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                let weightDAI = await controller.getDenormalizedWeight(DAI);
+                const corePoolAddr = await controller.corePool();
+                const underlyingPool = await Pool.at(corePoolAddr);
+
+                let weightXYZ = await underlyingPool.getDenormalizedWeight(XYZ);
+                let weightDAI = await underlyingPool.getDenormalizedWeight(DAI);
                 const startWeightXYZ = weightXYZ;
                 const startWeightDAI = weightDAI;
 
@@ -269,9 +274,6 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 assert.equal(pctDAI.toString(), '0.2');
                 // Steepness parameter
                 const b = 1;
-
-                const corePoolAddr = await controller.corePool();
-                const underlyingPool = await Pool.at(corePoolAddr);
 
                 /* Exponential curve formula (for 80/20%)
                    "b" parameterizes the "steepness" of the curve
@@ -292,8 +294,8 @@ contract('Liquidity Bootstrapping', async (accounts) => {
                 let block;
 
                 for (i = 1; i <= 10; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightDAI = await controller.getDenormalizedWeight(DAI);
+                    weightXYZ = await underlyingPool.getDenormalizedWeight(XYZ);
+                    weightDAI = await underlyingPool.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
 
                     if (verbose) {
@@ -345,8 +347,8 @@ contract('Liquidity Bootstrapping', async (accounts) => {
 
                 for (i = 1; i <= 15; i++) {
                     if (verbose) {
-                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        weightDAI = await controller.getDenormalizedWeight(DAI);
+                        weightXYZ = await underlyingPool.getDenormalizedWeight(XYZ);
+                        weightDAI = await underlyingPool.getDenormalizedWeight(DAI);
                         block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `

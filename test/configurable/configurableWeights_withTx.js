@@ -165,8 +165,8 @@ contract('configurableWeights_withTx', async (accounts) => {
 
                 for (let i = 0; i < blockRange + 10; i++) {
                     if (verbose) {
-                        const weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        const weightWETH = await controller.getDenormalizedWeight(WETH);
+                        const weightXYZ = await underlyingPool.getDenormalizedWeight(XYZ);
+                        const weightWETH = await underlyingPool.getDenormalizedWeight(WETH);
                         const block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `

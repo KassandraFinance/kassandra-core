@@ -445,6 +445,9 @@ contract('configurableAddRemoveTokens', async (accounts) => {
     });
 
     it('Should allow updateWeightsGradually again, after remove', async () => {
+        const corePoolAddr = await crpPool.corePool();
+        const corePool = await Pool.at(corePoolAddr);
+
         // Tokens are now: ABC, WETH
         const endWeights = [toWei('3'), toWei('4.5')];
         let block = await web3.eth.getBlock('latest');
@@ -479,7 +482,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
         }
 
         // Make sure right weights are on right tokens at the end
-        const abcWeight = await crpPool.getDenormalizedWeight(ABC);
+        const abcWeight = await corePool.getDenormalizedWeight(ABC);
 
         if (verbose) {
             console.log(`ABC weight = ${fromWei(abcWeight)}`);
@@ -487,7 +490,7 @@ contract('configurableAddRemoveTokens', async (accounts) => {
 
         assert.equal(Decimal(fromWei(abcWeight)), 3);
 
-        const wethWeight = await crpPool.getDenormalizedWeight(WETH);
+        const wethWeight = await corePool.getDenormalizedWeight(WETH);
 
         if (verbose) {
             console.log(`WETH weight = ${fromWei(wethWeight)}`);

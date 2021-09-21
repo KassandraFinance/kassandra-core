@@ -215,8 +215,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             let shirtsLeft = true;
 
             while (shirtsLeft) {
-                weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                weightDai = await crpPool.getDenormalizedWeight(DAI);
+                weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+                weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                 block = await web3.eth.getBlock('latest');
 
                 if (verbose) {
@@ -435,9 +435,9 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
 
                 console.log('Getting Bap0 balance');
                 const poolBAP0Balance = await bap0.balanceOf.call(underlyingPool.address);
-                const poolBAP0Weight = await crpPool.getDenormalizedWeight(BAP0);
+                const poolBAP0Weight = await underlyingPool.getDenormalizedWeight(BAP0);
                 const poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
-                const poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
+                const poolBAP1Weight = await underlyingPool.getDenormalizedWeight(BAP1);
 
                 console.log(`Pool BAP0 balance: ${Decimal(fromWei(poolBAP0Balance)).toFixed(2)}`);
                 console.log(`Pool BAP0 weight: ${Decimal(fromWei(poolBAP0Weight)).toFixed(2)}`);
@@ -462,11 +462,11 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
                 }
 
                 const poolBAP0Balance = await bap0.balanceOf.call(underlyingPool.address);
-                const poolBAP0Weight = await crpPool.getDenormalizedWeight(BAP0);
+                const poolBAP0Weight = await underlyingPool.getDenormalizedWeight(BAP0);
                 const poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
-                const poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
+                const poolBAP1Weight = await underlyingPool.getDenormalizedWeight(BAP1);
                 const poolDAIBalance = await dai.balanceOf.call(underlyingPool.address);
-                const poolDAIWeight = await crpPool.getDenormalizedWeight(DAI);
+                const poolDAIWeight = await underlyingPool.getDenormalizedWeight(DAI);
 
                 console.log(`Pool BAP0 balance: ${Decimal(fromWei(poolBAP0Balance)).toFixed(2)}`);
                 console.log(`Pool BAP0 weight: ${Decimal(fromWei(poolBAP0Weight)).toFixed(2)}`);
@@ -501,7 +501,7 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             assert.equal(Decimal(fromWei(adminBAP0Balance)), 2);
 
             const poolBAP1Balance = await bap1.balanceOf.call(underlyingPool.address);
-            const poolBAP1Weight = await crpPool.getDenormalizedWeight(BAP1);
+            const poolBAP1Weight = await underlyingPool.getDenormalizedWeight(BAP1);
 
             if (verbose) {
                 console.log(`Pool BAP1 balance: ${Decimal(fromWei(poolBAP1Balance)).toFixed(2)}`);
@@ -512,7 +512,7 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
             assert.equal(Decimal(fromWei(poolBAP1Weight)), 38);
 
             const poolDAIBalance = await dai.balanceOf.call(underlyingPool.address);
-            const poolDAIWeight = await crpPool.getDenormalizedWeight(DAI);
+            const poolDAIWeight = await underlyingPool.getDenormalizedWeight(DAI);
 
             if (verbose) {
                 console.log(`Pool DAI balance: ${Decimal(fromWei(poolDAIBalance)).toFixed(2)}`);
@@ -575,8 +575,8 @@ contract('Bankless Simulation (recreate pool)', async (accounts) => {
 
             while (shirtsLeft) {
                 if (verbose) {
-                    const weightBap1 = await crpPool.getDenormalizedWeight(BAP1);
-                    const weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    const weightBap1 = await underlyingPool.getDenormalizedWeight(BAP1);
+                    const weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
                     console.log(
                         `\nBlock: ${block.number}. `

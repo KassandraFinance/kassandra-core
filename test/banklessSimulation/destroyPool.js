@@ -229,8 +229,8 @@ contract('Bankless Simulation (destroy pool)', async (accounts) => {
 
             while (shirtsLeft) {
                 if (verbose) {
-                    weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                    weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+                    weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
                     console.log(
                         `\nBlock: ${block.number}. `

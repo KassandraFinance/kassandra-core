@@ -19,8 +19,8 @@ import "./SafeApprove.sol";
 library SmartPoolManager {
     // paramaters for adding a new token to the pool
     struct NewTokenParams {
-        address addr;
         bool isCommitted;
+        address addr;
         uint commitBlock;
         uint denorm;
         uint balance;
@@ -250,8 +250,9 @@ library SmartPoolManager {
     )
         external
     {
-        require(!corePool.isBound(token), "ERR_IS_BOUND");
+        verifyTokenComplianceInternal(token);
 
+        require(!corePool.isBound(token), "ERR_IS_BOUND");
         require(denormalizedWeight <= KassandraConstants.MAX_WEIGHT, "ERR_WEIGHT_ABOVE_MAX");
         require(denormalizedWeight >= KassandraConstants.MIN_WEIGHT, "ERR_WEIGHT_BELOW_MIN");
         require(

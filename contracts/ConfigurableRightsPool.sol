@@ -64,14 +64,14 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     /// Struct holding the rights configuration
     RightsManager.Rights public rights;
 
-    /// Hold the parameters used in updateWeightsGradually
-    SmartPoolManager.GradualUpdateParams public gradualUpdate;
-
     /**
      * @notice This is for adding a new (currently unbound) token to the pool
      *         It's a two-step process: commitAddToken(), then applyAddToken()
      */
     SmartPoolManager.NewTokenParams public newToken;
+
+    /// Hold the parameters used in updateWeightsGradually
+    SmartPoolManager.GradualUpdateParams public gradualUpdate;
 
     // Fee is initialized on creation, and can be changed if permission is set
     // Only needed for temporary storage between construction and createPool
@@ -247,8 +247,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         // We don't have a pool yet; check now or it will fail later (in order of likelihood to fail)
         // (and be unrecoverable if they don't have permission set to change it)
         // Most likely to fail, so check first
-        require(poolParams.swapFee >= KassandraConstants.MIN_FEE, "ERR_INVALID_SWAP_FEE");
-        require(poolParams.swapFee <= KassandraConstants.MAX_FEE, "ERR_INVALID_SWAP_FEE");
+        require(
+            poolParams.swapFee >= KassandraConstants.MIN_FEE && poolParams.swapFee <= KassandraConstants.MAX_FEE,
+            "ERR_INVALID_SWAP_FEE"
+        );
 
         // Arrays must be parallel
         require(poolParams.tokenBalances.length == poolParams.constituentTokens.length, "ERR_START_BALANCES_MISMATCH");
@@ -281,7 +283,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
         gradualUpdate.startWeights = poolParams.tokenWeights;
         // Initializing (unnecessarily) for documentation - 0 means no gradual weight change has been initiated
-        gradualUpdate.startBlock = 0;
+        // gradualUpdate.startBlock = 0;
         // By default, there is no cap (unlimited pool token minting)
         tokenCap = KassandraConstants.MAX_UINT;
     }
@@ -567,8 +569,6 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
         // Can't do this while a progressive update is happening
         require(gradualUpdate.startBlock == 0, "ERR_NO_UPDATE_DURING_GRADUAL");
-
-        SmartPoolManager.verifyTokenCompliance(token);
 
         emit NewTokenCommitted(msg.sender, address(this), token);
 
@@ -935,28 +935,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     {
         require(rights.canWhitelistLPs, "ERR_CANNOT_WHITELIST_LPS");
         require(_liquidityProviderWhitelist[provider], "ERR_LP_NOT_WHITELISTED");
-        require(provider != address(0), "ERR_INVALID_ADDRESS");
 
         _liquidityProviderWhitelist[provider] = false;
-    }
-
-    /**
-     * @notice Getter for the publicSwap field on the underlying pool
-     *
-     * @dev viewLock, because setPublicSwap is lock
-     *      corePool is a contract interface; function calls on it are external
-     *
-     * @return Current value of isPublicSwap
-     */
-    function isPublicSwap()
-        external
-        view
-        viewlock
-        needsCorePool
-        virtual
-        returns (bool)
-    {
-        return corePool.isPublicSwap();
     }
 
     /**
@@ -973,12 +953,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         view
         returns (bool)
     {
-        if (rights.canWhitelistLPs) {
-            return _liquidityProviderWhitelist[provider];
-        }
-        // Probably don't strictly need this (could just return true)
-        // But the null address can't provide funds
-        return provider != address(0);
+        // Technically the null address can't provide funds, but it's irrelevant when there's no whitelist
+        return !rights.canWhitelistLPs || _liquidityProviderWhitelist[provider];
     }
 
     /**
@@ -998,25 +974,6 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         returns (bool)
     {
         return RightsManager.hasPermission(rights, permission);
-    }
-
-    /**
-     * @notice Get the denormalized weight of a token
-     *
-     * @dev viewlock to prevent calling if it's being updated
-     *
-     * @param token - Address of the token to get the denormalized weight
-     *
-     * @return Denormalized token weight
-     */
-    function getDenormalizedWeight(address token)
-        external
-        view
-        viewlock
-        needsCorePool
-        returns (uint)
-    {
-        return corePool.getDenormalizedWeight(token);
     }
 
     /**
@@ -1122,11 +1079,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
             corePool.bind(t, bal, denorm);
         }
 
-        while (_initialTokens.length > 0) {
-            // Modifying state variable after external calls here,
-            // but not essential, so not dangerous
-            _initialTokens.pop();
-        }
+        // Modifying state variable after external calls here,
+        // but not essential, so not dangerous
+        delete _initialTokens;
 
         // Set fee to the initial value set in the constructor
         // Hereafter, read the swapFee from the underlying pool, not the local state variable
@@ -1134,7 +1089,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         corePool.setPublicSwap(true);
 
         // "destroy" the temporary swap fee (like _initialTokens above) in case a subclass tries to use it
-        _initialSwapFee = 0;
+        delete _initialSwapFee;
     }
 
     /* solhint-enable private-vars-leading-underscore */

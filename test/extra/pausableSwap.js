@@ -123,8 +123,6 @@ contract('pausableSwap', async (accounts) => {
     it('ConfigurableRightsPool isPublicSwap should be true after creation', async () => {
         const corePoolAddr = await crpPool.corePool();
         const corePool = await Pool.at(corePoolAddr);
-        const isPublicSwap = await crpPool.isPublicSwap.call();
-        assert.equal(isPublicSwap, true);
         const isPublicSwapCheck = await corePool.isPublicSwap.call();
         assert.equal(isPublicSwapCheck, true);
     });
@@ -142,8 +140,6 @@ contract('pausableSwap', async (accounts) => {
 
         await crpPool.setPublicSwap(false);
 
-        const isPublicSwap = await crpPool.isPublicSwap.call();
-        assert.equal(isPublicSwap, false);
         const isPublicSwapCheck = await corePool.isPublicSwap.call();
         assert.equal(isPublicSwapCheck, false);
     });
@@ -186,8 +182,6 @@ contract('pausableSwap', async (accounts) => {
 
         await crpPool.setPublicSwap(true);
 
-        const isPublicSwap = await crpPool.isPublicSwap.call();
-        assert.equal(isPublicSwap, true);
         const isPublicSwapCheck = await corePool.isPublicSwap.call();
         assert.equal(isPublicSwapCheck, true);
     });

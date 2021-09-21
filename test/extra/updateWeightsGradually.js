@@ -5,6 +5,7 @@ const { assert } = require('chai');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
 const Factory = artifacts.require('Factory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
 const verbose = process.env.VERBOSE;
@@ -127,11 +128,14 @@ contract('updateWeightsGradually', async (accounts) => {
                     await time.advanceBlock();
                 }
 
+                const corePoolAddr = await controller.corePool();
+                const corePool = await Pool.at(corePoolAddr);
+
                 // Only go half-way
                 for (let i = 0; i < blockRange - 10; i++) {
                     if (verbose) {
-                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        weightWETH = await controller.getDenormalizedWeight(WETH);
+                        weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                        weightWETH = await corePool.getDenormalizedWeight(WETH);
                         block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `
@@ -148,15 +152,15 @@ contract('updateWeightsGradually', async (accounts) => {
                     console.log('Freeze at current weight');
                 }
 
-                weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                weightWETH = await controller.getDenormalizedWeight(WETH);
+                weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                weightWETH = await corePool.getDenormalizedWeight(WETH);
                 const endWeights = [weightXYZ, weightWETH];
 
                 await controller.updateWeightsGradually(endWeights, startBlock, endBlock + 10);
 
                 for (let i = 0; i < blockRange + 10; i++) {
-                    weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                    weightWETH = await controller.getDenormalizedWeight(WETH);
+                    weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                    weightWETH = await corePool.getDenormalizedWeight(WETH);
 
                     assert.isTrue(weightXYZ - endWeights[0] === 0);
                     assert.isTrue(weightWETH - endWeights[1] === 0);
@@ -208,11 +212,13 @@ contract('updateWeightsGradually', async (accounts) => {
 
                 let weightXYZ;
                 let weightWETH;
+                const corePoolAddr = await controller.corePool();
+                const corePool = await Pool.at(corePoolAddr);
 
                 for (let i = 0; i < blockRange + 5; i++) {
                     if (verbose) {
-                        weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        weightWETH = await controller.getDenormalizedWeight(WETH);
+                        weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                        weightWETH = await corePool.getDenormalizedWeight(WETH);
                         block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `
@@ -224,8 +230,8 @@ contract('updateWeightsGradually', async (accounts) => {
                     await controller.pokeWeights();
                 }
 
-                weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                weightWETH = await controller.getDenormalizedWeight(WETH);
+                weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                weightWETH = await corePool.getDenormalizedWeight(WETH);
 
                 // Verify the end weights match
                 assert.isTrue(weightXYZ - endWeights[0] === 0);
@@ -255,8 +261,10 @@ contract('updateWeightsGradually', async (accounts) => {
 
                         for (let j = 0; j < 5; j++) {
                             if (verbose) {
-                                const weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                                const weightWETH = await controller.getDenormalizedWeight(WETH);
+                                const corePoolAddr = await controller.corePool();
+                                const corePool = await Pool.at(corePoolAddr);
+                                const weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                                const weightWETH = await corePool.getDenormalizedWeight(WETH);
                                 const block = await web3.eth.getBlock('latest');
                                 console.log(
                                     `Block: ${block.number}. `

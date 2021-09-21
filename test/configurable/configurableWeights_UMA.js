@@ -5,6 +5,7 @@ const { time } = require('@openzeppelin/test-helpers');
 const Factory = artifacts.require('Factory');
 const ConfigurableRightsPool = artifacts.require('ConfigurableRightsPool');
 const CRPFactory = artifacts.require('CRPFactory');
+const Pool = artifacts.require('Pool');
 const TToken = artifacts.require('TToken');
 
 const verbose = process.env.VERBOSE;
@@ -181,8 +182,10 @@ contract('configurableWeightsUMA', async (accounts) => {
 
                 for (let i = 0; i < blockRange + 10; i++) {
                     if (verbose) {
-                        const weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        const weightWETH = await controller.getDenormalizedWeight(WETH);
+                        const corePoolAddr = await controller.corePool();
+                        const corePool = await Pool.at(corePoolAddr);
+                        const weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                        const weightWETH = await corePool.getDenormalizedWeight(WETH);
                         block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `
@@ -245,8 +248,10 @@ contract('configurableWeightsUMA', async (accounts) => {
 
                 for (let i = 0; i < blockRange + 10; i++) {
                     if (verbose) {
-                        const weightXYZ = await controller.getDenormalizedWeight(XYZ);
-                        const weightWETH = await controller.getDenormalizedWeight(WETH);
+                        const corePoolAddr = await controller.corePool();
+                        const corePool = await Pool.at(corePoolAddr);
+                        const weightXYZ = await corePool.getDenormalizedWeight(XYZ);
+                        const weightWETH = await corePool.getDenormalizedWeight(WETH);
                         const block = await web3.eth.getBlock('latest');
                         console.log(
                             `Block: ${block.number}. `

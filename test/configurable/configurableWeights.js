@@ -470,9 +470,9 @@ contract('configurableWeights', async (accounts) => {
 
             const coreFactory = await Factory.deployed();
 
-            const xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-            const wethWeight = await crpPool.getDenormalizedWeight(WETH);
-            const daiWeight = await crpPool.getDenormalizedWeight(DAI);
+            const xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+            const wethWeight = await corePool.getDenormalizedWeight(WETH);
+            const daiWeight = await corePool.getDenormalizedWeight(DAI);
             const wethNormalWeight = await corePool.getNormalizedWeight(WETH);
 
             await coreFactory.setKacyMinimum(wethNormalWeight.add(toBN(100)));
@@ -584,10 +584,13 @@ contract('configurableWeights', async (accounts) => {
         });
 
         it('Should run full update cycle, no missed blocks. (anyone can pokeWeights())', async () => {
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await Pool.at(corePoolAddr);
+
             // Adjust weights from 12, 3, 1.5 to 3, 6, 6
-            let xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-            let wethWeight = await crpPool.getDenormalizedWeight(WETH);
-            let daiWeight = await crpPool.getDenormalizedWeight(DAI);
+            let xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+            let wethWeight = await corePool.getDenormalizedWeight(WETH);
+            let daiWeight = await corePool.getDenormalizedWeight(DAI);
             let block = await web3.eth.getBlock('latest');
 
             if (verbose) {
@@ -604,9 +607,9 @@ contract('configurableWeights', async (accounts) => {
             while (block.number < validEndBlock) {
                 await crpPool.pokeWeights({ from: accounts[1] });
 
-                xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-                wethWeight = await crpPool.getDenormalizedWeight(WETH);
-                daiWeight = await crpPool.getDenormalizedWeight(DAI);
+                xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+                wethWeight = await corePool.getDenormalizedWeight(WETH);
+                daiWeight = await corePool.getDenormalizedWeight(DAI);
 
                 block = await web3.eth.getBlock('latest');
                 const newXyzW = newWeight(
@@ -644,11 +647,14 @@ contract('configurableWeights', async (accounts) => {
         });
 
         it('poking weights after end date should have no effect', async () => {
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await Pool.at(corePoolAddr);
+
             for (let i = 0; i < 10; i++) {
                 await crpPool.pokeWeights();
-                const xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-                const wethWeight = await crpPool.getDenormalizedWeight(WETH);
-                const daiWeight = await crpPool.getDenormalizedWeight(DAI);
+                const xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+                const wethWeight = await corePool.getDenormalizedWeight(WETH);
+                const daiWeight = await corePool.getDenormalizedWeight(DAI);
                 assert.equal(xyzWeight, toWei(endXyzWeight));
                 assert.equal(wethWeight, toWei(endWethWeight));
                 assert.equal(daiWeight, toWei(endDaiWeight));
@@ -679,9 +685,12 @@ contract('configurableWeights', async (accounts) => {
             const endWeights = [toWei(endXyzWeight), toWei(endWethWeight), toWei(endDaiWeight)];
             await crpPool.updateWeightsGradually(endWeights, startBlock, endBlock);
 
-            let xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-            let wethWeight = await crpPool.getDenormalizedWeight(WETH);
-            let daiWeight = await crpPool.getDenormalizedWeight(DAI);
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await Pool.at(corePoolAddr);
+
+            let xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+            let wethWeight = await corePool.getDenormalizedWeight(WETH);
+            let daiWeight = await corePool.getDenormalizedWeight(DAI);
             block = await web3.eth.getBlock('latest');
 
             if (verbose) {
@@ -709,9 +718,9 @@ contract('configurableWeights', async (accounts) => {
                     continue;
                 }
 
-                xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-                wethWeight = await crpPool.getDenormalizedWeight(WETH);
-                daiWeight = await crpPool.getDenormalizedWeight(DAI);
+                xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+                wethWeight = await corePool.getDenormalizedWeight(WETH);
+                daiWeight = await corePool.getDenormalizedWeight(DAI);
 
                 block = await web3.eth.getBlock('latest');
 
@@ -776,9 +785,12 @@ contract('configurableWeights', async (accounts) => {
             let advanceBlocks = 7;
             while (--advanceBlocks) await time.advanceBlock();
 
-            let xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-            let wethWeight = await crpPool.getDenormalizedWeight(WETH);
-            let daiWeight = await crpPool.getDenormalizedWeight(DAI);
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await Pool.at(corePoolAddr);
+
+            let xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+            let wethWeight = await corePool.getDenormalizedWeight(WETH);
+            let daiWeight = await corePool.getDenormalizedWeight(DAI);
             block = await web3.eth.getBlock('latest');
 
             if (verbose) {
@@ -807,9 +819,9 @@ contract('configurableWeights', async (accounts) => {
                     continue;
                 }
 
-                xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-                wethWeight = await crpPool.getDenormalizedWeight(WETH);
-                daiWeight = await crpPool.getDenormalizedWeight(DAI);
+                xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+                wethWeight = await corePool.getDenormalizedWeight(WETH);
+                daiWeight = await corePool.getDenormalizedWeight(DAI);
 
                 block = await web3.eth.getBlock('latest');
                 const newXyzW = newWeight(
@@ -876,9 +888,12 @@ contract('configurableWeights', async (accounts) => {
 
             while (--advanceBlocks) await time.advanceBlock();
 
-            let xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-            let wethWeight = await crpPool.getDenormalizedWeight(WETH);
-            let daiWeight = await crpPool.getDenormalizedWeight(DAI);
+            const corePoolAddr = await crpPool.corePool();
+            const corePool = await Pool.at(corePoolAddr);
+
+            let xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+            let wethWeight = await corePool.getDenormalizedWeight(WETH);
+            let daiWeight = await corePool.getDenormalizedWeight(DAI);
 
             block = await web3.eth.getBlock('latest');
 
@@ -907,9 +922,9 @@ contract('configurableWeights', async (accounts) => {
                     continue;
                 }
 
-                xyzWeight = await crpPool.getDenormalizedWeight(XYZ);
-                wethWeight = await crpPool.getDenormalizedWeight(WETH);
-                daiWeight = await crpPool.getDenormalizedWeight(DAI);
+                xyzWeight = await corePool.getDenormalizedWeight(XYZ);
+                wethWeight = await corePool.getDenormalizedWeight(WETH);
+                daiWeight = await corePool.getDenormalizedWeight(DAI);
 
                 block = await web3.eth.getBlock('latest');
                 const newXyzW = newWeight(

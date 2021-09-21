@@ -184,8 +184,8 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
 
             for (let i = 0; i < 5; i++) {
                 if (verbose) {
-                    const weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                    const weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    const weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+                    const weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
                     console.log(
                         `\nBlock: ${block.number}. `
@@ -266,8 +266,11 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
         });
 
         it('Should allow fast weight adjustment mid-stream', async () => {
-            let weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-            let weightDai = await crpPool.getDenormalizedWeight(DAI);
+            const corePoolAddr = await crpPool.corePool();
+            const underlyingPool = await Pool.at(corePoolAddr);
+
+            let weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+            let weightDai = await underlyingPool.getDenormalizedWeight(DAI);
 
             const newBap0Weight = Decimal(fromWei(weightBap0)).minus(10);
             const newDaiWeight = Decimal(fromWei(weightDai)).plus(10);
@@ -316,10 +319,10 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
                     console.log(`Poked at block: ${block.number}`);
                 }
 
-                weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
+                weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
 
                 if (verbose) {
-                    weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                     console.log(
                         `Raw weights: ${
                             Decimal(fromWei(weightBap0)).toFixed(4)
@@ -346,11 +349,11 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
         });
 
         it('Should allow resumption of schedule', async () => {
-            let weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-            let weightDai = await crpPool.getDenormalizedWeight(DAI);
-
             const corePoolAddr = await crpPool.corePool();
             const underlyingPool = await Pool.at(corePoolAddr);
+
+            let weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+            let weightDai = await underlyingPool.getDenormalizedWeight(DAI);
 
             const blockRange = 50;
             // get current block number
@@ -388,8 +391,8 @@ contract('Bankless Simulation (mid-stream adjustment)', async (accounts) => {
 
             for (let i = 0; i < 5; i++) {
                 if (verbose) {
-                    weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                    weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+                    weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
                     console.log(
                         `\nBlock: ${block.number}. `

@@ -217,8 +217,8 @@ contract('Bankless Simulation (using LP)', async (accounts) => {
 
             while (shirtsLeft) {
                 if (verbose) {
-                    const weightBap0 = await crpPool.getDenormalizedWeight(BAP0);
-                    const weightDai = await crpPool.getDenormalizedWeight(DAI);
+                    const weightBap0 = await underlyingPool.getDenormalizedWeight(BAP0);
+                    const weightDai = await underlyingPool.getDenormalizedWeight(DAI);
                     block = await web3.eth.getBlock('latest');
                     console.log(
                         `\nBlock: ${block.number}. `
