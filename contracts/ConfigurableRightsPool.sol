@@ -116,35 +116,35 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     event CapChanged(
         address indexed caller,
-        uint oldCap,
-        uint newCap
+        uint            oldCap,
+        uint            newCap
     );
 
     /**
      * @notice Emitted when a new token has been committed to be added to the pool
      *         The token has not been added yet, but eventually will be once pass `addTokenTimeLockInBlocks`
      *
-     * param token - Address of the token being added
-     * param pool - Address of the CRP pool that will have the new token
      * param caller - Address of who committed this new token
+     * param pool - Address of the CRP pool that will have the new token
+     * param token - Address of the token being added
      */ 
     event NewTokenCommitted(
-        address indexed token,
+        address indexed caller,
         address indexed pool,
-        address indexed caller
+        address indexed token
     );
 
     /**
      * @notice Emitted when the strategy contract has been changed
      *
-     * @param newAddr - Address of the new strategy contract
-     * @param pool - Address of the CRP pool that changed the strategy contract
      * @param caller - Address of who changed the strategy contract
+     * @param pool - Address of the CRP pool that changed the strategy contract
+     * @param newAddr - Address of the new strategy contract
      */
     event NewStrategy(
-        address indexed newAddr,
+        address indexed caller,
         address indexed pool,
-        address indexed caller
+        address indexed newAddr
     );
 
     /**
@@ -159,7 +159,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     event LogCall(
         bytes4  indexed sig,
         address indexed caller,
-        bytes data
+        bytes           data
     ) anonymous;
 
     /**
@@ -173,7 +173,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     event LogJoin(
         address indexed caller,
         address indexed tokenIn,
-        uint tokenAmountIn
+        uint            tokenAmountIn
     );
 
     /**
@@ -187,7 +187,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     event LogExit(
         address indexed caller,
         address indexed tokenOut,
-        uint tokenAmountOut
+        uint            tokenAmountOut
     );
 
     /**
@@ -373,7 +373,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         onlyOwner
     {
         require(updaterAddr != address(0), "ERR_ZERO_ADDRESS");
-        emit NewStrategy(updaterAddr, address(this), msg.sender);
+        emit NewStrategy(msg.sender, address(this), updaterAddr);
         strategyUpdater = updaterAddr;
     }
 
@@ -570,7 +570,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
         SmartPoolManager.verifyTokenCompliance(token);
 
-        emit NewTokenCommitted(token, address(this), msg.sender);
+        emit NewTokenCommitted(msg.sender, address(this), token);
 
         // Delegate to library to save space
         SmartPoolManager.commitAddToken(
