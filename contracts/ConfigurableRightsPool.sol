@@ -11,7 +11,7 @@ import "./interfaces/IConfigurableRightsPool.sol";
 import "./interfaces/IFactory.sol";
 import "./interfaces/IPool.sol";
 
-import { RightsManager } from "./libraries/RightsManager.sol";
+import "./libraries/RightsManager.sol";
 import "./libraries/KassandraConstants.sol";
 import "./libraries/SafeApprove.sol";
 import "./libraries/SmartPoolManager.sol";
