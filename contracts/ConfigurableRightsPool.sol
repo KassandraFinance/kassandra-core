@@ -296,10 +296,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function setSwapFee(uint swapFee)
         external
+        needsCorePool
+        onlyOwner
         lock
         logs
-        onlyOwner
-        needsCorePool
         virtual
     {
         require(rights.canChangeSwapFee, "ERR_NOT_CONFIGURABLE_SWAP_FEE");
@@ -321,10 +321,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function setCap(uint newCap)
         external
+        needsCorePool
+        onlyOwner
         lock
         logs
-        onlyOwner
-        needsCorePool
     {
         require(rights.canChangeCap, "ERR_CANNOT_CHANGE_CAP");
 
@@ -348,10 +348,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function setPublicSwap(bool publicSwap)
         external
+        needsCorePool
+        onlyOwner
         lock
         logs
-        onlyOwner
-        needsCorePool
         virtual
     {
         require(rights.canPauseSwapping, "ERR_NOT_PAUSABLE_SWAP");
@@ -369,8 +369,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function setStrategy(address updaterAddr)
         external
-        logs
         onlyOwner
+        logs
     {
         require(updaterAddr != address(0), "ERR_ZERO_ADDRESS");
         emit NewStrategy(msg.sender, address(this), updaterAddr);
@@ -399,9 +399,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         uint addTokenTimeLockInBlocksParam
     )
         external
+        onlyOwner
         lock
         logs
-        onlyOwner
         virtual
     {
         require(
@@ -426,9 +426,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function createPool(uint initialSupply)
         external
+        onlyOwner
         lock
         logs
-        onlyOwner
         virtual
     {
         createPoolInternal(initialSupply);
@@ -447,10 +447,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     function updateWeight(address token, uint newWeight)
         external
         override
-        lock
-        logs
         needsCorePool
         onlyStrategy
+        lock
+        logs
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -493,10 +493,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     )
         external
         override
-        lock
-        logs
         needsCorePool
         onlyStrategy
+        lock
+        logs
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -526,9 +526,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     function pokeWeights()
         external
         override
+        needsCorePool
         lock
         logs
-        needsCorePool
         virtual
     {
         require(rights.canChangeWeights, "ERR_NOT_CONFIGURABLE_WEIGHTS");
@@ -557,10 +557,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     )
         external
         override
+        needsCorePool
+        onlyStrategy
         lock
         logs
-        onlyStrategy
-        needsCorePool
         virtual
     {
         require(rights.canAddRemoveTokens, "ERR_CANNOT_ADD_REMOVE_TOKENS");
@@ -590,10 +590,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     function applyAddToken()
         external
         override
+        needsCorePool
+        onlyStrategy
         lock
         logs
-        onlyStrategy
-        needsCorePool
         virtual
     {
         require(rights.canAddRemoveTokens, "ERR_CANNOT_ADD_REMOVE_TOKENS");
@@ -617,10 +617,10 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     function removeToken(address token)
         external
         override
+        needsCorePool
+        onlyStrategy
         lock
         logs
-        onlyStrategy
-        needsCorePool
     {
         // It's possible to have remove rights without having add rights
         require(rights.canAddRemoveTokens,"ERR_CANNOT_ADD_REMOVE_TOKENS");
@@ -646,8 +646,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn)
         external
-        lock
         needsCorePool
+        lock
         lockUnderlyingPool
         logs
     {
@@ -694,8 +694,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut)
         external
-        lock
         needsCorePool
+        lock
         lockUnderlyingPool
         logs
     {
@@ -749,9 +749,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         uint minPoolAmountOut
     )
         external
-        lock
         logs
         needsCorePool
+        lock
         returns (uint poolAmountOut)
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
@@ -791,9 +791,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         uint maxAmountIn
     )
         external
-        lock
         logs
         needsCorePool
+        lock
         returns (uint tokenAmountIn)
     {
         require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
@@ -833,9 +833,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         uint minAmountOut
     )
         external
-        lock
         logs
         needsCorePool
+        lock
         returns (uint tokenAmountOut)
     {
         // Delegate to library to save space
@@ -878,9 +878,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         uint maxPoolAmountIn
     )
         external
-        lock
         logs
         needsCorePool
+        lock
         returns (uint poolAmountIn)
     {
         // Delegate to library to save space
@@ -912,9 +912,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function whitelistLiquidityProvider(address provider)
         external
+        onlyOwner
         lock
         logs
-        onlyOwner
     {
         require(rights.canWhitelistLPs, "ERR_CANNOT_WHITELIST_LPS");
         require(provider != address(0), "ERR_INVALID_ADDRESS");
@@ -929,9 +929,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      */
     function removeWhitelistedLiquidityProvider(address provider)
         external
+        onlyOwner
         lock
         logs
-        onlyOwner
     {
         require(rights.canWhitelistLPs, "ERR_CANNOT_WHITELIST_LPS");
         require(_liquidityProviderWhitelist[provider], "ERR_LP_NOT_WHITELISTED");
