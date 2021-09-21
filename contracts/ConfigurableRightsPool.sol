@@ -367,7 +367,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      *
      * @param updaterAddr - Contract address that will be able to update weights
      */
-    function setStrategist(address updaterAddr)
+    function setStrategy(address updaterAddr)
         external
         logs
         onlyOwner

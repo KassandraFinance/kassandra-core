@@ -99,7 +99,7 @@ contract('configurableWeights_withSwaps', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('100'), 10, 10);
-            await controller.setStrategist(admin, { from: admin });
+            await controller.setStrategy(admin, { from: admin });
         });
 
         it('Controller should be able to call updateWeightsGradually() with valid range', async () => {

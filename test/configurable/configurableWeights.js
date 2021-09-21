@@ -139,7 +139,7 @@ contract('configurableWeights', async (accounts) => {
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
-            await crpPool.setStrategist(admin);
+            await crpPool.setStrategy(admin);
             await coreFactory.setKacyToken(WETH);
         });
 
@@ -315,7 +315,7 @@ contract('configurableWeights', async (accounts) => {
             await xyz.approve(CRPPOOL_ADDRESS, MAX);
 
             await crpPool.createPool(toWei('100'), minimumWeightChangeBlockPeriod, minimumWeightChangeBlockPeriod);
-            await crpPool.setStrategist(admin);
+            await crpPool.setStrategy(admin);
             await coreFactory.setKacyToken(WETH);
         });
 

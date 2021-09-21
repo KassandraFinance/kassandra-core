@@ -100,7 +100,7 @@ contract('configurableWeights_withTx', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('100'), 10, 10);
-            await controller.setStrategist(admin, { from: admin });
+            await controller.setStrategy(admin, { from: admin });
         });
 
         describe('configurableWeights / Tx', () => {

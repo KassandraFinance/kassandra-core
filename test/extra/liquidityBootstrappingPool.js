@@ -112,7 +112,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('1000'), 10, 10);
-            await controller.setStrategist(admin);
+            await controller.setStrategy(admin);
             await coreFactory.setKacyToken(DAI);
         });
 
@@ -249,7 +249,7 @@ contract('Liquidity Bootstrapping', async (accounts) => {
             await xyz.approve(CONTROLLER_ADDRESS, MAX);
 
             await controller.createPool(toWei('1000'), 10, 10);
-            await controller.setStrategist(admin);
+            await controller.setStrategy(admin);
             await coreFactory.setKacyToken(DAI);
         });
 
