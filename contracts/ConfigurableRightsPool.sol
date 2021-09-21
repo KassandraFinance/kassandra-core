@@ -49,8 +49,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         address[] constituentTokens; // addresses
         uint[] tokenBalances;        // balances
         uint[] tokenWeights;         // denormalized weights
-        // pool swap fee
-        uint swapFee;
+        uint swapFee; // pool swap fee
     }
 
     /// Address of the contract that handles the strategy
@@ -294,7 +293,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      * @dev Keep the local version and core in sync (see below)
      *      corePool is a contract interface; function calls on it are external
      *
-     * @param swapFee - in Wei
+     * @param swapFee - in Wei, where 1 ether is 100%
      */
     function setSwapFee(uint swapFee)
         external
@@ -651,8 +650,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         lockUnderlyingPool
         logs
     {
-        require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
-                "ERR_NOT_ON_WHITELIST");
+        require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender], "ERR_NOT_ON_WHITELIST");
 
         // Delegate to library to save space
 
@@ -754,8 +752,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         lock
         returns (uint poolAmountOut)
     {
-        require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
-                "ERR_NOT_ON_WHITELIST");
+        require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender], "ERR_NOT_ON_WHITELIST");
 
         // Delegate to library to save space
         poolAmountOut = SmartPoolManager.joinswapExternAmountIn(
@@ -796,8 +793,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         lock
         returns (uint tokenAmountIn)
     {
-        require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender],
-                "ERR_NOT_ON_WHITELIST");
+        require(!rights.canWhitelistLPs || _liquidityProviderWhitelist[msg.sender], "ERR_NOT_ON_WHITELIST");
 
         // Delegate to library to save space
         tokenAmountIn = SmartPoolManager.joinswapPoolAmountOut(
@@ -1004,28 +1000,28 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /// Can only be called by the SmartPoolManager library, will fail otherwise
     function mintPoolShareFromLib(uint amount) public override {
-        require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
+        require(msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _mint(amount);
     }
 
     /// Can only be called by the SmartPoolManager library, will fail otherwise
     function pushPoolShareFromLib(address to, uint amount) public override {
-        require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
+        require(msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _push(to, amount);
     }
 
     /// Can only be called by the SmartPoolManager library, will fail otherwise
     function pullPoolShareFromLib(address from, uint amount) public override {
-        require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
+        require(msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _pull(from, amount);
     }
 
     /// Can only be called by the SmartPoolManager library, will fail otherwise
     function burnPoolShareFromLib(uint amount) public override {
-        require (msg.sender == address(this), "ERR_NOT_CONTROLLER");
+        require(msg.sender == address(this), "ERR_NOT_CONTROLLER");
 
         _burn(amount);
     }

@@ -163,7 +163,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     /**
      * @notice Set the swap fee
      *
-     * @param swapFee - in Wei
+     * @param swapFee - in Wei, where 1 ether is 100%
      */
     function setSwapFee(uint swapFee)
         external override
@@ -398,7 +398,10 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         external
         lock
         logs
-        returns (uint tokenAmountOut, uint spotPriceAfter)
+        returns (
+            uint tokenAmountOut,
+            uint spotPriceAfter
+        )
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
         require(_records[tokenOut].bound, "ERR_NOT_BOUND");
@@ -474,7 +477,10 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         external
         lock
         logs
-        returns (uint tokenAmountIn, uint spotPriceAfter)
+        returns (
+            uint tokenAmountIn,
+            uint spotPriceAfter
+        )
     {
         require(_records[tokenIn].bound, "ERR_NOT_BOUND");
         require(_records[tokenOut].bound, "ERR_NOT_BOUND");

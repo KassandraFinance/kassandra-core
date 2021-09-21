@@ -76,7 +76,6 @@ library SmartPoolManager {
         uint poolShares;
         uint deltaBalance;
         uint deltaWeight;
-        uint newBalance;
 
         if (newWeight < currentWeight) {
             // This means the controller will withdraw tokens to keep price
@@ -96,7 +95,7 @@ library SmartPoolManager {
             );
 
             // New balance cannot be lower than MIN_BALANCE
-            newBalance = currentBalance - deltaBalance;
+            uint newBalance = currentBalance - deltaBalance;
 
             require(newBalance >= KassandraConstants.MIN_BALANCE, "ERR_MIN_BALANCE");
 
@@ -116,10 +115,7 @@ library SmartPoolManager {
             // They will be minted and given SPTokens
             deltaWeight = newWeight - currentWeight;
 
-            require(
-                (totalWeight + deltaWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT,
-                "ERR_MAX_TOTAL_WEIGHT"
-            );
+            require((totalWeight + deltaWeight) <= KassandraConstants.MAX_TOTAL_WEIGHT, "ERR_MAX_TOTAL_WEIGHT");
 
             // poolShares = totalSupply * (deltaWeight / totalWeight)
             poolShares = KassandraSafeMath.bmul(
@@ -285,10 +281,7 @@ library SmartPoolManager {
         external
     {
         require(newToken.isCommitted, "ERR_NO_TOKEN_COMMIT");
-        require(
-            (block.number - newToken.commitBlock) >= addTokenTimeLockInBlocks,
-            "ERR_TIMELOCK_STILL_COUNTING"
-        );
+        require((block.number - newToken.commitBlock) >= addTokenTimeLockInBlocks, "ERR_TIMELOCK_STILL_COUNTING");
 
         uint totalSupply = self.totalSupply();
 
