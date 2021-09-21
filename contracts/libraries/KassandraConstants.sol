@@ -29,7 +29,7 @@ library KassandraConstants {
     /// Maximum supply of pool tokens
     uint public constant MAX_POOL_SUPPLY   = ONE * 10**9;
 
-    /// Fee for exiting a pool
+    /// Default fee for exiting a pool
     uint public constant EXIT_FEE          = ONE * 3 / 100;
     /// Minimum swap fee possible
     uint public constant MIN_FEE           = ONE / 10**6;

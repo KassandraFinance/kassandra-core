@@ -310,6 +310,28 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
     }
 
     /**
+     * @notice Set the exit fee on the underlying pool
+     *
+     * @dev Keep the local version and core in sync (see below)
+     *      corePool is a contract interface; function calls on it are external
+     *
+     * @param exitFee - in Wei, where 1 ether is 100%
+     */
+    function setExitFee(uint exitFee)
+        external
+        needsCorePool
+        onlyOwner
+        lock
+        logs
+        virtual
+    {
+        require(rights.canChangeSwapFee, "ERR_NOT_CONFIGURABLE_SWAP_FEE");
+
+        // Underlying pool will check against min/max fee
+        corePool.setExitFee(exitFee);
+    }
+
+    /**
      * @notice Set the cap (max # of pool tokens)
      *
      * @dev tokenCap defaults in the constructor to unlimited
@@ -358,6 +380,19 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         require(rights.canPauseSwapping, "ERR_NOT_PAUSABLE_SWAP");
 
         corePool.setPublicSwap(publicSwap);
+    }
+
+    /**
+     * @notice Set an address that will receive the exit fees in the underlying pool
+     *
+     * @param feeCollector - Address that will receive exit fees
+     */
+    function setExitFeeCollector(address feeCollector)
+        external
+        onlyOwner
+        logs
+    {
+        corePool.setExitFeeCollector(feeCollector);
     }
 
     /**
@@ -713,7 +748,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         );
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(address(coreFactory), exitFee);
+        _pushPoolShare(corePool.getExitFeeCollector(), exitFee);
         _burnPoolShare(pAiAfterExitFee);
 
         // After createPool, token list is maintained in the underlying core Pool
@@ -813,7 +848,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
 
     /**
      * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
-     *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
+     *         Asset must be present in the pool, and will incur an _exitFee (if set to non-zero)
      *
      * @dev Emits a LogExit event for the token
      *
@@ -835,9 +870,15 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         returns (uint tokenAmountOut)
     {
         // Delegate to library to save space
+        uint exitFee;
+        uint pAiAfterExitFee;
 
         // Calculates final amountOut, and the fee and final amount in
-        (uint exitFee, uint amountOut) = SmartPoolManager.exitswapPoolAmountIn(
+        (
+            exitFee,
+            pAiAfterExitFee,
+            tokenAmountOut
+        ) = SmartPoolManager.exitswapPoolAmountIn(
             IConfigurableRightsPool(address(this)),
             corePool,
             tokenOut,
@@ -845,14 +886,11 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
             minAmountOut
         );
 
-        tokenAmountOut = amountOut;
-        uint pAiAfterExitFee = poolAmountIn - exitFee;
-
         emit LogExit(msg.sender, tokenOut, tokenAmountOut);
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(pAiAfterExitFee);
-        _pushPoolShare(address(coreFactory), exitFee);
+        _pushPoolShare(corePool.getExitFeeCollector(), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
@@ -880,9 +918,15 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         returns (uint poolAmountIn)
     {
         // Delegate to library to save space
+        uint exitFee;
+        uint pAiAfterExitFee;
 
         // Calculates final amounts in, accounting for the exit fee
-        (uint exitFee, uint amountIn) = SmartPoolManager.exitswapExternAmountOut(
+        (
+            exitFee,
+            pAiAfterExitFee,
+            poolAmountIn
+        ) = SmartPoolManager.exitswapExternAmountOut(
             IConfigurableRightsPool(address(this)),
             corePool,
             tokenOut,
@@ -890,14 +934,11 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
             maxPoolAmountIn
         );
 
-        poolAmountIn = amountIn;
-        uint pAiAfterExitFee = poolAmountIn - exitFee;
-
         emit LogExit(msg.sender, tokenOut, tokenAmountOut);
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(pAiAfterExitFee);
-        _pushPoolShare(address(coreFactory), exitFee);
+        _pushPoolShare(corePool.getExitFeeCollector(), exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
@@ -1079,6 +1120,8 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
         // but not essential, so not dangerous
         delete _initialTokens;
 
+        // set the exit fee collector to the creator of this pool
+        corePool.setExitFeeCollector(msg.sender);
         // Set fee to the initial value set in the constructor
         // Hereafter, read the swapFee from the underlying pool, not the local state variable
         corePool.setSwapFee(_initialSwapFee);

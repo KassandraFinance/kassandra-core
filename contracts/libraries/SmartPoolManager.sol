@@ -76,6 +76,7 @@ library SmartPoolManager {
         uint poolShares;
         uint deltaBalance;
         uint deltaWeight;
+        address controller = self.getController();
 
         if (newWeight < currentWeight) {
             // This means the controller will withdraw tokens to keep price
@@ -103,11 +104,11 @@ library SmartPoolManager {
             corePool.rebind(token, newBalance, newWeight);
             require(minimumKacy <= corePool.getNormalizedWeight(kacyToken), "ERR_MIN_KACY");
 
-            // Now with the tokens this contract can send them to msg.sender
-            bool xfer = IERC20(token).transfer(msg.sender, deltaBalance);
+            // Now with the tokens this contract can send them to controller
+            bool xfer = IERC20(token).transfer(controller, deltaBalance);
             require(xfer, "ERR_ERC20_FALSE");
 
-            self.pullPoolShareFromLib(msg.sender, poolShares);
+            self.pullPoolShareFromLib(controller, poolShares);
             self.burnPoolShareFromLib(poolShares);
         }
         else {
@@ -128,8 +129,8 @@ library SmartPoolManager {
                 KassandraSafeMath.bdiv(deltaWeight, currentWeight)
             );
 
-            // First gets the tokens from msg.sender to this contract (Pool Controller)
-            bool xfer = IERC20(token).transferFrom(msg.sender, address(this), deltaBalance);
+            // First gets the tokens from controller to this contract (Pool Controller)
+            bool xfer = IERC20(token).transferFrom(controller, address(this), deltaBalance);
             require(xfer, "ERR_ERC20_FALSE");
 
             // Now with the tokens this contract can bind them to the pool it controls
@@ -137,7 +138,7 @@ library SmartPoolManager {
             require(minimumKacy <= corePool.getNormalizedWeight(kacyToken), "ERR_MIN_KACY");
 
             self.mintPoolShareFromLib(poolShares);
-            self.pushPoolShareFromLib(msg.sender, poolShares);
+            self.pushPoolShareFromLib(controller, poolShares);
         }
     }
 
@@ -284,6 +285,7 @@ library SmartPoolManager {
         require((block.number - newToken.commitBlock) >= addTokenTimeLockInBlocks, "ERR_TIMELOCK_STILL_COUNTING");
 
         uint totalSupply = self.totalSupply();
+        address controller = self.getController();
 
         // poolShares = totalSupply * newTokenWeight / totalWeight
         uint poolShares = KassandraSafeMath.bdiv(
@@ -295,7 +297,7 @@ library SmartPoolManager {
         newToken.isCommitted = false;
 
         // First gets the tokens from msg.sender to this contract (Pool Controller)
-        bool returnValue = IERC20(newToken.addr).transferFrom(self.getController(), address(self), newToken.balance);
+        bool returnValue = IERC20(newToken.addr).transferFrom(controller, address(self), newToken.balance);
         require(returnValue, "ERR_ERC20_FALSE");
 
         // Now with the tokens this contract can bind them to the pool it controls
@@ -307,7 +309,7 @@ library SmartPoolManager {
         corePool.bind(newToken.addr, newToken.balance, newToken.denorm);
 
         self.mintPoolShareFromLib(poolShares);
-        self.pushPoolShareFromLib(self.getController(), poolShares);
+        self.pushPoolShareFromLib(controller, poolShares);
     }
 
     /**
@@ -331,6 +333,7 @@ library SmartPoolManager {
         external
     {
         uint totalSupply = self.totalSupply();
+        address controller = self.getController();
 
         // poolShares = totalSupply * tokenWeight / totalWeight
         uint poolShares = KassandraSafeMath.bdiv(
@@ -348,10 +351,10 @@ library SmartPoolManager {
         corePool.unbind(token);
 
         // Now with the tokens this contract can send them to msg.sender
-        bool xfer = IERC20(token).transfer(self.getController(), balance);
+        bool xfer = IERC20(token).transfer(controller, balance);
         require(xfer, "ERR_ERC20_FALSE");
 
-        self.pullPoolShareFromLib(self.getController(), poolShares);
+        self.pullPoolShareFromLib(controller, poolShares);
         self.burnPoolShareFromLib(poolShares);
     }
 
@@ -541,7 +544,11 @@ library SmartPoolManager {
     )
         external
         view
-        returns (uint exitFee, uint pAiAfterExitFee, uint[] memory actualAmountsOut)
+        returns (
+            uint exitFee,
+            uint pAiAfterExitFee,
+            uint[] memory actualAmountsOut
+        )
     {
         address[] memory tokens = corePool.getCurrentTokens();
 
@@ -550,11 +557,8 @@ library SmartPoolManager {
         uint poolTotal = self.totalSupply();
 
         // Calculate exit fee and the final amount in
-        exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
-
-        // governance doesn't pay to itself
-        if (msg.sender == self.getController()) {
-            exitFee = 0;
+        if (msg.sender != corePool.getExitFeeCollector()) {
+            exitFee = KassandraSafeMath.bmul(poolAmountIn, corePool.getExitFee());
         }
 
         pAiAfterExitFee = poolAmountIn - exitFee;
@@ -665,7 +669,7 @@ library SmartPoolManager {
 
     /**
      * @notice Exit a pool - redeem a specific number of pool tokens for an underlying asset
-     *         Asset must be present in the pool, and will incur an EXIT_FEE (if set to non-zero)
+     *         Asset must be present in the pool, and will incur an _exitFee (if set to non-zero)
      *
      * @param self - ConfigurableRightsPool instance calling the library
      * @param corePool - Core Pool the CRP is wrapping
@@ -674,6 +678,7 @@ library SmartPoolManager {
      * @param minAmountOut - Minimum asset tokens to receive
      *
      * @return exitFee - Calculated exit fee
+     * @return pAiAfterExitFee - Pool amount in after exit fee
      * @return tokenAmountOut - Amount of asset tokens returned
      */
     function exitswapPoolAmountIn(
@@ -685,9 +690,17 @@ library SmartPoolManager {
     )
         external
         view
-        returns (uint exitFee, uint tokenAmountOut)
+        returns (
+            uint exitFee,
+            uint pAiAfterExitFee,
+            uint tokenAmountOut
+        )
     {
         require(corePool.isBound(tokenOut), "ERR_NOT_BOUND");
+
+        if (msg.sender != corePool.getExitFeeCollector()) {
+            exitFee = corePool.getExitFee();
+        }
 
         tokenAmountOut = corePool.calcSingleOutGivenPoolIn(
             corePool.getBalance(tokenOut),
@@ -695,7 +708,8 @@ library SmartPoolManager {
             self.totalSupply(),
             corePool.getTotalDenormalizedWeight(),
             poolAmountIn,
-            corePool.getSwapFee()
+            corePool.getSwapFee(),
+            exitFee
         );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
@@ -704,7 +718,8 @@ library SmartPoolManager {
             "ERR_MAX_OUT_RATIO"
         );
 
-        exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        exitFee = KassandraSafeMath.bmul(poolAmountIn, exitFee);
+        pAiAfterExitFee = poolAmountIn - exitFee;
     }
 
     /**
@@ -718,6 +733,7 @@ library SmartPoolManager {
      * @param maxPoolAmountIn - Maximum pool tokens to be redeemed
      *
      * @return exitFee - Calculated exit fee
+     * @return pAiAfterExitFee - Pool amount in after exit fee
      * @return poolAmountIn - Amount of pool tokens redeemed
      */
     function exitswapExternAmountOut(
@@ -729,30 +745,37 @@ library SmartPoolManager {
     )
         external
         view
-        returns (uint exitFee, uint poolAmountIn)
+        returns (
+            uint exitFee,
+            uint pAiAfterExitFee,
+            uint poolAmountIn
+        )
     {
         require(corePool.isBound(tokenOut), "ERR_NOT_BOUND");
         require(
             tokenAmountOut <= KassandraSafeMath.bmul(corePool.getBalance(tokenOut), KassandraConstants.MAX_OUT_RATIO),
             "ERR_MAX_OUT_RATIO"
         );
+
+        if (msg.sender != corePool.getExitFeeCollector()) {
+            exitFee = corePool.getExitFee();
+        }
+
         poolAmountIn = corePool.calcPoolInGivenSingleOut(
             corePool.getBalance(tokenOut),
             corePool.getDenormalizedWeight(tokenOut),
             self.totalSupply(),
             corePool.getTotalDenormalizedWeight(),
             tokenAmountOut,
-            corePool.getSwapFee()
+            corePool.getSwapFee(),
+            exitFee
         );
 
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
         require(poolAmountIn <= maxPoolAmountIn, "ERR_LIMIT_IN");
 
-        exitFee = 0;
-
-        if (msg.sender != self.getController()) {
-            exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
-        }
+        exitFee = KassandraSafeMath.bmul(poolAmountIn, exitFee);
+        pAiAfterExitFee = poolAmountIn - exitFee;
     }
 
     /**

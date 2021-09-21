@@ -241,6 +241,7 @@ abstract contract Math is IMath {
      * @param totalWeight - Total denormalized weight of the pool
      * @param poolAmountIn - Amount of pool tokens that will be sent
      * @param swapFee - Fee for performing swap (percentage)
+     * @param exitFee - Fee for exiting the pool (percentage)
      *
      * @return Amount of the swapped-out token you'll receive
      *
@@ -261,7 +262,8 @@ abstract contract Math is IMath {
         uint poolSupply,
         uint totalWeight,
         uint poolAmountIn,
-        uint swapFee
+        uint swapFee,
+        uint exitFee
     )
         public pure override
         returns (uint)
@@ -271,7 +273,7 @@ abstract contract Math is IMath {
         // pAiAfterExitFee = pAi*(1-exitFee)
         uint poolAmountInAfterExitFee = KassandraSafeMath.bmul(
             poolAmountIn,
-            (KassandraConstants.ONE - KassandraConstants.EXIT_FEE)
+            (KassandraConstants.ONE - exitFee)
         );
         uint newPoolSupply = poolSupply - poolAmountInAfterExitFee;
         uint poolRatio = KassandraSafeMath.bdiv(newPoolSupply, poolSupply);
@@ -300,6 +302,7 @@ abstract contract Math is IMath {
      * @param totalWeight - Total denormalized weight of the pool
      * @param tokenAmountOut - Amount of swapped-out token that you want to receive
      * @param swapFee - Fee for performing swap (percentage)
+     * @param exitFee - Fee for exiting the pool (percentage)
      *
      * @return Amount of pool tokens to send
      *
@@ -320,7 +323,8 @@ abstract contract Math is IMath {
         uint poolSupply,
         uint totalWeight,
         uint tokenAmountOut,
-        uint swapFee
+        uint swapFee,
+        uint exitFee
     )
         public pure override
         returns (uint)
@@ -345,7 +349,7 @@ abstract contract Math is IMath {
         // pAi = pAiAfterExitFee/(1-exitFee)
         return KassandraSafeMath.bdiv(
             poolAmountInAfterExitFee,
-            (KassandraConstants.ONE - KassandraConstants.EXIT_FEE)
+            (KassandraConstants.ONE - exitFee)
         );
     }
 }

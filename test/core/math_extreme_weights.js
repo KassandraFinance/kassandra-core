@@ -11,7 +11,7 @@ const errorDelta = 10 ** -8;
 const verbose = process.env.VERBOSE;
 
 contract('Pool', async (accounts) => {
-    const admin = accounts[0];
+    const [admin, user] = accounts;
     const { toWei, fromWei } = web3.utils;
     const MAX = web3.utils.toTwosComplement(-1);
 
@@ -114,6 +114,7 @@ contract('Pool', async (accounts) => {
         await pool.bind(DAI, toWei(daiBalance), toWei(daiDenorm));
 
         await pool.setPublicSwap(true);
+        await pool.setExitFeeCollector(user);
 
         await pool.setSwapFee(toWei(String(swapFee)));
     });
@@ -201,11 +202,11 @@ contract('Pool', async (accounts) => {
             currentPoolBalance = '100';
             await pool.finalize();
 
-            // // Call function
+            // Call function
             const poolAmountOut = '1';
             await pool.joinPool(toWei(poolAmountOut), [MAX, MAX]);
 
-            // // Update balance states
+            // Update balance states
             previousPoolBalance = Decimal(currentPoolBalance);
             currentPoolBalance = Decimal(currentPoolBalance).add(Decimal(poolAmountOut));
 

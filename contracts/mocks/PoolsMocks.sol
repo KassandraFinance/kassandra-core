@@ -33,8 +33,18 @@ contract PoolMock is IPoolDef {
         return;
     }
 
+    function setExitFee(uint exitFee) external override pure {
+        exitFee;
+        return;
+    }
+
     function setPublicSwap(bool publicSwap) external override pure {
         publicSwap;
+        return;
+    }
+
+    function setExitFeeCollector(address feeCollector) external override pure {
+        feeCollector;
         return;
     }
 
@@ -92,6 +102,14 @@ contract PoolMock is IPoolDef {
 
     function getSwapFee() external override pure returns (uint) {
         return 0;
+    }
+
+    function getExitFee() external override pure returns (uint) {
+        return 0;
+    }
+
+    function getExitFeeCollector() public override pure returns (address) {
+        return address(0);
     }
 }
 

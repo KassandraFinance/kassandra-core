@@ -35,9 +35,13 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     // `setSwapFee` and `finalize` require CONTROL
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     uint private _swapFee;
+    // fee for leaving the pool
+    uint private _exitFee;
     // when the pool is finalized it can't be changed anymore
     bool private _finalized;
 
+    // who collects the exit fees
+    address private _exitFeeCollector;
     // list of token addresses
     address[] private _tokens;
     // list of token records
@@ -58,6 +62,36 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         address indexed caller,
         uint256         oldFee,
         uint256         newFee
+    );
+
+    /**
+     * @notice Emitted when the exit fee changes
+     *
+     * @param pool - Address of the pool that changed the exit fee
+     * @param caller - Address of who changed the exit fee
+     * @param oldFee - The old exit fee
+     * @param newFee - The new exit fee
+     */
+    event NewExitFee(
+        address indexed pool,
+        address indexed caller,
+        uint256         oldFee,
+        uint256         newFee
+    );
+
+    /**
+     * @notice Emitted when who receives the exit fees changes
+     *
+     * @param pool - Address of the pool that changed the collector
+     * @param caller - Address of who changed the collector
+     * @param oldCollector - The old collector
+     * @param newCollector - The new collector
+     */
+    event NewExitFeeCollector(
+        address indexed pool,
+        address indexed caller,
+        address         oldCollector,
+        address         newCollector
     );
 
     /**
@@ -156,6 +190,7 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     {
         _factory = IFactory(msg.sender);
         _swapFee = KassandraConstants.MIN_FEE;
+        _exitFee = KassandraConstants.EXIT_FEE;
         _publicSwap = false;
         _finalized = false;
     }
@@ -179,6 +214,23 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
     }
 
     /**
+     * @notice Set the exit fee
+     *
+     * @param exitFee - in Wei, where 1 ether is 100%
+     */
+    function setExitFee(uint exitFee)
+        external override
+        lock
+        logs
+        onlyOwner
+    {
+        require(!_finalized, "ERR_IS_FINALIZED");
+        require(exitFee <= KassandraConstants.MAX_FEE, "ERR_MAX_FEE");
+        emit NewExitFee(address(this), msg.sender, _exitFee, exitFee);
+        _exitFee = exitFee;
+    }
+
+    /**
      * @notice Set the public swap flag to allow or prevent swapping in the pool
      *
      * @param public_ - New value of the swap status
@@ -196,6 +248,23 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
             "ERR_MIN_KACY"
         );
         _publicSwap = public_;
+    }
+
+    /**
+     * @notice Set an address that will receive the exit fees
+     *
+     * @param newAddr - Address that will receive exit fees
+     */
+    function setExitFeeCollector(address newAddr)
+        external override
+        lock
+        logs
+        onlyOwner
+    {
+        require(!_finalized, "ERR_IS_FINALIZED");
+        require(newAddr != address(0), "ERR_ZERO_ADDRESS");
+        emit NewExitFeeCollector(address(this), msg.sender, _exitFeeCollector, newAddr);
+        _exitFeeCollector = newAddr;
     }
 
     /**
@@ -353,13 +422,18 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         require(_finalized, "ERR_NOT_FINALIZED");
 
         uint poolTotal = _totalSupply;
-        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint exitFee;
+
+        if (msg.sender != _exitFeeCollector) {
+            exitFee = KassandraSafeMath.bmul(poolAmountIn, _exitFee);
+        }
+
         uint pAiAfterExitFee = poolAmountIn - exitFee;
         uint ratio = KassandraSafeMath.bdiv(pAiAfterExitFee, poolTotal);
         require(ratio != 0, "ERR_MATH_APPROX");
 
         _pullPoolShare(msg.sender, poolAmountIn);
-        _pushPoolShare(_factory.getController(), exitFee);
+        _pushPoolShare(_exitFeeCollector, exitFee);
         _burnPoolShare(pAiAfterExitFee);
 
         for (uint i = 0; i < _tokens.length; i++) {
@@ -657,7 +731,8 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
             _totalSupply,
             _totalWeight,
             poolAmountIn,
-            _swapFee
+            _swapFee,
+            _exitFee
         );
 
         require(tokenAmountOut >= minAmountOut, "ERR_LIMIT_OUT");
@@ -669,13 +744,17 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
 
         outRecord.balance -= tokenAmountOut;
 
-        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint exitFee;
+
+        if (msg.sender != _exitFeeCollector) {
+            exitFee = KassandraSafeMath.bmul(poolAmountIn, _exitFee);
+        }
 
         emit LogExit(msg.sender, tokenOut, tokenAmountOut);
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(poolAmountIn - exitFee);
-        _pushPoolShare(_factory.getController(), exitFee);
+        _pushPoolShare(_exitFeeCollector, exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
@@ -712,7 +791,8 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
             _totalSupply,
             _totalWeight,
             tokenAmountOut,
-            _swapFee
+            _swapFee,
+            _exitFee
         );
 
         require(poolAmountIn != 0, "ERR_MATH_APPROX");
@@ -720,13 +800,17 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
 
         outRecord.balance -= tokenAmountOut;
 
-        uint exitFee = KassandraSafeMath.bmul(poolAmountIn, KassandraConstants.EXIT_FEE);
+        uint exitFee;
+
+        if (msg.sender != _exitFeeCollector) {
+            exitFee = KassandraSafeMath.bmul(poolAmountIn, _exitFee);
+        }
 
         emit LogExit(msg.sender, tokenOut, tokenAmountOut);
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(poolAmountIn - exitFee);
-        _pushPoolShare(_factory.getController(), exitFee);
+        _pushPoolShare(_exitFeeCollector, exitFee);
         _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
@@ -900,6 +984,34 @@ contract Pool is IPoolDef, Ownable, ReentrancyGuard, CPToken, Math {
         returns (uint)
     {
         return _swapFee;
+    }
+
+    /**
+     * @notice Get the current exit fee of the pool
+     *         Won't change if the pool is "finalized"
+     *
+     * @dev viewlock, because setExitFee is lock
+     *
+     * @return Current exit fee
+     */
+    function getExitFee()
+        external view override
+        viewlock
+        returns (uint)
+    {
+        return _exitFee;
+    }
+
+    /*
+     * @notice Get the address exit fees will be sent to
+     *
+     * @return Address of the exit fee collector
+     */
+    function getExitFeeCollector()
+        external view override
+        returns (address)
+    {
+        return _exitFeeCollector;
     }
 
     /**

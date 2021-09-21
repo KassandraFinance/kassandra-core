@@ -15,7 +15,7 @@ const verbose = process.env.VERBOSE;
 
 contract('Pool', async (accounts) => {
     const { toWei, fromWei } = web3.utils;
-    const admin = accounts[0];
+    const [admin, user] = accounts;
 
     const errorDelta = 10 ** -8;
     const swapFee = 10 ** -3; // 0.001;
@@ -117,6 +117,7 @@ contract('Pool', async (accounts) => {
         await pool.bind(WETH, toWei(wethBalance), toWei(wethDenorm));
         await pool.bind(DAI, toWei(daiBalance), toWei(daiDenorm));
 
+        await pool.setExitFeeCollector(user);
         await pool.setPublicSwap(true);
         await pool.setSwapFee(toWei(String(swapFee)));
     });

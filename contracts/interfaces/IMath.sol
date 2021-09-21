@@ -35,7 +35,8 @@ interface IMath {
         uint poolSupply,
         uint totalWeight,
         uint poolAmountIn,
-        uint swapFee
+        uint swapFee,
+        uint exitFee
     )
         external pure
         returns (uint tokenAmountOut);
@@ -46,7 +47,8 @@ interface IMath {
         uint poolSupply,
         uint totalWeight,
         uint tokenAmountOut,
-        uint swapFee
+        uint swapFee,
+        uint exitFee
     )
         external pure
         returns (uint poolAmountIn);

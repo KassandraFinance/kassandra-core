@@ -79,6 +79,7 @@ contract Factory is IFactoryDef, Ownable {
         pool = new Pool(tokenSymbol, tokenName);
         _isPool[address(pool)] = true;
         emit LogNewPool(msg.sender, address(pool));
+        pool.setExitFeeCollector(msg.sender);
         pool.setController(msg.sender);
     }
 

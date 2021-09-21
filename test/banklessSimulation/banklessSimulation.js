@@ -20,7 +20,7 @@ contract('Bankless Simulation', async (accounts) => {
     const user2 = accounts[2];
     const user3 = accounts[3];
 
-    const { toWei, fromWei } = web3.utils;
+    const { toBN, toWei, fromWei } = web3.utils;
     const MAX = web3.utils.toTwosComplement(-1);
     const errorDelta = 10 ** -8;
     const numPoolTokens = '1000';
@@ -111,9 +111,9 @@ contract('Bankless Simulation', async (accounts) => {
     });
 
     it('crpPool should have correct rights set', async () => {
-        let x;
-        for (x = 0; x < permissions.length; x++) {
+        for (let x = 0; x < permissions.length; x++) {
             const perm = await crpPool.hasPermission(x);
+
             if (x === 3 || x === 4 || x === 6) {
                 assert.isFalse(perm);
             } else {
@@ -368,8 +368,6 @@ contract('Bankless Simulation', async (accounts) => {
         it('Controller should recover remaining tokens and proceeds', async () => {
             const corePoolAddr = await crpPool.corePool();
             const underlyingPool = await Pool.at(corePoolAddr);
-            let poolDaiBalance;
-            let poolShirtBalance;
             let daiWithdrawal;
             let shirtWithdrawal;
 
@@ -378,18 +376,21 @@ contract('Bankless Simulation', async (accounts) => {
             // also prevent trading
             await crpPool.setPublicSwap(false);
 
+            let poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
+            let poolShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
+
             await truffleAssert.reverts(
                 /* You might expect this to work - just redeem all the pool tokens and get the shirts/dai back
                    Nope - there is no "we're done - everybody out of the pool" call
                    It's designed for people to enter and leave continuously, so prices need to be
                    well-defined at all times, so ratios need to be maintained, etc.
                    You can only withdraw 1/3 at a time - but you can do so iteratively */
-                crpPool.exitPool.call(toWei(numPoolTokens), [toWei('0'), toWei('0')]),
+                crpPool.exitPool.call(
+                    toWei(numPoolTokens),
+                    [poolDaiBalance.sub(toBN(1)), poolShirtBalance.sub(toBN(1))],
+                ),
                 'ERR_MIN_BALANCE',
             );
-
-            poolDaiBalance = await dai.balanceOf.call(underlyingPool.address);
-            poolShirtBalance = await bap0.balanceOf.call(underlyingPool.address);
 
             if (verbose) {
                 console.log(`Final pool Dai balance: ${Decimal(fromWei(poolDaiBalance)).toFixed(2)}`);
