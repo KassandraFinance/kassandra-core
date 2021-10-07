@@ -11,7 +11,7 @@ const PoolMock = artifacts.require('PoolMock');
 const StrategyHEIM = artifacts.require('StrategyHEIM');
 
 contract('HEIM Strategy', async (accounts) => {
-    const [admin, updater, watcher, nonAdmin] = accounts;
+    const [admin, updater, watcher, nonAdmin, mockAddr, kacyMock] = accounts;
 
     const {
         toHex,
@@ -26,7 +26,7 @@ contract('HEIM Strategy', async (accounts) => {
     let coreFactoryMock;
     let corePoolMock;
     let crpPoolMock;
-    const tokenSymbols = ['xyz', 'weth', 'dai'];
+    const tokenSymbols = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqr', 'kacy'];
 
     before(async () => {
         coreFactoryMock = await FactoryMock.new();
@@ -36,9 +36,11 @@ contract('HEIM Strategy', async (accounts) => {
 
         strategy = await StrategyHEIM.new(airnodeMock.address, tokenSymbols);
 
-        await coreFactoryMock.setKacyToken(admin);
+        await coreFactoryMock.setKacyToken(kacyMock);
         await coreFactoryMock.setKacyMinimum(toBN(toWei('5')).div(toBN('100')));
-        await corePoolMock.mockCurrentTokens([updater, watcher, admin]);
+        const tokenMocks = Array(tokenSymbols.length).fill(mockAddr);
+        tokenMocks[tokenSymbols.length - 1] = kacyMock;
+        await corePoolMock.mockCurrentTokens(tokenMocks);
         await crpPoolMock.mockCorePool(corePoolMock.address);
         await crpPoolMock.mockCoreFactory(coreFactoryMock.address);
         await airnodeMock.setStrategyAddress(strategy.address);
@@ -373,7 +375,7 @@ contract('HEIM Strategy', async (accounts) => {
                     async (statusCode) => {
                         await strategy.makeRequest({ from: updater });
                         const requestId = await airnodeMock.lastRequestId();
-                        const tx = await airnodeMock.callStrategy(requestId, statusCode.toString(), -2);
+                        const tx = await airnodeMock.callStrategy(requestId, statusCode, -2);
 
                         await eventEmitted(
                             tx, 'RequestFailed',
@@ -405,27 +407,26 @@ contract('HEIM Strategy', async (accounts) => {
         it('If coin score is zero it should fail', async () => {
             await strategy.makeRequest({ from: updater });
 
-            const responseData = BigInt(1) << BigInt(255);
+            const responseData = BigInt(-1) << BigInt(255);
             const requestId = await airnodeMock.lastRequestId();
-            const tx = await airnodeMock.callStrategy(
-                requestId, 0, toBN(responseData.toString(16), 16).mul(toBN('-1')),
-            );
+            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
 
-            await eventEmitted(
-                tx, 'RequestFailed',
-                { reason: padRight(toHex('ERR_SCORE_OVERFLOW'), 64) },
+            await truffleAssert.reverts(
+                strategy.updateWeightsGradually(),
+                'ERR_SCORE_ZERO',
             );
         });
 
         it('If coin score is full it should fail', async () => {
             await strategy.makeRequest({ from: updater });
 
+            const responseData = BigInt(-1);
             const requestId = await airnodeMock.lastRequestId();
-            const tx = await airnodeMock.callStrategy(requestId, 0, toBN('-1'));
+            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
 
-            await eventEmitted(
-                tx, 'RequestFailed',
-                { reason: padRight(toHex('ERR_SCORE_OVERFLOW'), 64) },
+            await truffleAssert.reverts(
+                strategy.updateWeightsGradually(),
+                'ERR_SCORE_OVERFLOW',
             );
         });
 
@@ -434,21 +435,20 @@ contract('HEIM Strategy', async (accounts) => {
             // set a percentage just to be sure
             await strategy.setSuspectDiff(7);
 
-            const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
-                .mul(toBN('-1'))
-                .add(toBN('30000'))
-                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)));
+            let responseData = BigInt(-1) << BigInt(255);
+
+            for (let i = 0; i < tokenSymbols.length - 1; i++) {
+                responseData |= BigInt(30000) << BigInt(i * 18);
+            }
 
             const requestId = await airnodeMock.lastRequestId();
-            const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
+            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+
+            const tx = await strategy.updateWeightsGradually();
 
             const lastScores = await strategy.lastScores();
             const pendingScores = await strategy.pendingScores();
-            await eventEmitted(
-                tx, 'RequestFailed',
-                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-            );
-            await eventEmitted(
+            await truffleAssert.eventEmitted(
                 tx, 'StrategyPaused',
                 { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
             );
@@ -458,11 +458,10 @@ contract('HEIM Strategy', async (accounts) => {
                 pendingScores[i] = pendingScores[i].toNumber();
             }
 
-            assert.sameOrderedMembers(lastScores, Array(14).fill(1));
-            const testArray = Array(14).fill(1);
-            testArray[0] = 30000;
-            testArray[1] = 30000;
-            assert.sameOrderedMembers(pendingScores, testArray);
+            assert.sameOrderedMembers(lastScores.slice(0, tokenSymbols.length), Array(tokenSymbols.length).fill(1));
+            const testArray = Array(tokenSymbols.length).fill(30000);
+            testArray[tokenSymbols.length - 1] = 1;
+            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), testArray);
         });
 
         it('Watcher can\'t resume in a suspended state', async () => {
@@ -490,7 +489,7 @@ contract('HEIM Strategy', async (accounts) => {
             }
 
             assert.sameOrderedMembers(lastScores, oldPendingScores);
-            assert.sameOrderedMembers(pendingScores, Array(14).fill(0));
+            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), Array(tokenSymbols.length).fill(0));
         });
 
         it('Should suspend the strategy for growing above suspectDiff', async () => {
@@ -500,24 +499,22 @@ contract('HEIM Strategy', async (accounts) => {
             // set a percentage just to be sure
             await strategy.setSuspectDiff(suspectDiff);
 
-            const aboveSuspectDiff = toBN('30000')
-                .mul(toBN(suspectDiff))
-                .div(toBN('100'))
-                .add(toBN('30000'));
+            const aboveSuspectDiff = ((BigInt(30000) * BigInt(100 + suspectDiff)) / BigInt(100));
 
-            const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
-                .mul(toBN('-1'))
-                .add(aboveSuspectDiff)
-                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)));
+            let responseData = BigInt(-1) << BigInt(255);
+
+            responseData |= aboveSuspectDiff;
+
+            for (let i = 1; i < tokenSymbols.length - 1; i++) {
+                responseData |= BigInt(30000) << BigInt(i * 18);
+            }
 
             const requestId = await airnodeMock.lastRequestId();
-            const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
+            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+
+            const tx = await strategy.updateWeightsGradually();
 
             const pendingScores = await strategy.pendingScores();
-            await eventEmitted(
-                tx, 'RequestFailed',
-                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-            );
             await eventEmitted(
                 tx, 'StrategyPaused',
                 { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
@@ -527,10 +524,10 @@ contract('HEIM Strategy', async (accounts) => {
                 pendingScores[i] = pendingScores[i].toNumber();
             }
 
-            const testArray = Array(14).fill(1);
-            testArray[0] = aboveSuspectDiff.toNumber();
-            testArray[1] = 30000;
-            assert.sameOrderedMembers(pendingScores, testArray);
+            const testArray = Array(tokenSymbols.length).fill(30000);
+            testArray[0] = Number(aboveSuspectDiff);
+            testArray[tokenSymbols.length - 1] = 1;
+            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), testArray);
         });
 
         it('Watcher should be able to reject a suspended call', async () => {
@@ -551,7 +548,7 @@ contract('HEIM Strategy', async (accounts) => {
             }
 
             assert.sameOrderedMembers(lastScores, oldLastScores);
-            assert.sameOrderedMembers(pendingScores, Array(14).fill(0));
+            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), Array(tokenSymbols.length).fill(0));
         });
 
         it('Should suspend the strategy for reducing below suspectDiff', async () => {
@@ -561,24 +558,22 @@ contract('HEIM Strategy', async (accounts) => {
             // set a percentage just to be sure
             await strategy.setSuspectDiff(suspectDiff);
 
-            const aboveSuspectDiff = toBN('30000')
-                .mul(toBN(-suspectDiff))
-                .div(toBN('100'))
-                .add(toBN('30000'));
+            const belowSuspectDiff = ((BigInt(30000) * BigInt(100 - suspectDiff)) / BigInt(100));
 
-            const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
-                .mul(toBN('-1'))
-                .add(aboveSuspectDiff)
-                .add(toBN((BigInt(30000) << BigInt(18)).toString(10)));
+            let responseData = BigInt(-1) << BigInt(255);
+
+            responseData |= belowSuspectDiff;
+
+            for (let i = 1; i < tokenSymbols.length - 1; i++) {
+                responseData |= BigInt(30000) << BigInt(i * 18);
+            }
 
             const requestId = await airnodeMock.lastRequestId();
-            const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
+            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+
+            const tx = await strategy.updateWeightsGradually();
 
             const pendingScores = await strategy.pendingScores();
-            await eventEmitted(
-                tx, 'RequestFailed',
-                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-            );
             await eventEmitted(
                 tx, 'StrategyPaused',
                 { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
@@ -590,57 +585,66 @@ contract('HEIM Strategy', async (accounts) => {
                 pendingScores[i] = pendingScores[i].toNumber();
             }
 
-            const testArray = Array(14).fill(1);
-            testArray[0] = aboveSuspectDiff.toNumber();
-            testArray[1] = 30000;
-            assert.sameOrderedMembers(pendingScores, testArray);
+            const testArray = Array(tokenSymbols.length).fill(30000);
+            testArray[0] = Number(belowSuspectDiff);
+            testArray[tokenSymbols.length - 1] = 1;
+            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), testArray);
         });
 
         it('The $KACY token should always be the minimum', async () => {
             const suspectDiff = 100;
-            let startingWeight = toBN('30000');
+            let startingWeight = BigInt(120000);
 
             await strategy.setSuspectDiff(suspectDiff);
 
             while (startingWeight > 0) {
                 await strategy.makeRequest({ from: updater });
 
-                let goodDiff = startingWeight
-                    .mul(toBN(-suspectDiff + 1))
-                    .div(toBN('100'))
-                    .add(startingWeight);
-                goodDiff = goodDiff.sub(toBN(Number(goodDiff.toString() === startingWeight.toString())));
+                const goodDiff = (startingWeight * BigInt(suspectDiff / 2)) / BigInt(100);
 
-                const responseData = toBN((BigInt(1) << BigInt(255)).toString(16), 16)
-                    .mul(toBN('-1'))
-                    .add(toBN('30000'))
-                    .add(toBN('30000').shln(18))
-                    .add(toBN(goodDiff.shln(36)));
+                let responseData = BigInt(-1) << BigInt(255);
+
+                for (let i = 0; i < tokenSymbols.length - 1; i++) {
+                    responseData |= BigInt(30000) << BigInt(i * 18);
+                }
+
+                responseData |= goodDiff << BigInt(18 * tokenSymbols.length);
 
                 const requestId = await airnodeMock.lastRequestId();
-                const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
-                await strategy.resolveSuspension(true, { from: watcher });
+
+                const tx1 = await airnodeMock.callStrategy(requestId, 0, responseData);
+                await eventNotEmitted(tx1, 'RequestFailed');
+
+                const tx2 = await strategy.updateWeightsGradually();
+                await eventNotEmitted(tx2, 'StrategyPaused');
 
                 const lastScores = await strategy.lastScores();
-                await eventNotEmitted(tx, 'RequestFailed');
 
                 for (let i = 0; i < lastScores.length; i++) {
                     lastScores[i] = lastScores[i].toNumber();
                 }
 
-                const testArray = Array(14).fill(1);
-                testArray[0] = 30000;
-                testArray[1] = 30000;
-                assert.sameOrderedMembers(lastScores, testArray);
+                const testArray = Array(tokenSymbols.length).fill(30000);
+                testArray[tokenSymbols.length - 1] = 1;
+                assert.sameOrderedMembers(lastScores.slice(0, tokenSymbols.length), testArray);
 
                 startingWeight = goodDiff;
             }
+        });
+
+        it('updateWeightsGradually should fail if no data has been saved', async () => {
+            await truffleAssert.reverts(
+                strategy.updateWeightsGradually(),
+                'ERR_NO_PENDING_DATA',
+            );
         });
     });
 
     describe('Adding and removing tokens', () => {
         it('Adding tokens should go fine until 14 are added', async () => {
-            const tokens2Add = ['btc', 'doge', 'sol', 'shib', 'api3', 'link', 'usd', 'sushi', 'uni', 'bal', 'axs'];
+            const tokens2Add = [
+                'btc', 'doge', 'sol', 'shib', 'api3', 'link', 'usd', 'sushi', 'uni', 'bal', 'axs', 'eth', 'dai', 'avax',
+            ];
             const oldTokenSymbols = Array.from(tokenSymbols);
 
             do {
@@ -668,7 +672,7 @@ contract('HEIM Strategy', async (accounts) => {
                 );
 
                 assert.isFalse(stillPaused);
-            } while (tokens2Add.length > 0);
+            } while (tokens2Add.length - tokenSymbols.length > 0);
         });
 
         it('Should fail adding more than 14 tokens', async () => {

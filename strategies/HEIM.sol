@@ -25,6 +25,9 @@ import "../contracts/libraries/KassandraConstants.sol";
  *      of a few dozen and that make people have a reason to maintain and secure the strategy without trolling
  */
 contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
+    // this prevents a possible problem that while weights change their sum could potentially go beyond maximum
+    uint256 private constant _MAX_TOTAL_WEIGHT = 40; // KassandraConstants.MAX_WEIGHT - 10
+    uint256 private constant _MAX_TOTAL_WEIGHT_ONE = 40 * 10 ** 18; // 40 * KassandraConstants.ONE
     // Exactly like _DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD from ConfigurableRightsPool.sol
     uint256 private constant _CHANGE_BLOCK_PERIOD = 5700;
     // API3 requests limiter
@@ -41,6 +44,8 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
     uint24[14] private _pendingScores = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
     // The pending weights already calculated by the strategy
     uint[] private _pendingWeights;
+    // The API response saved for further checks
+    uint256 private _apiResponse;
 
     /// API3 data provider id (Heimdall)
     bytes32 public providerId;
@@ -77,7 +82,7 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
     mapping(bytes32 => bool) public incomingFulfillments;
 
     /**
-     * @notice Emitted when the strategy fails to update weights
+     * @notice Emitted when receiving API3 data fails
      *
      * @param requestId - What request failed
      * @param reason - The reason it failed
@@ -85,6 +90,15 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
     event RequestFailed(
         bytes32 indexed requestId,
         bytes32 indexed reason
+    );
+
+    /**
+     * @notice Emitted when receiving API3 data completes
+     *
+     * @param requestId - What request failed
+     */
+    event RequestCompleted(
+        bytes32 indexed requestId
     );
 
     /**
@@ -478,6 +492,83 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
     }
 
     /**
+     * @notice Do it
+     */
+    function updateWeightsGradually() // solhint-disable function-max-lines
+        external
+        whenNotPaused
+    {
+        require(_apiResponse != 0, "ERR_NO_PENDING_DATA");
+
+        address[] memory tokenAddresses = IPool(crpPool.corePool()).getCurrentTokens();
+        uint tokensLen = tokenAddresses.length;
+        uint totalScore; // the total social score will be needed for transforming them to denorm weights
+        uint[] memory socialScores = new uint[](tokensLen);
+        // we need to make sure the amount of $KACY meets the criteria specified by the protocol
+        address kacyToken = coreFactory.kacyToken();
+        uint kacyIdx;
+        bool suspectRequest = false;
+
+        // get social scores
+        for (uint i = 0; i < tokensLen; i++) {
+            if (kacyToken == tokenAddresses[i]) {
+                kacyIdx = i;
+                // $KACY is fixed
+                continue;
+            }
+
+            /*
+             * Heimdall API provides this endpoint for their Airnode so that up to 14 tokens can be checked
+             * on a single request for gas savings. According to their documentation each coin uses 18 bits
+             * for their social score starting from the least significant bit. 0x3FFFF is all 18 bits true
+             *
+             * https://api.heimdall.land/v2/docs#/social%20score/symbols_score_uint256_v2_coins_scores_post
+             */
+            uint socialScore = _apiResponse >> (i * 18) & 0x3FFFF;
+            _pendingScores[i] = uint24(socialScore);
+            socialScores[i] = socialScore;
+
+            // if all bits are true then the number has overflown and we should ignore the response (see Heimdall docs)
+            // also fail if data is missing
+            require(socialScore != 0x3FFFF, "ERR_SCORE_OVERFLOW");
+            require(socialScore != 0, "ERR_SCORE_ZERO");
+
+            int lastScore = int24(_lastScores[i]);
+            // lastScore is never zero, to reach here the score should be more than zero and its initial state is 1
+            int diff = ((int256(socialScore) - lastScore) * 100) / lastScore;
+            totalScore += socialScore;
+            suspectRequest = suspectRequest || diff >= suspectDiff || diff <= -suspectDiff;
+        }
+
+        uint minimumKacy = coreFactory.minimumKacy();
+        uint totalWeight = _MAX_TOTAL_WEIGHT_ONE;
+        // doesn't overflow because this is always below 10^37
+        uint minimumWeight = _MAX_TOTAL_WEIGHT * minimumKacy; // totalWeight * minimumKacy / KassandraConstants.ONE
+
+        totalWeight -= minimumWeight;
+        delete _apiResponse;
+
+        // transform social scores to de-normalized weights for CRP pool
+        for (uint i = 0; i < tokensLen; i++) {
+            socialScores[i] = (socialScores[i] * totalWeight) / totalScore;
+        }
+
+        socialScores[kacyIdx] = minimumWeight;
+
+        if (!suspectRequest) {
+            // adjust weights before new update
+            crpPool.pokeWeights();
+            crpPool.updateWeightsGradually(socialScores, block.number, block.number + _CHANGE_BLOCK_PERIOD); // 24h
+            return;
+        }
+
+        _pendingWeights = socialScores;
+        _requestStatus = _SUSPEND;
+        super._pause();
+        emit StrategyPaused(msg.sender, "ERR_SUSPECT_REQUEST");
+    }
+
+    /**
      * @notice Starts a request for Heimdall data through API3
      *         Only the allowed updater can call it
      */
@@ -512,7 +603,7 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
      * @param statusCode - Whether the request was successfull
      * @param data - The response data from Heimdall
      */
-    function strategy( // solhint-disable function-max-lines
+    function strategy(
         bytes32 requestId,
         uint256 statusCode,
         int256 data
@@ -537,73 +628,8 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
             return;
         }
 
-        address[] memory tokenAddresses = IPool(crpPool.corePool()).getCurrentTokens();
-        uint tokensLen = tokenAddresses.length;
-        uint totalScore; // the total social score will be needed for transforming them to denorm weights
-        uint[] memory socialScores = new uint[](tokensLen);
-        // we need to make sure the amount of $KACY meets the criteria specified by the protocol
-        address kacyToken = coreFactory.kacyToken();
-        uint kacyIdx;
-        bool suspectRequest = false;
-
-        // get social scores
-        for (uint i = 0; i < tokensLen; i++) {
-            if (kacyToken == tokenAddresses[i]) {
-                kacyIdx = i;
-                // $KACY is fixed
-                continue;
-            }
-
-            /*
-             * Heimdall API provides this endpoint for their Airnode so that up to 14 tokens can be checked
-             * on a single request for gas savings. According to their documentation each coin uses 18 bits
-             * for their social score starting from the least significant bit. 0x3FFFF is all 18 bits true
-             *
-             * https://api.heimdall.land/v2/docs#/social%20score/symbols_score_uint256_v2_coins_scores_post
-             */
-            uint socialScore = uint256(data >> (i * 18) & 0x3FFFF);
-            _pendingScores[i] = uint24(socialScore);
-            socialScores[i] = socialScore;
-
-            // if all bits are true then the number has overflown and we should ignore the response (see Heimdall docs)
-            // also fail if data is missing
-            if (socialScore == 0x3FFFF || socialScore == 0) {
-                emit RequestFailed(requestId, "ERR_SCORE_OVERFLOW");
-                return;
-            }
-
-            int lastScore = int24(_lastScores[i]);
-            // lastScore is never zero, to reach here the score should be more than zero and its initial state is 1
-            int diff = ((int256(socialScore) - lastScore) * 100) / lastScore;
-            totalScore += socialScore;
-            suspectRequest = suspectRequest || diff >= suspectDiff || diff <= -suspectDiff;
-        }
-
-        // this prevents a possible problem that while weights change their sum could potentially go beyond maximum
-        uint totalWeight = 40 * KassandraConstants.ONE; // KassandraConstants.MAX_WEIGHT - 10
-        uint minimumKacy = coreFactory.minimumKacy();
-        // doesn't overflow because this is always below 10^37
-        uint minimumWeight = totalWeight * minimumKacy / KassandraConstants.ONE;
-
-        totalWeight -= minimumWeight;
-
-        // transform social scores to de-normalized weights for CRP pool
-        for (uint i = 0; i < tokensLen; i++) {
-            socialScores[i] = (socialScores[i] * totalWeight) / totalScore;
-        }
-
-        socialScores[kacyIdx] = minimumWeight;
-        _pendingWeights = socialScores;
-        _requestStatus = _SUSPEND;
-        super._pause();
-
-        if (!suspectRequest) {
-            emit StrategyPaused(msg.sender, "WAITING_TO_CONTINUE");
-            return;
-        }
-
-        emit RequestFailed(requestId, "ERR_SUSPECT_REQUEST");
-        emit StrategyPaused(msg.sender, "ERR_SUSPECT_REQUEST");
+        _apiResponse = uint256(data);
+        emit RequestCompleted(requestId);
     }
 
     /**
