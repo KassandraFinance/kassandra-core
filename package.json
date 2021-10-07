@@ -31,7 +31,6 @@
         "eslint-plugin-jsx-a11y": "^6.2.3",
         "eslint-plugin-react": "^7.17.0",
         "fast-check": "^2.17.0",
-        "ganache-cli": "^6.7.0",
         "ganache-core": "^2.6.1",
         "mocha": "^8.4.0",
         "solhint": "^3.2.0",
@@ -44,6 +43,7 @@
         "@openzeppelin/contracts": "^4.2.0",
         "@truffle/hdwallet-provider": "^1.0.43",
         "decimal.js": "^10.2.0",
+        "ganache-cli": "^6.7.0",
         "truffle": "^5.0.41",
         "truffle-plugin-verify": "^0.5.8"
     }
