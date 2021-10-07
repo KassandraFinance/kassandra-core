@@ -123,9 +123,9 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      * @notice Emitted when a new token has been committed to be added to the pool
      *         The token has not been added yet, but eventually will be once pass `addTokenTimeLockInBlocks`
      *
-     * param caller - Address of who committed this new token
-     * param pool - Address of the CRP pool that will have the new token
-     * param token - Address of the token being added
+     * @param caller - Address of who committed this new token
+     * @param pool - Address of the CRP pool that will have the new token
+     * @param token - Address of the token being added
      */ 
     event NewTokenCommitted(
         address indexed caller,
