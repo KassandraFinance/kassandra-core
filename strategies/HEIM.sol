@@ -702,8 +702,8 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
 
         symbols = abi.encodePacked(symbols, _tokensListHeimdall[tokensLen]);
         _parametersHeimdall = abi.encode(
-            bytes32("1SS"),
-            bytes32("period"), "30d",
+            bytes32("1bS"),
+            bytes32("period"), bytes32("30d"),
             bytes32("symbols"), symbols
         );
     }
