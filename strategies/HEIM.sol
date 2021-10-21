@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3-or-later
 pragma solidity ^0.8.0;
 
-import "@api3/airnode-protocol/contracts/AirnodeRrpClient.sol";
+import "@api3/airnode-protocol/contracts/rrp/requesters/RrpRequester.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "../contracts/utils/Ownable.sol";
@@ -24,7 +24,7 @@ import "../contracts/libraries/KassandraConstants.sol";
  *      We are looking for truly cryptoeconomically sound ways to fix this, so hundreds of people instead
  *      of a few dozen and that make people have a reason to maintain and secure the strategy without trolling
  */
-contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
+contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
     // this prevents a possible problem that while weights change their sum could potentially go beyond maximum
     uint256 private constant _MAX_TOTAL_WEIGHT = 40; // KassandraConstants.MAX_WEIGHT - 10
     uint256 private constant _MAX_TOTAL_WEIGHT_ONE = 40 * 10 ** 18; // 40 * KassandraConstants.ONE
@@ -48,13 +48,13 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
     uint256 private _apiResponse;
 
     /// API3 data provider id (Heimdall)
-    bytes32 public providerId;
+    address public airnodeId;
     /// API3 endpoint id for the data provider (30d scores)
     bytes32 public endpointId;
-    /// Requester index that allows this client to use the funds in its designated wallet (governance)
-    uint256 public requesterInd;
+    /// Sponsor that allows this client to use the funds in its designated wallet (governance)
+    address public sponsorAddress;
     /// Wallet the governance funds and has designated for this contract to use
-    address public designatedWallet;
+    address public sponsorWallet;
 
     /// Responsible for pinging this contract to start the weight update
     address public updaterRole;
@@ -140,23 +140,23 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
      * @notice Emitted when the API3 parameters have changed
      *
      * @param caller - Who made the change
-     * @param oldProvider - Previous provider ID
-     * @param newProvider - New provider ID
+     * @param oldAirnode - Previous provider address
+     * @param newAirnode - New provider address
      * @param oldEndpoint - Previous endpoint ID
      * @param newEndpoint - New endpoint ID
-     * @param oldRequester - Previous requester index
-     * @param newRequester - New requester index
+     * @param oldSponsor - Previous sponsor address
+     * @param newSponsor - New sponsor address
      * @param oldWallet - Previous designated wallet
      * @param newWallet - New designated wallet
      */
     event NewAPI3(
         address indexed caller,
-        bytes32         oldProvider,
-        bytes32         newProvider,
+        address         oldAirnode,
+        address         newAirnode,
         bytes32         oldEndpoint,
         bytes32         newEndpoint,
-        uint256         oldRequester,
-        uint256         newRequester,
+        address         oldSponsor,
+        address         newSponsor,
         address         oldWallet,
         address         newWallet
     );
@@ -226,7 +226,7 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
         address airnodeAddress,
         string[] memory tokensList
         )
-        AirnodeRrpClient(airnodeAddress)
+        RrpRequester(airnodeAddress)
     {
         _tokensListHeimdall = tokensList;
         _encodeParameters();
@@ -250,33 +250,33 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
     /**
      * @notice Update API3 request info
      *
-     * @param providerId_ - ID of data provider
+     * @param airnodeId_ - Address of the data provider
      * @param endpointId_ - ID of the endpoint for that provider
-     * @param requesterInd_ - ID of the requester (governance)
-     * @param designatedWallet_ - Wallet the governance allowed to use
+     * @param sponsorAddress_ - Address of the sponsor (governance)
+     * @param sponsorWallet_ - Wallet the governance allowed to use
      */
     function setApi3(
-        bytes32 providerId_,
+        address airnodeId_,
         bytes32 endpointId_,
-        uint256 requesterInd_,
-        address designatedWallet_
+        address sponsorAddress_,
+        address sponsorWallet_
         )
         external
         onlyOwner
     {
-        require(designatedWallet_ != address(0), "ERR_ZERO_ADDRESS");
-        require(providerId_ != 0 && endpointId_ != 0 && requesterInd_ != 0, "ERR_ZERO_ARGUMENT");
+        require(airnodeId_ != address(0) && sponsorAddress != address(0) && sponsorWallet_ != address(0), "ERR_ZERO_ADDRESS");
+        require(endpointId_ != 0, "ERR_ZERO_ARGUMENT");
         emit NewAPI3(
             msg.sender,
-            providerId, providerId_,
+            airnodeId, airnodeId_,
             endpointId, endpointId_,
-            requesterInd, requesterInd_,
-            designatedWallet, designatedWallet_
+            sponsorAddress, sponsorAddress_,
+            sponsorWallet, sponsorWallet_
         );
-        providerId = providerId_;
+        airnodeId = airnodeId_;
         endpointId = endpointId_;
-        requesterInd = requesterInd_;
-        designatedWallet = designatedWallet_;
+        sponsorAddress = sponsorAddress_;
+        sponsorWallet = sponsorWallet_;
     }
 
     /**
@@ -583,10 +583,10 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, AirnodeRrpClient {
         // GradualUpdateParams gradualUpdate = crpPool.gradualUpdate();
         // require(block.number + 1 > gradualUpdate.endBlock, "ERR_GRADUAL_STILL_ONGOING");
         bytes32 requestId = airnodeRrp.makeFullRequest(
-            providerId,             // ID of the data provider
+            airnodeId,             // Address of the data provider
             endpointId,             // ID for the endpoint we will request
-            requesterInd,           // Requester index that allows this client to use the funds in the designated wallet
-            designatedWallet,       // The designated wallet the requester allowed this client to use
+            sponsorAddress,           // Sponsor that allows this client to use the funds in the designated wallet
+            sponsorWallet,       // The designated wallet the sponsor allowed this client to use
             address(this),          // address contacted when request finishes
             this.strategy.selector, // function in this contract called when request finishes
             _parametersHeimdall     // list of tokens
