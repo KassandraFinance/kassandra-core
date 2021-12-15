@@ -27,7 +27,7 @@ import "../contracts/libraries/KassandraConstants.sol";
 contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
     // this prevents a possible problem that while weights change their sum could potentially go beyond maximum
     uint256 private constant _MAX_TOTAL_WEIGHT = 40; // KassandraConstants.MAX_WEIGHT - 10
-    uint256 private constant _MAX_TOTAL_WEIGHT_ONE = 40 * 10 ** 18; // 40 * KassandraConstants.ONE
+    uint256 private constant _MAX_TOTAL_WEIGHT_ONE = _MAX_TOTAL_WEIGHT * 10 ** 18; // KassandraConstants.ONE
     // Exactly like _DEFAULT_MIN_WEIGHT_CHANGE_BLOCK_PERIOD from ConfigurableRightsPool.sol
     uint256 private constant _CHANGE_BLOCK_PERIOD = 5700;
     // API3 requests limiter
@@ -36,12 +36,12 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
     uint8 private constant _SUSPEND = 3;
     uint8 private _requestStatus = _NONE;
 
-    /// How much the new social score must go, in percentage, to trigger an automatic suspension
-    int8 public suspectDiff;
+    /// How much the new normalized weight must change to trigger an automatic suspension
+    int64 public suspectDiff;
     /// The social scores from the previous call
-    uint24[14] private _lastScores = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+    uint24[14] private _lastScores = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     /// The social scores that are pending a review, if any
-    uint24[14] private _pendingScores = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+    uint24[14] private _pendingScores = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     // The pending weights already calculated by the strategy
     uint[] private _pendingWeights;
     // The API response saved for further checks
@@ -132,8 +132,8 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
      */
     event NewSuspectDiff(
         address indexed caller,
-        int8            oldValue,
-        int8            newValue
+        int64           oldValue,
+        int64           newValue
     );
 
     /**
@@ -230,15 +230,19 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
     {
         _tokensListHeimdall = tokensList;
         _encodeParameters();
+        suspectDiff = int64(int256(KassandraConstants.ONE));
     }
 
     /**
-     * @notice Set how much the social score must change from the previous one to automatically suspend the update
+     * @notice Set how much the normalized weight must change from the previous one to automatically suspend the update
      *         The watcher is then responsible for manually checking if the request looks normal
+     *         Setting a value of 100% or above effectively disables the check
      *
-     * @param percentage - without fractional part
+     * @dev This is an absolute change in basic arithmetic subtraction, e.g. from 35% to 30% it'll be 5 diff.
+     *
+     * @param percentage - where 10^18 is 100%
      */
-    function setSuspectDiff(int8 percentage)
+    function setSuspectDiff(int64 percentage)
         external
         onlyOwner
     {
@@ -431,8 +435,8 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
         _tokensListHeimdall[index] = _tokensListHeimdall[last];
         _lastScores[index] = _lastScores[last];
         _tokensListHeimdall.pop();
-        _lastScores[last] = 1;
-        _pendingScores[last] = 1;
+        _lastScores[last] = 0;
+        _pendingScores[last] = 0;
 
         // encode the new paramaters
         _encodeParameters();
@@ -507,7 +511,8 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
 
         address[] memory tokenAddresses = IPool(crpPool.corePool()).getCurrentTokens();
         uint tokensLen = tokenAddresses.length;
-        uint totalScore; // the total social score will be needed for transforming them to denorm weights
+        uint totalPendingScore; // the total social score will be needed for transforming them to denorm weights
+        uint totalLastScore; // the total social score will be needed for transforming them to denorm weights
         uint[] memory socialScores = new uint[](tokensLen);
         // we need to make sure the amount of $KACY meets the criteria specified by the protocol
         address kacyToken = coreFactory.kacyToken();
@@ -538,11 +543,12 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
             require(socialScore != 0x3FFFF, "ERR_SCORE_OVERFLOW");
             require(socialScore != 0, "ERR_SCORE_ZERO");
 
-            int lastScore = int24(_lastScores[i]);
-            // lastScore is never zero, to reach here the score should be more than zero and its initial state is 1
-            int diff = ((int256(socialScore) - lastScore) * 100) / lastScore;
-            totalScore += socialScore;
-            suspectRequest = suspectRequest || diff >= suspectDiff || diff <= -suspectDiff;
+            totalPendingScore += socialScore;
+            totalLastScore += uint256(_lastScores[i]);
+        }
+
+        if (totalLastScore == 0) {
+            totalLastScore = 1;
         }
 
         uint minimumKacy = coreFactory.minimumKacy();
@@ -553,14 +559,22 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
         totalWeight -= minimumWeight;
         delete _apiResponse;
 
-        // transform social scores to de-normalized weights for CRP pool
         for (uint i = 0; i < tokensLen; i++) {
-            socialScores[i] = (socialScores[i] * totalWeight) / totalScore;
+            uint percentage95 = 95 * KassandraConstants.ONE / 100;
+            uint normalizedPending = (socialScores[i] * percentage95) / totalPendingScore;
+            uint normalizedLast = (_lastScores[i] * percentage95) / totalLastScore;
+            // these are normalised to 10^18, so definitely won't overflow
+            int64 diff = int64(int256(normalizedPending) - int256(normalizedLast));
+            suspectRequest = suspectRequest || diff >= suspectDiff || diff <= -suspectDiff;
+
+            // transform social scores to de-normalized weights for CRP pool
+            socialScores[i] = (socialScores[i] * totalWeight) / totalPendingScore;
         }
 
         socialScores[kacyIdx] = minimumWeight;
 
         if (!suspectRequest) {
+            _lastScores = _pendingScores;
             // adjust weights before new update
             crpPool.pokeWeights();
             crpPool.updateWeightsGradually(socialScores, block.number, block.number + _CHANGE_BLOCK_PERIOD); // 24h

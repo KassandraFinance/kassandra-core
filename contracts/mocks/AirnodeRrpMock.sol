@@ -16,19 +16,19 @@ contract AirnodeRrpMock {
      * @dev For checking if the strategy made the request correctly
      */
     function makeFullRequest(
-        bytes32 airnodeId,
+        address airnode,
         bytes32 endpointId,
-        uint256 requesterIndex,
-        address designatedWallet,
+        address sponsor,
+        address sponsorWallet,
         address fulfillAddress,
         bytes4 fulfillFunctionId,
         bytes calldata parameters
     ) external returns (bytes32 requestId) {
         requestId = keccak256(abi.encode(
-            airnodeId,
+            airnode,
             endpointId,
-            requesterIndex,
-            designatedWallet,
+            sponsor,
+            sponsorWallet,
             fulfillAddress,
             fulfillFunctionId,
             parameters
@@ -56,5 +56,9 @@ contract AirnodeRrpMock {
         external
     {
         strategy.strategy(requestId, statusCode, data);
+    }
+
+    function setSponsorshipStatus(address, bool) external pure {
+        return;
     }
 }

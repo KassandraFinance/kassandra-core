@@ -26,7 +26,7 @@ contract('HEIM Strategy', async (accounts) => {
     let coreFactoryMock;
     let corePoolMock;
     let crpPoolMock;
-    const tokenSymbols = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqr', 'kacy'];
+    const tokenSymbols = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqr', 'stu', 'kacy'];
 
     before(async () => {
         coreFactoryMock = await FactoryMock.new();
@@ -70,7 +70,7 @@ contract('HEIM Strategy', async (accounts) => {
 
             await controllerCheck(
                 strategy.setApi3,
-                [bytes32, bytes32, 0, admin],
+                [admin, bytes32, admin, admin],
                 [nonAdmin, watcher, updater],
                 'ERR_NOT_CONTROLLER',
             );
@@ -182,14 +182,23 @@ contract('HEIM Strategy', async (accounts) => {
         const ZERO_ADDRESS = `0x${padLeft('0', 40)}`;
 
         it('API3 parameters should not be zero', async () => {
-            const bytes32 = `0x${padLeft('0', 64)}`;
+            const bytes32zero = `0x${padLeft('0', 64)}`;
+            const bytes32fill = `0x${padLeft('1', 64)}`;
 
             await truffleAssert.reverts(
-                strategy.setApi3(bytes32, bytes32, 0, ZERO_ADDRESS),
+                strategy.setApi3(ZERO_ADDRESS, bytes32fill, admin, admin),
                 'ERR_ZERO_ADDRESS',
             );
             await truffleAssert.reverts(
-                strategy.setApi3(bytes32, bytes32, 0, admin),
+                strategy.setApi3(admin, bytes32fill, ZERO_ADDRESS, admin),
+                'ERR_ZERO_ADDRESS',
+            );
+            await truffleAssert.reverts(
+                strategy.setApi3(admin, bytes32fill, admin, ZERO_ADDRESS),
+                'ERR_ZERO_ADDRESS',
+            );
+            await truffleAssert.reverts(
+                strategy.setApi3(admin, bytes32zero, admin, admin),
                 'ERR_ZERO_ARGUMENT',
             );
         });
@@ -231,10 +240,10 @@ contract('HEIM Strategy', async (accounts) => {
         it('Suspect difference should not be negative', async () => {
             await fc.assert(
                 fc.asyncProperty(
-                    fc.integer(-128, 0),
+                    fc.bigInt((BigInt(1) << BigInt(63)) / BigInt(-2), BigInt(0)),
                     async (percent) => {
                         await truffleAssert.reverts(
-                            strategy.setSuspectDiff(percent),
+                            strategy.setSuspectDiff(toBN(percent.toString())),
                             'ERR_NOT_POSITIVE',
                         );
                     },
@@ -245,11 +254,11 @@ contract('HEIM Strategy', async (accounts) => {
         it('Suspect difference should be positive', async () => {
             await fc.assert(
                 fc.asyncProperty(
-                    fc.integer(1, 127),
+                    fc.bigInt(BigInt(1), (BigInt(1) << BigInt(63)) - BigInt(1)),
                     async (percent) => {
-                        await strategy.setSuspectDiff(percent);
+                        await strategy.setSuspectDiff(toBN(percent.toString()));
                         const suspectDiff = await strategy.suspectDiff();
-                        assert.strictEqual(suspectDiff.toString(10), toBN(percent).toString(10));
+                        assert.strictEqual(suspectDiff.toString(10), toBN(percent.toString()).toString(10));
                     },
                 ),
             );
@@ -258,7 +267,7 @@ contract('HEIM Strategy', async (accounts) => {
         it('Should be able to change API3 params', async () => {
             const bytes32 = `0x${padLeft('1', 64)}`;
 
-            await strategy.setApi3(bytes32, bytes32, 1, admin);
+            await strategy.setApi3(admin, bytes32, admin, admin);
         });
 
         it('Admin should be able to set the CRPool', async () => {
@@ -430,10 +439,10 @@ contract('HEIM Strategy', async (accounts) => {
             );
         });
 
-        it('First time should suspend the strategy for suspectDiff', async () => {
+        it('Should set social scores except for $KACY', async () => {
             await strategy.makeRequest({ from: updater });
-            // set a percentage just to be sure
-            await strategy.setSuspectDiff(7);
+            // disable suspectDiff check
+            await strategy.setSuspectDiff(toWei('1', 'ether'));
 
             let responseData = BigInt(-1) << BigInt(255);
 
@@ -444,62 +453,47 @@ contract('HEIM Strategy', async (accounts) => {
             const requestId = await airnodeMock.lastRequestId();
             await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
 
-            const tx = await strategy.updateWeightsGradually();
+            await strategy.updateWeightsGradually();
 
             const lastScores = await strategy.lastScores();
             const pendingScores = await strategy.pendingScores();
-            await truffleAssert.eventEmitted(
-                tx, 'StrategyPaused',
-                { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
-            );
 
             for (let i = 0; i < lastScores.length; i++) {
                 lastScores[i] = lastScores[i].toNumber();
                 pendingScores[i] = pendingScores[i].toNumber();
             }
 
-            assert.sameOrderedMembers(lastScores.slice(0, tokenSymbols.length), Array(tokenSymbols.length).fill(1));
             const testArray = Array(tokenSymbols.length).fill(30000);
-            testArray[tokenSymbols.length - 1] = 1;
-            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), testArray);
-        });
-
-        it('Watcher can\'t resume in a suspended state', async () => {
-            await truffleAssert.reverts(
-                strategy.resume({ from: watcher }),
-                'ERR_RESOLVE_SUSPENSION_FIRST',
-            );
-        });
-
-        it('Watcher should be able to accept a suspended call', async () => {
-            const oldPendingScores = await strategy.pendingScores();
-            const tx = await strategy.resolveSuspension(true, { from: watcher });
-
-            const lastScores = await strategy.lastScores();
-            const pendingScores = await strategy.pendingScores();
-            await truffleAssert.eventEmitted(
-                tx, 'StrategyResumed',
-                { reason: padRight(toHex('ACCEPTED_SUSPENDED_REQUEST'), 64) },
-            );
-
-            for (let i = 0; i < lastScores.length; i++) {
-                lastScores[i] = lastScores[i].toNumber();
-                pendingScores[i] = pendingScores[i].toNumber();
-                oldPendingScores[i] = oldPendingScores[i].toNumber();
-            }
-
-            assert.sameOrderedMembers(lastScores, oldPendingScores);
-            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), Array(tokenSymbols.length).fill(0));
+            testArray[tokenSymbols.length - 1] = 0;
+            assert.sameOrderedMembers(pendingScores, Array(pendingScores.length).fill(0));
+            assert.sameOrderedMembers(lastScores.slice(0, tokenSymbols.length), testArray);
         });
 
         it('Should suspend the strategy for growing above suspectDiff', async () => {
             const suspectDiff = 7;
 
             await strategy.makeRequest({ from: updater });
-            // set a percentage just to be sure
-            await strategy.setSuspectDiff(suspectDiff);
+            // 0.07e18 = 7e16
+            await strategy.setSuspectDiff(toBN(suspectDiff).mul(toBN(10).pow(toBN(16))));
 
-            const aboveSuspectDiff = ((BigInt(30000) * BigInt(100 + suspectDiff)) / BigInt(100));
+            /* add suspectDiff% to one token
+             *
+             * l = tokenSymbols.length
+             * s = suspectDiff
+             *
+             *       0.95 * x         .95     s
+             * ------------------- = ----- + ---
+             * (l - 2) * 30000 + x   l - 1   100
+             *
+             *     -30000 * (l - 2) * (l * s - s + 95)
+             * x = -----------------------------------
+             *          l * s - 95 * l - s + 190
+             */
+            const l = BigInt(tokenSymbols.length);
+            const s = BigInt(suspectDiff);
+            const aboveSuspectDiff = BigInt(1) + ( // rounding will put it below, an extra 1 will be enough
+                BigInt(-30000) * (l - BigInt(2)) * (l * s - s + BigInt(95))
+            ) / (l * s - BigInt(95) * l - s + BigInt(190));
 
             let responseData = BigInt(-1) << BigInt(255);
 
@@ -526,8 +520,15 @@ contract('HEIM Strategy', async (accounts) => {
 
             const testArray = Array(tokenSymbols.length).fill(30000);
             testArray[0] = Number(aboveSuspectDiff);
-            testArray[tokenSymbols.length - 1] = 1;
+            testArray[tokenSymbols.length - 1] = 0;
             assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), testArray);
+        });
+
+        it('Watcher can\'t resume in a suspended state', async () => {
+            await truffleAssert.reverts(
+                strategy.resume({ from: watcher }),
+                'ERR_RESOLVE_SUSPENSION_FIRST',
+            );
         });
 
         it('Watcher should be able to reject a suspended call', async () => {
@@ -555,10 +556,27 @@ contract('HEIM Strategy', async (accounts) => {
             const suspectDiff = 7;
 
             await strategy.makeRequest({ from: updater });
-            // set a percentage just to be sure
-            await strategy.setSuspectDiff(suspectDiff);
+            // 0.07e18 = 7e16
+            await strategy.setSuspectDiff(toBN(suspectDiff).mul(toBN(10).pow(toBN(16))));
 
-            const belowSuspectDiff = ((BigInt(30000) * BigInt(100 - suspectDiff)) / BigInt(100));
+            /* remove suspectDiff% to one token
+             *
+             * l = tokenSymbols.length
+             * s = suspectDiff
+             *
+             *       0.95 * x         .95     s
+             * ------------------- = ----- - ---
+             * (l - 2) * 30000 + x   l - 1   100
+             *
+             *     -30000 * (l - 2) * (l * s - s - 95)
+             * x = -----------------------------------
+             *          l * s + 95 * l - s - 190
+             */
+            const l = BigInt(tokenSymbols.length);
+            const s = BigInt(suspectDiff);
+            const belowSuspectDiff = BigInt(-1) + ( // rounding will put it below, an extra 1 will be enough
+                BigInt(-30000) * (l - BigInt(2)) * (l * s - s - BigInt(95))
+            ) / (l * s + BigInt(95) * l - s - BigInt(190));
 
             let responseData = BigInt(-1) << BigInt(255);
 
@@ -579,28 +597,47 @@ contract('HEIM Strategy', async (accounts) => {
                 { reason: padRight(toHex('ERR_SUSPECT_REQUEST'), 64) },
             );
 
-            await strategy.resolveSuspension(false, { from: watcher });
-
             for (let i = 0; i < pendingScores.length; i++) {
                 pendingScores[i] = pendingScores[i].toNumber();
             }
 
             const testArray = Array(tokenSymbols.length).fill(30000);
             testArray[0] = Number(belowSuspectDiff);
-            testArray[tokenSymbols.length - 1] = 1;
+            testArray[tokenSymbols.length - 1] = 0;
             assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), testArray);
         });
 
+        it('Watcher should be able to accept a suspended call', async () => {
+            const oldPendingScores = await strategy.pendingScores();
+            const tx = await strategy.resolveSuspension(true, { from: watcher });
+
+            const lastScores = await strategy.lastScores();
+            const pendingScores = await strategy.pendingScores();
+            await truffleAssert.eventEmitted(
+                tx, 'StrategyResumed',
+                { reason: padRight(toHex('ACCEPTED_SUSPENDED_REQUEST'), 64) },
+            );
+
+            for (let i = 0; i < lastScores.length; i++) {
+                lastScores[i] = lastScores[i].toNumber();
+                pendingScores[i] = pendingScores[i].toNumber();
+                oldPendingScores[i] = oldPendingScores[i].toNumber();
+            }
+
+            assert.sameOrderedMembers(lastScores, oldPendingScores);
+            assert.sameOrderedMembers(pendingScores.slice(0, tokenSymbols.length), Array(tokenSymbols.length).fill(0));
+        });
+
         it('The $KACY token should always be the minimum', async () => {
-            const suspectDiff = 100;
             let startingWeight = BigInt(120000);
 
-            await strategy.setSuspectDiff(suspectDiff);
+            // disable suspectDiff check
+            await strategy.setSuspectDiff(toWei('1', 'ether'));
 
             while (startingWeight > 0) {
                 await strategy.makeRequest({ from: updater });
 
-                const goodDiff = (startingWeight * BigInt(suspectDiff / 2)) / BigInt(100);
+                const goodDiff = (startingWeight * BigInt(100 / 2)) / BigInt(100);
 
                 let responseData = BigInt(-1) << BigInt(255);
 
@@ -625,7 +662,7 @@ contract('HEIM Strategy', async (accounts) => {
                 }
 
                 const testArray = Array(tokenSymbols.length).fill(30000);
-                testArray[tokenSymbols.length - 1] = 1;
+                testArray[tokenSymbols.length - 1] = 0;
                 assert.sameOrderedMembers(lastScores.slice(0, tokenSymbols.length), testArray);
 
                 startingWeight = goodDiff;
