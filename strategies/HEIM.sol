@@ -264,7 +264,10 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
         external
         onlyOwner
     {
-        require(airnodeId_ != address(0) && sponsorAddress != address(0) && sponsorWallet_ != address(0), "ERR_ZERO_ADDRESS");
+        require(
+            airnodeId_ != address(0) && sponsorAddress_ != address(0) && sponsorWallet_ != address(0),
+            "ERR_ZERO_ADDRESS"
+        );
         require(endpointId_ != 0, "ERR_ZERO_ARGUMENT");
         emit NewAPI3(
             msg.sender,
