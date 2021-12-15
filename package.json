@@ -39,7 +39,7 @@
         "web3": "^1.2.0"
     },
     "dependencies": {
-        "@api3/airnode-protocol": "^0.1.0",
+        "@api3/airnode-protocol": "^0.3.1",
         "@openzeppelin/contracts": "^4.2.0",
         "@truffle/hdwallet-provider": "^1.0.43",
         "decimal.js": "^10.2.0",
