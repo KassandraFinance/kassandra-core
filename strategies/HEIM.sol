@@ -495,7 +495,9 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
     }
 
     /**
-     * @notice Do it
+     * @notice Calculates the allocations and updates the weights in the pool
+     *         Anyone can call this, but only once
+     *         The strategy may pause itself if the allocations go beyond what's expected
      */
     function updateWeightsGradually() // solhint-disable function-max-lines
         external
