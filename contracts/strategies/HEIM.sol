@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 import "@api3/airnode-protocol/contracts/rrp/requesters/RrpRequester.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-import "../contracts/utils/Ownable.sol";
+import "../utils/Ownable.sol";
 
-import "../contracts/interfaces/IConfigurableRightsPool.sol";
-import "../contracts/interfaces/IFactory.sol";
-import "../contracts/interfaces/IPool.sol";
-import "../contracts/interfaces/IStrategy.sol";
+import "../interfaces/IConfigurableRightsPool.sol";
+import "../interfaces/IFactory.sol";
+import "../interfaces/IPool.sol";
+import "../interfaces/IStrategy.sol";
 
-import "../contracts/libraries/KassandraConstants.sol";
+import "../libraries/KassandraConstants.sol";
 
 /**
  * @title $HEIM strategy
