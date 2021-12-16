@@ -95,3 +95,18 @@ jobs:
       - run: yarn compile
       - run: yarn testrpc &
       - run: yarn test test/extra/*
+
+  strategies-unit-tests:
+    name: Strategies Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-contracts
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: yarn
+      - run: yarn compile
+      - run: yarn testrpc &
+      - run: yarn test test/strategies/*
