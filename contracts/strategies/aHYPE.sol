@@ -14,7 +14,7 @@ import "../interfaces/IStrategy.sol";
 import "../libraries/KassandraConstants.sol";
 
 /**
- * @title $HEIM strategy
+ * @title $aHYPE strategy
  *
  * @notice There's still some centralization to remove, the worst case scenario though is that bad
  *         weights will be put, but they'll take 24h to take total effect, and by then pretty much
@@ -24,7 +24,7 @@ import "../libraries/KassandraConstants.sol";
  *      We are looking for truly cryptoeconomically sound ways to fix this, so hundreds of people instead
  *      of a few dozen and that make people have a reason to maintain and secure the strategy without trolling
  */
-contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
+contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
     // this prevents a possible problem that while weights change their sum could potentially go beyond maximum
     uint256 private constant _MAX_TOTAL_WEIGHT = 40; // KassandraConstants.MAX_WEIGHT - 10
     uint256 private constant _MAX_TOTAL_WEIGHT_ONE = _MAX_TOTAL_WEIGHT * 10 ** 18; // KassandraConstants.ONE
@@ -214,7 +214,7 @@ contract StrategyHEIM is IStrategy, Ownable, Pausable, RrpRequester {
     );
 
     /**
-     * @notice Construct the $HEIM Strategy
+     * @notice Construct the $aHYPE Strategy
      *
      * @dev The token list is used to more easily add and remove tokens,
      *      the real parameter argument is already ABI encoded to save gas later.

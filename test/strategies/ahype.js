@@ -8,7 +8,7 @@ const AirnodeRrpMock = artifacts.require('AirnodeRrpMock');
 const CRPMock = artifacts.require('CRPMock');
 const FactoryMock = artifacts.require('FactoryMock');
 const PoolMock = artifacts.require('PoolMock');
-const StrategyHEIM = artifacts.require('StrategyHEIM');
+const StrategyAHYPE = artifacts.require('StrategyAHYPE');
 
 contract('HEIM Strategy', async (accounts) => {
     const [admin, updater, watcher, nonAdmin, mockAddr, kacyMock] = accounts;
@@ -34,7 +34,7 @@ contract('HEIM Strategy', async (accounts) => {
         crpPoolMock = await CRPMock.new();
         airnodeMock = await AirnodeRrpMock.new();
 
-        strategy = await StrategyHEIM.new(airnodeMock.address, tokenSymbols);
+        strategy = await StrategyAHYPE.new(airnodeMock.address, tokenSymbols);
 
         await coreFactoryMock.setKacyToken(kacyMock);
         await coreFactoryMock.setKacyMinimum(toBN(toWei('5')).div(toBN('100')));
@@ -297,13 +297,13 @@ contract('HEIM Strategy', async (accounts) => {
 
     describe('Testing strategy', () => {
         async function eventEmitted(result, ...args) {
-            const resultsOfStrategyHEIM = await truffleAssert.createTransactionResult(strategy, result.tx);
-            truffleAssert.eventEmitted(resultsOfStrategyHEIM, ...args);
+            const resultsOfStrategyAHYPE = await truffleAssert.createTransactionResult(strategy, result.tx);
+            truffleAssert.eventEmitted(resultsOfStrategyAHYPE, ...args);
         }
 
         async function eventNotEmitted(result, ...args) {
-            const resultsOfStrategyHEIM = await truffleAssert.createTransactionResult(strategy, result.tx);
-            truffleAssert.eventNotEmitted(resultsOfStrategyHEIM, ...args);
+            const resultsOfStrategyAHYPE = await truffleAssert.createTransactionResult(strategy, result.tx);
+            truffleAssert.eventNotEmitted(resultsOfStrategyAHYPE, ...args);
         }
 
         it('Updater should be able to start request', async () => {
