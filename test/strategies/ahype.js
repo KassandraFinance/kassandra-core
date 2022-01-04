@@ -168,10 +168,11 @@ contract('HEIM Strategy', async (accounts) => {
 
         it('Only Airnode should be able to call strategy', async () => {
             const bytes32 = `0x${padLeft('0', 64)}`;
+            const data = web3.eth.abi.encodeParameter('int256', 0);
 
             await controllerCheck(
                 strategy.strategy,
-                [bytes32, 0, 0],
+                [bytes32, data],
                 [nonAdmin, updater, watcher, admin],
                 'Caller not Airnode RRP',
             );
@@ -332,7 +333,8 @@ contract('HEIM Strategy', async (accounts) => {
         it('Some functions should not work when strategy is paused', async () => {
             const lastRequestId = await airnodeMock.lastRequestId();
 
-            const tx = await airnodeMock.callStrategy(lastRequestId, 0, 0);
+            const data = web3.eth.abi.encodeParameter('int256', 0);
+            const tx = await airnodeMock.callStrategy(lastRequestId, data);
             await truffleAssert.reverts(
                 strategy.makeRequest(),
                 'Pausable: paused',
@@ -371,27 +373,10 @@ contract('HEIM Strategy', async (accounts) => {
         it('A request we did not make should fail', async () => {
             const bytes32 = `0x${padLeft('1', 64)}`;
 
+            const data = web3.eth.abi.encodeParameter('int256', 0);
             await truffleAssert.reverts(
-                airnodeMock.callStrategy(bytes32, 0, 0),
+                airnodeMock.callStrategy(bytes32, data),
                 'ERR_NO_SUCH_REQUEST_MADE',
-            );
-        });
-
-        it('Bad status code should fail', async () => {
-            await fc.assert(
-                fc.asyncProperty(
-                    fc.bigInt(BigInt(1), BigInt(1) << BigInt(255)),
-                    async (statusCode) => {
-                        await strategy.makeRequest({ from: updater });
-                        const requestId = await airnodeMock.lastRequestId();
-                        const tx = await airnodeMock.callStrategy(requestId, statusCode, -2);
-
-                        await eventEmitted(
-                            tx, 'RequestFailed',
-                            { reason: padRight(toHex('ERR_BAD_RESPONSE'), 64) },
-                        );
-                    },
-                ),
             );
         });
 
@@ -402,7 +387,8 @@ contract('HEIM Strategy', async (accounts) => {
                     async (responseData) => {
                         await strategy.makeRequest({ from: updater });
                         const requestId = await airnodeMock.lastRequestId();
-                        const tx = await airnodeMock.callStrategy(requestId, 0, responseData);
+                        const data = web3.eth.abi.encodeParameter('int256', responseData);
+                        const tx = await airnodeMock.callStrategy(requestId, data);
 
                         await eventEmitted(
                             tx, 'RequestFailed',
@@ -418,7 +404,8 @@ contract('HEIM Strategy', async (accounts) => {
 
             const responseData = BigInt(-1) << BigInt(255);
             const requestId = await airnodeMock.lastRequestId();
-            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            await airnodeMock.callStrategy(requestId, data);
 
             await truffleAssert.reverts(
                 strategy.updateWeightsGradually(),
@@ -431,7 +418,8 @@ contract('HEIM Strategy', async (accounts) => {
 
             const responseData = BigInt(-1);
             const requestId = await airnodeMock.lastRequestId();
-            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            await airnodeMock.callStrategy(requestId, data);
 
             await truffleAssert.reverts(
                 strategy.updateWeightsGradually(),
@@ -451,7 +439,8 @@ contract('HEIM Strategy', async (accounts) => {
             }
 
             const requestId = await airnodeMock.lastRequestId();
-            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            await airnodeMock.callStrategy(requestId, data);
 
             await strategy.updateWeightsGradually();
 
@@ -504,7 +493,8 @@ contract('HEIM Strategy', async (accounts) => {
             }
 
             const requestId = await airnodeMock.lastRequestId();
-            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            await airnodeMock.callStrategy(requestId, data);
 
             const tx = await strategy.updateWeightsGradually();
 
@@ -587,7 +577,8 @@ contract('HEIM Strategy', async (accounts) => {
             }
 
             const requestId = await airnodeMock.lastRequestId();
-            await airnodeMock.callStrategy(requestId, 0, toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            await airnodeMock.callStrategy(requestId, data);
 
             const tx = await strategy.updateWeightsGradually();
 
@@ -649,7 +640,8 @@ contract('HEIM Strategy', async (accounts) => {
 
                 const requestId = await airnodeMock.lastRequestId();
 
-                const tx1 = await airnodeMock.callStrategy(requestId, 0, responseData);
+                const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+                const tx1 = await airnodeMock.callStrategy(requestId, data);
                 await eventNotEmitted(tx1, 'RequestFailed');
 
                 const tx2 = await strategy.updateWeightsGradually();

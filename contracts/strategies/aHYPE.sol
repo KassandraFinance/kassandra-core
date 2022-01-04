@@ -619,13 +619,11 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
      * @dev Only Airnode itself can call this function
      *
      * @param requestId - Request ID, to ensure it's the request we sent
-     * @param statusCode - Whether the request was successfull
-     * @param data - The response data from Heimdall
+     * @param response - The response data from Heimdall
      */
     function strategy(
         bytes32 requestId,
-        uint256 statusCode,
-        int256 data
+        bytes calldata response
         )
         external
         override
@@ -641,8 +639,9 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
 
         _requestStatus = _NONE; // allow requests again
 
+        int256 data = abi.decode(response, (int256));
         // Heimdall API declares that the most significant bit is always 1 if the request works
-        if (statusCode != 0 || data >= 0) {
+        if (data >= 0) {
             emit RequestFailed(requestId, "ERR_BAD_RESPONSE");
             return;
         }

@@ -6,5 +6,5 @@ pragma solidity ^0.8.0;
  */
 interface IStrategy {
     function makeRequest() external;
-    function strategy(bytes32 requestId, uint256 statusCode, int256 data) external;
+    function strategy(bytes32 requestId, bytes calldata response) external;
 }

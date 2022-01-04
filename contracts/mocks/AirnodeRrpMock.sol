@@ -50,12 +50,11 @@ contract AirnodeRrpMock {
      */
     function callStrategy(
         bytes32 requestId,
-        uint256 statusCode,
-        int256 data
+        bytes calldata response
         )
         external
     {
-        strategy.strategy(requestId, statusCode, data);
+        strategy.strategy(requestId, response);
     }
 
     function setSponsorshipStatus(address, bool) external pure {
