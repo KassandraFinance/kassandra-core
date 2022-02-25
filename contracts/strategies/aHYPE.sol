@@ -34,23 +34,28 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
     uint8 private constant _NONE = 1;
     uint8 private constant _ONGOING = 2;
     uint8 private constant _SUSPEND = 3;
+
     uint8 private _requestStatus = _NONE;
+    bool private _hasAPIData;
 
     /// How much the new normalized weight must change to trigger an automatic suspension
     int64 public suspectDiff;
     /// The social scores from the previous call
-    uint24[14] private _lastScores = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint24[16] private _lastScores;
     /// The social scores that are pending a review, if any
-    uint24[14] private _pendingScores = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    uint24[16] private _pendingScores;
     // The pending weights already calculated by the strategy
-    uint[] private _pendingWeights;
-    // The API response saved for further checks
-    uint256 private _apiResponse;
+    uint256[] private _pendingWeights;
+
+    /// Amount of blocks weights will update linearly
+    uint256 public weightUpdateBlockPeriod;
 
     /// API3 data provider id (Heimdall)
     address public airnodeId;
     /// API3 endpoint id for the data provider (30d scores)
     bytes32 public endpointId;
+    /// API3 template id where request is already cached
+    bytes32 public templateId;
     /// Sponsor that allows this client to use the funds in its designated wallet (governance)
     address public sponsorAddress;
     /// Wallet the governance funds and has designated for this contract to use
@@ -70,8 +75,6 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
     address public watcherRole;
     /// List of token symbols to be requested to Heimdall
     string[] private _tokensListHeimdall;
-    // same as above but already encoded for API3 request
-    bytes private _parametersHeimdall;
 
     /// CRP this contract is a strategy of
     IConfigurableRightsPool public crpPool;
@@ -80,17 +83,6 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
 
     /// List of incoming responses that have been queued
     mapping(bytes32 => bool) public incomingFulfillments;
-
-    /**
-     * @notice Emitted when receiving API3 data fails
-     *
-     * @param requestId - What request failed
-     * @param reason - The reason it failed
-     */
-    event RequestFailed(
-        bytes32 indexed requestId,
-        bytes32 indexed reason
-    );
 
     /**
      * @notice Emitted when receiving API3 data completes
@@ -214,6 +206,19 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
     );
 
     /**
+     * @notice Emitted when the block period for weight update is changed
+     *
+     * @param caller - Who made the change
+     * @param oldValue - Previous value
+     * @param newValue - New value
+     */
+    event NewBlockPeriod(
+        address indexed caller,
+        uint256         oldValue,
+        uint256         newValue
+    );
+
+    /**
      * @notice Construct the $aHYPE Strategy
      *
      * @dev The token list is used to more easily add and remove tokens,
@@ -224,10 +229,15 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
      */
     constructor(
         address airnodeAddress,
+        uint weightBlockPeriod,
         string[] memory tokensList
         )
         RrpRequester(airnodeAddress)
     {
+        require(weightBlockPeriod >= _CHANGE_BLOCK_PERIOD, "ERR_BELOW_MINIMUM");
+        require(tokensList.length >= KassandraConstants.MIN_ASSET_LIMIT, "ERR_TOO_FEW_TOKENS");
+        require(tokensList.length <= KassandraConstants.MAX_ASSET_LIMIT, "ERR_TOO_MANY_TOKENS");
+        weightUpdateBlockPeriod = weightBlockPeriod;
         _tokensListHeimdall = tokensList;
         _encodeParameters();
         suspectDiff = int64(int256(KassandraConstants.ONE));
@@ -284,6 +294,7 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         endpointId = endpointId_;
         sponsorAddress = sponsorAddress_;
         sponsorWallet = sponsorWallet_;
+        _encodeParameters();
     }
 
     /**
@@ -299,6 +310,20 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         crpPool = IConfigurableRightsPool(newAddress);
         // reverts if functions does not exist
         crpPool.corePool();
+    }
+
+    /**
+     * @notice Update block period for weight updates
+     *
+     * @param newPeriod - Period in blocks the weights will update
+     */
+    function setWeightUpdateBlockPeriod(uint newPeriod)
+        external
+        onlyOwner
+    {
+        require(newPeriod >= _CHANGE_BLOCK_PERIOD, "ERR_BELOW_MINIMUM");
+        emit NewBlockPeriod(msg.sender, weightUpdateBlockPeriod, newPeriod);
+        weightUpdateBlockPeriod = newPeriod;
     }
 
     /**
@@ -369,7 +394,7 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         onlyOwner
         whenNotPaused
     {
-        require(_tokensListHeimdall.length < 14, "ERR_MAX_14_TOKENS");
+        require(_tokensListHeimdall.length < 16, "ERR_MAX_16_TOKENS");
         emit StrategyPaused(msg.sender, "NEW_TOKEN_COMMITTED");
         _pause();
         crpPool.commitAddToken(token, balance, denormalizedWeight);
@@ -471,6 +496,30 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
     }
 
     /**
+     * @notice A soft version of `resume`, allows the updater and airnode to
+     *         once again start updating weights. This version only resolves
+     *         the case where an API call failed and the contracts remains
+     *         waiting for the call to return.
+     *
+     *         Only the watcher can do this
+     *
+     *         This is a security measure to prevent the Airnode from creating
+     *         a rogue request in the future using an old failed ID.
+     *
+     * @param requestId - ID for the request that failed but is still saved
+     */
+    function clearFailedRequest(bytes32 requestId)
+        external
+    {
+        require(msg.sender == watcherRole, "ERR_NOT_WATCHER");
+        require(_requestStatus != _SUSPEND, "ERR_RESOLVE_SUSPENSION_FIRST");
+        delete incomingFulfillments[requestId];
+        _requestStatus = _NONE;
+        _hasAPIData = false;
+        emit StrategyResumed(msg.sender, "WATCHER_CLEARED_FAILED_REQUEST");
+    }
+
+    /**
      * @notice When the strategy has automatically suspended the watcher is responsible for manually checking the data
      *         If everything looks fine they accept the new weights or reject them.
      *
@@ -488,12 +537,13 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
             _lastScores = _pendingScores;
             // adjust weights before new update
             crpPool.pokeWeights();
-            crpPool.updateWeightsGradually(_pendingWeights, block.number, block.number + _CHANGE_BLOCK_PERIOD); // 24h
+            crpPool.updateWeightsGradually(_pendingWeights, block.number, block.number + weightUpdateBlockPeriod);
             emit StrategyResumed(msg.sender, "ACCEPTED_SUSPENDED_REQUEST");
         } else {
             emit StrategyResumed(msg.sender, "REJECTED_SUSPENDED_REQUEST");
         }
 
+        delete _pendingScores;
         _requestStatus = _NONE;
         _unpause();
     }
@@ -503,17 +553,16 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
      *         Anyone can call this, but only once
      *         The strategy may pause itself if the allocations go beyond what's expected
      */
-    function updateWeightsGradually() // solhint-disable function-max-lines
-        external
-        whenNotPaused
+    function updateWeightsGradually()
+        external whenNotPaused
     {
-        require(_apiResponse != 0, "ERR_NO_PENDING_DATA");
-
+        require(_hasAPIData, "ERR_NO_PENDING_DATA");
+        _hasAPIData = false;
         address[] memory tokenAddresses = IPool(crpPool.corePool()).getCurrentTokens();
         uint tokensLen = tokenAddresses.length;
         uint totalPendingScore; // the total social score will be needed for transforming them to denorm weights
         uint totalLastScore; // the total social score will be needed for transforming them to denorm weights
-        uint[] memory socialScores = new uint[](tokensLen);
+        uint[] memory tokenWeights = new uint[](tokensLen);
         // we need to make sure the amount of $KACY meets the criteria specified by the protocol
         address kacyToken = coreFactory.kacyToken();
         uint kacyIdx;
@@ -523,65 +572,45 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         for (uint i = 0; i < tokensLen; i++) {
             if (kacyToken == tokenAddresses[i]) {
                 kacyIdx = i;
-                // $KACY is fixed
-                continue;
+                continue; // $KACY is fixed
             }
 
-            /*
-             * Heimdall API provides this endpoint for their Airnode so that up to 14 tokens can be checked
-             * on a single request for gas savings. According to their documentation each coin uses 18 bits
-             * for their social score starting from the least significant bit. 0x3FFFF is all 18 bits true
-             *
-             * https://api.heimdall.land/v2/docs#/social%20score/symbols_score_uint256_v2_coins_scores_post
-             */
-            uint socialScore = _apiResponse >> (i * 18) & 0x3FFFF;
-            _pendingScores[i] = uint24(socialScore);
-            socialScores[i] = socialScore;
-
-            // if all bits are true then the number has overflown and we should ignore the response (see Heimdall docs)
-            // also fail if data is missing
-            require(socialScore != 0x3FFFF, "ERR_SCORE_OVERFLOW");
-            require(socialScore != 0, "ERR_SCORE_ZERO");
-
-            totalPendingScore += socialScore;
+            require(_pendingScores[i] != 0, "ERR_SCORE_ZERO");
+            totalPendingScore += _pendingScores[i];
             totalLastScore += uint256(_lastScores[i]);
         }
 
-        if (totalLastScore == 0) {
-            totalLastScore = 1;
-        }
+        if (totalLastScore == 0) {totalLastScore = 1;}
 
         uint minimumKacy = coreFactory.minimumKacy();
         uint totalWeight = _MAX_TOTAL_WEIGHT_ONE;
         // doesn't overflow because this is always below 10^37
         uint minimumWeight = _MAX_TOTAL_WEIGHT * minimumKacy; // totalWeight * minimumKacy / KassandraConstants.ONE
-
         totalWeight -= minimumWeight;
-        delete _apiResponse;
 
         for (uint i = 0; i < tokensLen; i++) {
             uint percentage95 = 95 * KassandraConstants.ONE / 100;
-            uint normalizedPending = (socialScores[i] * percentage95) / totalPendingScore;
+            uint normalizedPending = (_pendingScores[i] * percentage95) / totalPendingScore;
             uint normalizedLast = (_lastScores[i] * percentage95) / totalLastScore;
             // these are normalised to 10^18, so definitely won't overflow
             int64 diff = int64(int256(normalizedPending) - int256(normalizedLast));
             suspectRequest = suspectRequest || diff >= suspectDiff || diff <= -suspectDiff;
-
             // transform social scores to de-normalized weights for CRP pool
-            socialScores[i] = (socialScores[i] * totalWeight) / totalPendingScore;
+            tokenWeights[i] = (_pendingScores[i] * totalWeight) / totalPendingScore;
         }
 
-        socialScores[kacyIdx] = minimumWeight;
+        tokenWeights[kacyIdx] = minimumWeight;
 
         if (!suspectRequest) {
             _lastScores = _pendingScores;
+            delete _pendingScores;
             // adjust weights before new update
             crpPool.pokeWeights();
-            crpPool.updateWeightsGradually(socialScores, block.number, block.number + _CHANGE_BLOCK_PERIOD); // 24h
+            crpPool.updateWeightsGradually(tokenWeights, block.number, block.number + weightUpdateBlockPeriod);
             return;
         }
 
-        _pendingWeights = socialScores;
+        _pendingWeights = tokenWeights;
         _requestStatus = _SUSPEND;
         super._pause();
         emit StrategyPaused(msg.sender, "ERR_SUSPECT_REQUEST");
@@ -601,14 +630,13 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         _requestStatus = _ONGOING;
         // GradualUpdateParams gradualUpdate = crpPool.gradualUpdate();
         // require(block.number + 1 > gradualUpdate.endBlock, "ERR_GRADUAL_STILL_ONGOING");
-        bytes32 requestId = airnodeRrp.makeFullRequest(
-            airnodeId,             // Address of the data provider
-            endpointId,             // ID for the endpoint we will request
-            sponsorAddress,           // Sponsor that allows this client to use the funds in the designated wallet
-            sponsorWallet,       // The designated wallet the sponsor allowed this client to use
+        bytes32 requestId = airnodeRrp.makeTemplateRequest(
+            templateId,             // Address of the data provider
+            sponsorAddress,         // Sponsor that allows this client to use the funds in the designated wallet
+            sponsorWallet,          // The designated wallet the sponsor allowed this client to use
             address(this),          // address contacted when request finishes
             this.strategy.selector, // function in this contract called when request finishes
-            _parametersHeimdall     // list of tokens
+            ""                      // extra parameters, that we don't need
         );
         incomingFulfillments[requestId] = true;
     }
@@ -627,48 +655,40 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         )
         external
         override
+        whenNotPaused
         onlyAirnodeRrp()
     {
         require(incomingFulfillments[requestId], "ERR_NO_SUCH_REQUEST_MADE");
         delete incomingFulfillments[requestId];
 
-        if (paused()) {
-            emit RequestFailed(requestId, "ERR_STRATEGY_PAUSED");
-            return;
-        }
-
+        _hasAPIData = true;
         _requestStatus = _NONE; // allow requests again
 
-        int256 data = abi.decode(response, (int256));
-        // Heimdall API declares that the most significant bit is always 1 if the request works
-        if (data >= 0) {
-            emit RequestFailed(requestId, "ERR_BAD_RESPONSE");
-            return;
+        uint24[] memory data = abi.decode(response, (uint24[]));
+
+        for (uint i = 0; i < data.length - 1; i++) {
+            _pendingScores[i] = data[i];
         }
 
-        _apiResponse = uint256(data);
         emit RequestCompleted(requestId);
     }
 
     /**
      * @notice The last social scores obtained from the previous call
      *
-     * @return 14 numbers; anything above the number of tokens is ignored
+     * @return 16 numbers; anything above the number of tokens is ignored
      */
-    function lastScores() external view returns(uint24[14] memory) {
+    function lastScores() external view returns(uint24[16] memory) {
         return _lastScores;
     }
 
     /**
      * @notice The pending suspect social score from a suspicious call, if any
      *
-     * @return 14 numbers; anything above the number of tokens is ignored
+     * @return 16 numbers; anything above the number of tokens is ignored
      */
-    function pendingScores() external view returns(uint24[14] memory) {
-        if(_requestStatus == _SUSPEND) {
-            return _pendingScores;
-        }
-        return [uint24(0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    function pendingScores() external view returns(uint24[16] memory) {
+        return _pendingScores;
     }
 
     /**
@@ -719,10 +739,15 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         }
 
         symbols = abi.encodePacked(symbols, _tokensListHeimdall[tokensLen]);
-        _parametersHeimdall = abi.encode(
-            bytes32("1bS"),
-            bytes32("period"), bytes32("30d"),
-            bytes32("symbols"), symbols
+
+        templateId = airnodeRrp.createTemplate(
+            airnodeId,
+            endpointId,
+            abi.encode(
+                bytes32("1sS"),
+                bytes32("period"), bytes32("30d"),
+                bytes32("symbols"), symbols
+            )
         );
     }
 }

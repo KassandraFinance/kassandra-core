@@ -34,7 +34,7 @@ contract('HEIM Strategy', async (accounts) => {
         crpPoolMock = await CRPMock.new();
         airnodeMock = await AirnodeRrpMock.new();
 
-        strategy = await StrategyAHYPE.new(airnodeMock.address, tokenSymbols);
+        strategy = await StrategyAHYPE.new(airnodeMock.address, 5700, tokenSymbols);
 
         await coreFactoryMock.setKacyToken(kacyMock);
         await coreFactoryMock.setKacyMinimum(toBN(toWei('5')).div(toBN('100')));
@@ -55,6 +55,38 @@ contract('HEIM Strategy', async (accounts) => {
                 );
             }
         }
+
+        it('Constructor should not allow amount of tokens above protocol limit', async () => {
+            await truffleAssert.reverts(
+                StrategyAHYPE.new(airnodeMock.address, 5700, Array(17).fill('a')),
+                'ERR_TOO_MANY_TOKENS',
+            );
+        });
+
+        it('Constructor should not allow amount of tokens below protocol limit', async () => {
+            await truffleAssert.reverts(
+                StrategyAHYPE.new(airnodeMock.address, 5700, []),
+                'ERR_TOO_FEW_TOKENS',
+            );
+            await truffleAssert.reverts(
+                StrategyAHYPE.new(airnodeMock.address, 5700, ['a']),
+                'ERR_TOO_FEW_TOKENS',
+            );
+        });
+
+        it('Constructor should not allow block period for weight update below minimum', async () => {
+            await fc.assert(
+                fc.asyncProperty(
+                    fc.integer(0, 5699),
+                    async (blocks) => {
+                        await truffleAssert.reverts(
+                            StrategyAHYPE.new(airnodeMock.address, blocks, tokenSymbols),
+                            'ERR_BELOW_MINIMUM',
+                        );
+                    },
+                ),
+            );
+        });
 
         it('Non-Admin should not change suspect difference', async () => {
             await controllerCheck(
@@ -107,6 +139,15 @@ contract('HEIM Strategy', async (accounts) => {
             await controllerCheck(
                 strategy.setWatcher,
                 [nonAdmin],
+                [nonAdmin, updater, watcher],
+                'ERR_NOT_CONTROLLER',
+            );
+        });
+
+        it('Non-Admin should not change block period for weight update', async () => {
+            await controllerCheck(
+                strategy.setWeightUpdateBlockPeriod,
+                [900000],
                 [nonAdmin, updater, watcher],
                 'ERR_NOT_CONTROLLER',
             );
@@ -294,6 +335,33 @@ contract('HEIM Strategy', async (accounts) => {
             const newWatcher = await strategy.watcherRole();
             assert.strictEqual(newWatcher, watcher);
         });
+
+        it('Should not save block period for weight update below minimum', async () => {
+            await fc.assert(
+                fc.asyncProperty(
+                    fc.integer(0, 5699),
+                    async (blocks) => {
+                        await truffleAssert.reverts(
+                            strategy.setWeightUpdateBlockPeriod(blocks),
+                            'ERR_BELOW_MINIMUM',
+                        );
+                    },
+                ),
+            );
+        });
+
+        it('Admin should be able to set block period for weight update', async () => {
+            await fc.assert(
+                fc.asyncProperty(
+                    fc.integer(5700, 100000000000),
+                    async (blocks) => {
+                        await strategy.setWeightUpdateBlockPeriod(blocks);
+                        const weightUpdateBlockPeriod = await strategy.weightUpdateBlockPeriod();
+                        assert.strictEqual(weightUpdateBlockPeriod.toString(10), toBN(blocks.toString()).toString(10));
+                    },
+                ),
+            );
+        });
     });
 
     describe('Testing strategy', () => {
@@ -332,9 +400,12 @@ contract('HEIM Strategy', async (accounts) => {
 
         it('Some functions should not work when strategy is paused', async () => {
             const lastRequestId = await airnodeMock.lastRequestId();
+            const data = web3.eth.abi.encodeParameter('uint256[]', [0]);
 
-            const data = web3.eth.abi.encodeParameter('int256', 0);
-            const tx = await airnodeMock.callStrategy(lastRequestId, data);
+            await truffleAssert.reverts(
+                airnodeMock.callStrategy(lastRequestId, data),
+                'Pausable: paused',
+            );
             await truffleAssert.reverts(
                 strategy.makeRequest(),
                 'Pausable: paused',
@@ -346,11 +417,6 @@ contract('HEIM Strategy', async (accounts) => {
             await truffleAssert.reverts(
                 strategy.removeToken('btc', nonAdmin),
                 'Pausable: paused',
-            );
-
-            await eventEmitted(
-                tx, 'RequestFailed',
-                { reason: padRight(toHex('ERR_STRATEGY_PAUSED'), 64) },
             );
         });
 
@@ -380,31 +446,12 @@ contract('HEIM Strategy', async (accounts) => {
             );
         });
 
-        it('If the first bit of the request is not 1 it should fail', async () => {
-            await fc.assert(
-                fc.asyncProperty(
-                    fc.bigInt(BigInt(0), BigInt(1) << BigInt(254)),
-                    async (responseData) => {
-                        await strategy.makeRequest({ from: updater });
-                        const requestId = await airnodeMock.lastRequestId();
-                        const data = web3.eth.abi.encodeParameter('int256', responseData);
-                        const tx = await airnodeMock.callStrategy(requestId, data);
-
-                        await eventEmitted(
-                            tx, 'RequestFailed',
-                            { reason: padRight(toHex('ERR_BAD_RESPONSE'), 64) },
-                        );
-                    },
-                ),
-            );
-        });
-
         it('If coin score is zero it should fail', async () => {
             await strategy.makeRequest({ from: updater });
 
-            const responseData = BigInt(-1) << BigInt(255);
+            const responseData = Array(tokenSymbols.length).fill(0);
             const requestId = await airnodeMock.lastRequestId();
-            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('int256[]', responseData);
             await airnodeMock.callStrategy(requestId, data);
 
             await truffleAssert.reverts(
@@ -413,33 +460,15 @@ contract('HEIM Strategy', async (accounts) => {
             );
         });
 
-        it('If coin score is full it should fail', async () => {
-            await strategy.makeRequest({ from: updater });
-
-            const responseData = BigInt(-1);
-            const requestId = await airnodeMock.lastRequestId();
-            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
-            await airnodeMock.callStrategy(requestId, data);
-
-            await truffleAssert.reverts(
-                strategy.updateWeightsGradually(),
-                'ERR_SCORE_OVERFLOW',
-            );
-        });
-
         it('Should set social scores except for $KACY', async () => {
             await strategy.makeRequest({ from: updater });
             // disable suspectDiff check
             await strategy.setSuspectDiff(toWei('1', 'ether'));
 
-            let responseData = BigInt(-1) << BigInt(255);
-
-            for (let i = 0; i < tokenSymbols.length - 1; i++) {
-                responseData |= BigInt(30000) << BigInt(i * 18);
-            }
+            const responseData = Array(tokenSymbols.length).fill(BigInt(30000));
 
             const requestId = await airnodeMock.lastRequestId();
-            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('uint256[]', responseData);
             await airnodeMock.callStrategy(requestId, data);
 
             await strategy.updateWeightsGradually();
@@ -484,16 +513,11 @@ contract('HEIM Strategy', async (accounts) => {
                 BigInt(-30000) * (l - BigInt(2)) * (l * s - s + BigInt(95))
             ) / (l * s - BigInt(95) * l - s + BigInt(190));
 
-            let responseData = BigInt(-1) << BigInt(255);
-
-            responseData |= aboveSuspectDiff;
-
-            for (let i = 1; i < tokenSymbols.length - 1; i++) {
-                responseData |= BigInt(30000) << BigInt(i * 18);
-            }
+            const responseData = Array(tokenSymbols.length).fill(30000);
+            responseData[0] = aboveSuspectDiff;
 
             const requestId = await airnodeMock.lastRequestId();
-            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('uint256[]', responseData);
             await airnodeMock.callStrategy(requestId, data);
 
             const tx = await strategy.updateWeightsGradually();
@@ -568,16 +592,11 @@ contract('HEIM Strategy', async (accounts) => {
                 BigInt(-30000) * (l - BigInt(2)) * (l * s - s - BigInt(95))
             ) / (l * s + BigInt(95) * l - s - BigInt(190));
 
-            let responseData = BigInt(-1) << BigInt(255);
-
-            responseData |= belowSuspectDiff;
-
-            for (let i = 1; i < tokenSymbols.length - 1; i++) {
-                responseData |= BigInt(30000) << BigInt(i * 18);
-            }
+            const responseData = Array(tokenSymbols.length).fill(30000);
+            responseData[0] = belowSuspectDiff;
 
             const requestId = await airnodeMock.lastRequestId();
-            const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+            const data = web3.eth.abi.encodeParameter('uint256[]', responseData);
             await airnodeMock.callStrategy(requestId, data);
 
             const tx = await strategy.updateWeightsGradually();
@@ -630,17 +649,12 @@ contract('HEIM Strategy', async (accounts) => {
 
                 const goodDiff = (startingWeight * BigInt(100 / 2)) / BigInt(100);
 
-                let responseData = BigInt(-1) << BigInt(255);
-
-                for (let i = 0; i < tokenSymbols.length - 1; i++) {
-                    responseData |= BigInt(30000) << BigInt(i * 18);
-                }
-
-                responseData |= goodDiff << BigInt(18 * tokenSymbols.length);
+                const responseData = Array(tokenSymbols.length).fill(30000);
+                responseData[tokenSymbols.length - 1] = goodDiff;
 
                 const requestId = await airnodeMock.lastRequestId();
 
-                const data = web3.eth.abi.encodeParameter('int256', toBN(responseData.toString(10)));
+                const data = web3.eth.abi.encodeParameter('uint256[]', responseData);
                 const tx1 = await airnodeMock.callStrategy(requestId, data);
                 await eventNotEmitted(tx1, 'RequestFailed');
 
@@ -667,12 +681,31 @@ contract('HEIM Strategy', async (accounts) => {
                 'ERR_NO_PENDING_DATA',
             );
         });
+
+        it('If a call fails watcher should be able to clear it', async () => {
+            await strategy.makeRequest({ from: updater });
+            const requestId = await airnodeMock.lastRequestId();
+            const requestWaiting = await strategy.incomingFulfillments(requestId);
+
+            // request should've been made
+            assert.isTrue(requestWaiting);
+
+            await strategy.clearFailedRequest(requestId, { from: watcher });
+
+            // request should've been cleared
+            const requestCleared = await strategy.incomingFulfillments(requestId);
+            assert.isFalse(requestCleared);
+
+            // updater should be able to request again
+            await strategy.makeRequest.call({ from: updater });
+        });
     });
 
     describe('Adding and removing tokens', () => {
-        it('Adding tokens should go fine until 14 are added', async () => {
+        it('Adding tokens should go fine until 16 are added', async () => {
             const tokens2Add = [
-                'btc', 'doge', 'sol', 'shib', 'api3', 'link', 'usd', 'sushi', 'uni', 'bal', 'axs', 'eth', 'dai', 'avax',
+                'zyx', 'wvu', 'tsr', 'qpo', 'nml', 'kji', 'hgf', 'edc',
+                'ba0', '123', '456', '789', '987', '654', '321', '000',
             ];
             const oldTokenSymbols = Array.from(tokenSymbols);
 
@@ -704,10 +737,10 @@ contract('HEIM Strategy', async (accounts) => {
             } while (tokens2Add.length - tokenSymbols.length > 0);
         });
 
-        it('Should fail adding more than 14 tokens', async () => {
+        it('Should fail adding more than 16 tokens', async () => {
             await truffleAssert.reverts(
                 strategy.commitAddToken('fail', nonAdmin, toWei('10'), toWei('10')),
-                'ERR_MAX_14_TOKENS',
+                'ERR_MAX_16_TOKENS',
             );
         });
 

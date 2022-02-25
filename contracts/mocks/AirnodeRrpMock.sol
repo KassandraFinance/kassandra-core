@@ -9,15 +9,14 @@ import "../interfaces/IStrategy.sol";
 contract AirnodeRrpMock {
     /// @dev Address of the strategy contract
     IStrategy public strategy;
-    /// @dev For checking the makeFullRequest was successful
+    /// @dev For checking the makeTemplateRequest was successful
     bytes32 public lastRequestId;
 
     /**
      * @dev For checking if the strategy made the request correctly
      */
-    function makeFullRequest(
-        address airnode,
-        bytes32 endpointId,
+    function makeTemplateRequest(
+        bytes32 templateId,
         address sponsor,
         address sponsorWallet,
         address fulfillAddress,
@@ -25,8 +24,7 @@ contract AirnodeRrpMock {
         bytes calldata parameters
     ) external returns (bytes32 requestId) {
         requestId = keccak256(abi.encode(
-            airnode,
-            endpointId,
+            templateId,
             sponsor,
             sponsorWallet,
             fulfillAddress,
@@ -55,6 +53,17 @@ contract AirnodeRrpMock {
         external
     {
         strategy.strategy(requestId, response);
+    }
+
+    /**
+     * @dev To allow the tests to work
+     */
+    function createTemplate(
+        address,
+        bytes32,
+        bytes calldata
+    ) external pure returns (bytes32) {
+        return "";
     }
 
     function setSponsorshipStatus(address, bool) external pure {
