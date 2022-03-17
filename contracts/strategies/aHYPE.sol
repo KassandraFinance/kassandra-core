@@ -239,7 +239,6 @@ contract StrategyAHYPE is IStrategy, Ownable, Pausable, RrpRequester {
         require(tokensList.length <= KassandraConstants.MAX_ASSET_LIMIT, "ERR_TOO_MANY_TOKENS");
         weightUpdateBlockPeriod = weightBlockPeriod;
         _tokensListHeimdall = tokensList;
-        _encodeParameters();
         suspectDiff = int64(int256(KassandraConstants.ONE));
     }
 
