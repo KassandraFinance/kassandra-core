@@ -6,6 +6,8 @@ pragma solidity ^0.8.0;
 import "../interfaces/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
+// solhint-disable reason-string
+
 /**
  * @title SafeERC20
  * @dev Wrappers around ERC20 operations that throw on failure (when the token
