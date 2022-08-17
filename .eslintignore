@@ -1,3 +1,4 @@
 build/*
 coverage/*
 migrations/*
+hardhat.config.js
