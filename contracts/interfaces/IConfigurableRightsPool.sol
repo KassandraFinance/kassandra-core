@@ -13,6 +13,41 @@ import "./IERC20.sol";
  *      Only contains the definitions of the ConfigurableRigthsPool.sol contract and no parent classes
  */
 interface IConfigurableRightsPoolDef {
+    function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn) external;
+    function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut) external;
+
+    function joinswapExternAmountIn(
+        address tokenIn,
+        uint tokenAmountIn,
+        uint minPoolAmountOut
+    )
+        external
+        returns (uint poolAmountOut);
+
+    function joinswapPoolAmountOut(
+        address tokenIn,
+        uint poolAmountOut,
+        uint maxAmountIn
+    )
+        external
+        returns (uint tokenAmountIn);
+
+    function exitswapPoolAmountIn(
+        address tokenOut,
+        uint poolAmountIn,
+        uint minAmountOut
+    )
+        external
+        returns (uint tokenAmountOut);
+
+    function exitswapExternAmountOut(
+        address tokenOut,
+        uint tokenAmountOut,
+        uint maxPoolAmountIn
+    )
+        external
+        returns (uint poolAmountIn);
+
     function updateWeight(address token, uint newWeight) external;
     function updateWeightsGradually(uint[] calldata newWeights, uint startBlock, uint endBlock) external;
     function pokeWeights() external;

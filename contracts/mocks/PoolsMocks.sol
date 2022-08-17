@@ -48,6 +48,48 @@ contract PoolMock is IPoolDef {
         return;
     }
 
+    function swapExactAmountIn(
+        address tokenIn,
+        uint tokenAmountIn,
+        address tokenOut,
+        uint minAmountOut,
+        uint maxPrice
+    )
+        external pure
+        returns (
+            uint tokenAmountOut,
+            uint spotPriceAfter
+        )
+    {
+        tokenIn;
+        tokenAmountIn;
+        tokenOut;
+        minAmountOut;
+        maxPrice;
+        return (0, 0);
+    }
+
+    function swapExactAmountOut(
+        address tokenIn,
+        uint maxAmountIn,
+        address tokenOut,
+        uint tokenAmountOut,
+        uint maxPrice
+    )
+        external pure
+        returns (
+            uint tokenAmountIn,
+            uint spotPriceAfter
+        )
+    {
+        tokenIn;
+        maxAmountIn;
+        tokenOut;
+        tokenAmountOut;
+        maxPrice;
+        return (0, 0);
+    }
+
     function bind(address token, uint balance, uint denorm) external override pure {
         token;
         balance;
@@ -104,6 +146,17 @@ contract PoolMock is IPoolDef {
         return 0;
     }
 
+    function getSpotPrice(address tokenIn, address tokenOut) external pure returns (uint) {
+        tokenIn;
+        tokenOut;
+        return 0;
+    }
+    function getSpotPriceSansFee(address tokenIn, address tokenOut) external pure returns (uint) {
+        tokenIn;
+        tokenOut;
+        return 0;
+    }
+
     function getExitFee() external override pure returns (uint) {
         return 0;
     }
@@ -144,7 +197,6 @@ contract CRPMock is IConfigurableRightsPoolDef {
     function updateWeight(address token, uint newWeight) external override pure {
         token;
         newWeight;
-        return;
     }
 
     function updateWeightsGradually(uint[] calldata newWeights, uint startBlock, uint endBlock) external override view {
@@ -178,7 +230,6 @@ contract CRPMock is IConfigurableRightsPoolDef {
         token;
         balance;
         denormalizedWeight;
-        return;
     }
 
     function applyAddToken() external override pure {
@@ -187,31 +238,92 @@ contract CRPMock is IConfigurableRightsPoolDef {
 
     function removeToken(address token) external override pure {
         token;
-        return;
     }
 
     function mintPoolShareFromLib(uint amount) external override pure {
         amount;
-        return;
     }
 
     function pushPoolShareFromLib(address to, uint amount) external override pure {
         amount;
         to;
-        return;
     }
 
     function pullPoolShareFromLib(address from, uint amount) external override pure {
         amount;
         from;
-        return;
     }
 
     function burnPoolShareFromLib(uint amount) external override pure {
         amount;
-        return;
     }
 
+    function joinPool(uint poolAmountOut, uint[] calldata maxAmountsIn) external override pure {
+        poolAmountOut;
+        maxAmountsIn;
+    }
+
+    function exitPool(uint poolAmountIn, uint[] calldata minAmountsOut) external override pure {
+        poolAmountIn;
+        minAmountsOut;
+    }
+
+
+    function joinswapExternAmountIn(
+        address tokenIn,
+        uint tokenAmountIn,
+        uint minPoolAmountOut
+    )
+        external pure
+        returns (uint poolAmountOut)
+    {
+        tokenIn;
+        tokenAmountIn;
+        minPoolAmountOut;
+        return 0;
+    }
+
+    function joinswapPoolAmountOut(
+        address tokenIn,
+        uint poolAmountOut,
+        uint maxAmountIn
+    )
+        external pure
+        returns (uint tokenAmountIn)
+    {
+        tokenIn;
+        poolAmountOut;
+        maxAmountIn;
+        return 0;
+    }
+
+    function exitswapPoolAmountIn(
+        address tokenOut,
+        uint poolAmountIn,
+        uint minAmountOut
+    )
+        external pure
+        returns (uint tokenAmountOut)
+    {
+        tokenOut;
+        poolAmountIn;
+        minAmountOut;
+        return 0;
+    }
+
+    function exitswapExternAmountOut(
+        address tokenOut,
+        uint tokenAmountOut,
+        uint maxPoolAmountIn
+    )
+        external pure
+        returns (uint poolAmountIn)
+    {
+        tokenOut;
+        tokenAmountOut;
+        maxPoolAmountIn;
+        return 0;
+    }
 
     function corePool() external override view returns(IPool) {
         return _corePool;
