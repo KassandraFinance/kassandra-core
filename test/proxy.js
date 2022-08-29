@@ -1,5 +1,5 @@
 const { assert } = require('chai');
-const { parseEther, formatUnits } = require('ethers/lib/utils');
+const { parseEther } = require('ethers/lib/utils');
 const hre = require('hardhat');
 const web3 = require('web3');
 
@@ -636,9 +636,7 @@ describe('HermesProxy', () => {
             console.log(balanceK.div(100).toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).eq(balanceA.div(100)), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.sub(balancePn).eq(balanceP.div(100)), 'Amount of yyPNG is less than expected');
@@ -646,7 +644,7 @@ describe('HermesProxy', () => {
         assert.isTrue(balanceK.sub(balanceKn).eq(balanceK.div(100)), 'Amount of KACY is less than expected');
     });
 
-    it('Can join with underlying tokens and send invest fees to refferal and manager', async () => {
+    it('Can join with underlying tokens and sends invest fees to referral and manager', async () => {
         const Token = await hre.ethers.getContractFactory('TToken', signer);
         const yyAVAX = await Token.attach(yyAVAXonAAVE);
         const yyPNG = await Token.attach(yyPNGonPangolin);
@@ -733,14 +731,8 @@ describe('HermesProxy', () => {
             console.log(balanceK.div(100).toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-            'Amount of fees to Manager is less than expected',
-        );
-        assert.isTrue(
-            Number(formatUnits(feesToRefferal)).toFixed(10) === Number(formatUnits(balanceTriCryptor)).toFixed(10),
-            'Amount of fees to Refferal is less than expected',
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).eq(balanceA.div(100)), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.sub(balancePn).eq(balanceP.div(100)), 'Amount of yyPNG is less than expected');
@@ -829,9 +821,7 @@ describe('HermesProxy', () => {
             console.log(balanceWA.div(100).toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).gt(hre.ethers.utils.parseEther('0.02')), 'AVAX is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).lt(hre.ethers.utils.parseEther('0.04')), 'AVAX is less than expected');
@@ -927,12 +917,8 @@ describe('HermesProxy', () => {
             console.log(balanceWA.div(100).toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
-        assert.isTrue(
-            Number(formatUnits(feesToRefferal)).toFixed(10) === Number(formatUnits(balanceTriCryptor)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).gt(hre.ethers.utils.parseEther('0.02')), 'AVAX is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).lt(hre.ethers.utils.parseEther('0.04')), 'AVAX is less than expected');
@@ -1014,9 +1000,7 @@ describe('HermesProxy', () => {
             console.log(balanceKn.toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
         assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
@@ -1103,12 +1087,8 @@ describe('HermesProxy', () => {
             console.log(balanceKn.toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
-        assert.isTrue(
-            Number(formatUnits(feesToRefferal)).toFixed(10) === Number(formatUnits(balanceTriCryptor)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
         assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
@@ -1186,9 +1166,7 @@ describe('HermesProxy', () => {
             console.log(balanceUn.toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('2.0')), 'Wrong amount');
         // assert.isTrue(balanceA.lt(hre.ethers.utils.parseEther('1.0')), 'Amount of AVAX is more than expected');
         // assert.isTrue(balanceA.gt(balanceAn), 'Amount of AVAX is less than expected');
@@ -1273,12 +1251,8 @@ describe('HermesProxy', () => {
             console.log(balanceUn.toString());
         }
 
-        assert.isTrue(
-            Number(formatUnits(feesToManager)).toFixed(10) === Number(formatUnits(balanceTriCryptow)).toFixed(10),
-        );
-        assert.isTrue(
-            Number(formatUnits(feesToRefferal)).toFixed(10) === Number(formatUnits(balanceTriCryptor)).toFixed(10),
-        );
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('2.0')), 'Wrong amount');
         // assert.isTrue(balanceA.lt(hre.ethers.utils.parseEther('1.0')), 'Amount of AVAX is more than expected');
         // assert.isTrue(balanceA.gt(balanceAn), 'Amount of AVAX is less than expected');

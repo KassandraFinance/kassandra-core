@@ -30,9 +30,6 @@ contract HermesProxy is Ownable {
     address public immutable wNativeToken;
     IKassandraCommunityStore public communityStore;
 
-    uint public investFee = KassandraConstants.ONE * 1 / 100; // 1%
-    uint public investFeeRefferal = KassandraConstants.ONE * 1 / 100; // 1%
-
     mapping(address => mapping(address => Wrappers)) public wrappers;
 
     event NewWrapper(
@@ -130,7 +127,8 @@ contract HermesProxy is Ownable {
         address crpPool,
         uint poolAmountOut,
         address[] calldata tokensIn,
-        uint[] calldata maxAmountsIn
+        uint[] calldata maxAmountsIn,
+        address refferal
     )
         external
         payable
@@ -141,13 +139,28 @@ contract HermesProxy is Ownable {
             (underlyingTokens[i], underlyingMaxAmountsIn[i]) = _wrapTokenIn(crpPool, tokensIn[i], maxAmountsIn[i]);
         }
 
-        // execute join
-        IConfigurableRightsPool(crpPool).joinPool(
-            poolAmountOut,
-            underlyingMaxAmountsIn
-        );
+        { 
+            (address _manager, uint _feesToManager, uint _feesToRefferal) = communityStore.getPoolInfo(crpPool);
+            uint _poolAmountOut = KassandraSafeMath.bdiv(
+                poolAmountOut, KassandraConstants.ONE - _feesToManager - _feesToRefferal);
+            _feesToManager = KassandraSafeMath.bmul(_poolAmountOut, _feesToManager);
+            _feesToRefferal = KassandraSafeMath.bmul(_poolAmountOut, _feesToRefferal);
 
-        IERC20(crpPool).safeTransfer(msg.sender, poolAmountOut);
+            // execute join
+            IConfigurableRightsPool(crpPool).joinPool(
+                _poolAmountOut,
+                underlyingMaxAmountsIn
+            );
+
+            if(refferal == address(0)) {
+                refferal = _manager;
+            }
+
+            IERC20 crpPoolToken = IERC20(crpPool);
+            crpPoolToken.safeTransfer(msg.sender, poolAmountOut);
+            crpPoolToken.safeTransfer(_manager, _feesToManager);
+            crpPoolToken.safeTransfer(refferal, _feesToRefferal);   
+        }
 
         for (uint i = 0; i < tokensIn.length; i++) {
             address underlyingTokenOut = tokensIn[i];
@@ -238,10 +251,10 @@ contract HermesProxy is Ownable {
             minPoolAmountOut
         );
     
-        uint _feesToManager = KassandraSafeMath.bmul(poolAmountOut, investFee);
-        uint _feesToRefferal = KassandraSafeMath.bmul(poolAmountOut, investFeeRefferal);
+        (address _manager, uint _feesToManager, uint _feesToRefferal) = communityStore.getPoolInfo(crpPool);
+        _feesToManager = KassandraSafeMath.bmul(poolAmountOut, _feesToManager);
+        _feesToRefferal = KassandraSafeMath.bmul(poolAmountOut, _feesToRefferal);
         uint _poolAmountOut = poolAmountOut - (_feesToRefferal + _feesToManager);
-        address _manager = communityStore.poolToManager(crpPool);
 
         if(refferal == address(0)) {
             refferal = _manager;
@@ -281,11 +294,11 @@ contract HermesProxy is Ownable {
         // get tokens from user and wrap it if necessary
         (address underlyingTokenIn, uint underlyingMaxAmountIn) = _wrapTokenIn(crpPool, tokenIn, maxAmountIn);
 
+        (address _manager, uint _feesToManager, uint _feesToRefferal) = communityStore.getPoolInfo(crpPool);
         uint _poolAmountOut = KassandraSafeMath.bdiv(
-            poolAmountOut, KassandraConstants.ONE - investFee - investFeeRefferal);
-        uint _feesToManager = KassandraSafeMath.bmul(_poolAmountOut, investFee);
-        uint _feesToRefferal = KassandraSafeMath.bmul(_poolAmountOut, investFeeRefferal);
-        address _manager = communityStore.poolToManager(crpPool);
+            poolAmountOut, KassandraConstants.ONE - _feesToManager - _feesToRefferal);
+        _feesToManager = KassandraSafeMath.bmul(_poolAmountOut, _feesToManager);
+        _feesToRefferal = KassandraSafeMath.bmul(_poolAmountOut, _feesToRefferal);
 
         // execute join and get amount of underlying tokens used
         uint underlyingTokenAmountIn = IConfigurableRightsPool(crpPool).joinswapPoolAmountOut(
