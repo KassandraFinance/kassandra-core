@@ -8,15 +8,33 @@ import "../interfaces/IKassandraCommunityStore.sol";
 contract KassandraCommunityStore is IKassandraCommunityStore, Ownable {
     mapping(address => bool) private _writers;
 
-    mapping(address => bool) public isTokenWhitelisted;
+    mapping(address => bool) public override isTokenWhitelisted;
     mapping(address => PoolInfo) private _poolInfo;
+    mapping(address => mapping(address => bool)) private _privateInvestors;
 
-    function setWriter(address writer, bool allowance) public onlyOwner {
+    function setInvestor(
+        address poolAddress,
+        address investor,
+        bool isApproved
+    ) external override {
+        require(_writers[msg.sender], "ERR_NOT_ALLOWED_WRITER");
+        _privateInvestors[poolAddress][investor] = isApproved;
+    }
+
+    function setWriter(address writer, bool allowance)
+        external
+        override
+        onlyOwner
+    {
         require(writer != address(0), "ERR_WRITER_ADDRESS_ZERO");
         _writers[writer] = allowance;
     }
 
-    function whitelistToken(address token, bool whitelist) public onlyOwner {
+    function whitelistToken(address token, bool whitelist)
+        external
+        override
+        onlyOwner
+    {
         require(token != address(0), "ERR_TOKEN_ADDRESS_ZERO");
         isTokenWhitelisted[token] = whitelist;
     }
@@ -25,27 +43,38 @@ contract KassandraCommunityStore is IKassandraCommunityStore, Ownable {
         address poolAddress,
         address poolCreator,
         uint256 feesToManager,
-        uint256 feesToRefferal
-    ) public {
+        uint256 feesToRefferal,
+        bool isPrivate
+    ) external override {
         require(poolAddress != address(0), "ERR_POOL_ADDRESS_ZERO");
         require(poolCreator != address(0), "ERR_MANAGER_ADDRESS_ZERO");
         require(_writers[msg.sender], "ERR_NOT_ALLOWED_WRITER");
         _poolInfo[poolAddress].manager = poolCreator;
         _poolInfo[poolAddress].feesToManager = feesToManager;
         _poolInfo[poolAddress].feesToRefferal = feesToRefferal;
+        _poolInfo[poolAddress].isPrivate = isPrivate;
+    }
+
+    function setPrivatePool(address poolAddress, bool isPrivate) external override {
+        require(_writers[msg.sender], "ERR_NOT_ALLOWED_WRITER");
+        _poolInfo[poolAddress].isPrivate = isPrivate;
     }
 
     function getPoolInfo(address poolAddress)
-        public
+        external
         view
-        returns (
-            address manager,
-            uint256 feesToManager,
-            uint256 feesToRefferal
-        )
+        override
+        returns (PoolInfo memory)
     {
-        manager = _poolInfo[poolAddress].manager;
-        feesToManager = _poolInfo[poolAddress].feesToManager;
-        feesToRefferal = _poolInfo[poolAddress].feesToRefferal;
+        return _poolInfo[poolAddress];
+    }
+
+    function getPrivateInvestor(address poolAddress, address investor)
+        external
+        view
+        override
+        returns (bool)
+    {
+        return _privateInvestors[poolAddress][investor];
     }
 }

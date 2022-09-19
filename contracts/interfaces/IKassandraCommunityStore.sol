@@ -4,34 +4,38 @@ pragma solidity ^0.8.0;
 interface IKassandraCommunityStore {
     struct PoolInfo {
         address manager;
-        uint feesToManager;
-        uint feesToRefferal;
+        uint256 feesToManager;
+        uint256 feesToRefferal;
+        bool isPrivate;
     }
 
-    function isTokenWhitelisted(
-        address token
-    ) external
+    function setInvestor(
+        address poolAddress,
+        address investor,
+        bool isAproved
+    ) external;
+
+    function isTokenWhitelisted(address token) external returns (bool);
+
+    function getPoolInfo(address poolAddress)
+        external
+        returns (PoolInfo calldata);
+
+    function getPrivateInvestor(address poolAddress, address investor)
+        external
         returns (bool);
 
-    function getPoolInfo(
-        address poolAddress
-    ) external
-        returns (address manager, uint feesToManager, uint feesToRefferal);
+    function setWriter(address writer, bool allowance) external;
 
-    function setWriter(
-        address writer,
-        bool allowance
-    ) external;
+    function setPrivatePool(address poolAddress, bool isPrivate) external;
 
-    function whitelistToken(
-        address token,
-        bool whitelist
-    ) external;
+    function whitelistToken(address token, bool whitelist) external;
 
     function setManager(
         address poolAddress,
         address poolCreator,
-        uint feesToManager,
-        uint feesToRefferal
+        uint256 feesToManager,
+        uint256 feesToRefferal,
+        bool isPrivate
     ) external;
 }
