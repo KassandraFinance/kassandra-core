@@ -1,4 +1,4 @@
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { parseEther } = require('ethers/lib/utils');
 const hre = require('hardhat');
 const web3 = require('web3');
@@ -9,6 +9,7 @@ describe('HermesProxy', () => {
     const feesManager = hre.ethers.BigNumber.from('20000000000000000');
     const feesRefferal = hre.ethers.BigNumber.from('10000000000000000');
     let proxy;
+    let communityStore;
     let signer;
     let crpPoolAddr = 0;
     let corePool;
@@ -38,7 +39,7 @@ describe('HermesProxy', () => {
         });
         signer = await hre.ethers.getSigner(multisig);
         const CommunityStore = await hre.ethers.getContractFactory('KassandraCommunityStore', signer);
-        const communityStore = await CommunityStore.deploy();
+        communityStore = await CommunityStore.deploy();
         await communityStore.deployed();
         const HermesProxy = await hre.ethers.getContractFactory('HermesProxy', signer);
         proxy = await HermesProxy.deploy(wAVAXtoken, communityStore.address);
@@ -142,7 +143,14 @@ describe('HermesProxy', () => {
         );
 
         await communityStore.setWriter(wizard.address, true);
-        await communityStore.connect(wizard).setManager(crpPoolAddr, wizard.address, feesManager, feesRefferal);
+        const fundIsPrivate = false;
+        await communityStore.connect(wizard).setManager(
+            crpPoolAddr,
+            wizard.address,
+            feesManager,
+            feesRefferal,
+            fundIsPrivate,
+        );
 
         const CRP = await hre.ethers.getContractFactory('ConfigurableRightsPool', {
             signer,
@@ -1089,6 +1097,99 @@ describe('HermesProxy', () => {
 
         assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
         assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
+        assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
+        assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
+        assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
+        assert.isTrue(balanceU.gt(balanceUn), 'Amount of yyUSD is less than expected');
+        assert.isTrue(balanceK.gt(balanceKn), 'Amount of KACY is less than expected');
+    });
+
+    it('Not should be able to join if pool is private and investor not allowed', async () => {
+        await communityStore.connect(wizard).setPrivatePool(crpPoolAddr, true);
+        await expect(proxy.joinswapPoolAmountOut(
+            crpPoolAddr,
+            yyAVAXonAAVE,
+            hre.ethers.utils.parseEther('1.0'),
+            "1000000000000000000",
+            hre.ethers.constants.AddressZero,
+        )).revertedWith("ERR_INVESTOR_NOT_ALLOWED");
+    });
+
+    it('Can join private pool with underlying tokens and investor is allowed', async () => {
+        await communityStore.connect(wizard).setInvestor(crpPoolAddr, multisig, true);
+        const Token = await hre.ethers.getContractFactory('TToken', signer);
+        const yyAVAX = await Token.attach(yyAVAXonAAVE);
+        const yyPNG = await Token.attach(yyPNGonPangolin);
+        const yyUSDCe = await Token.attach(yyUSDCEonPlatypus);
+        const KACY = await Token.attach(KACYtoken);
+        const triCrypto = await Token.attach(crpPoolAddr);
+
+        const balanceA = await yyAVAX.balanceOf(multisig);
+        const balanceP = await yyPNG.balanceOf(multisig);
+        const balanceU = await yyUSDCe.balanceOf(multisig);
+        const balanceK = await KACY.balanceOf(multisig);
+        const balanceTriCrypto = await triCrypto.balanceOf(multisig);
+        const balanceTriCryptoWizard = await triCrypto.balanceOf(wizard.address);
+        const supplyTriCrypto = await triCrypto.totalSupply();
+
+        if (verbose) {
+            console.log(balanceA.toString());
+            console.log(balanceP.toString());
+            console.log(balanceU.toString());
+            console.log(balanceK.toString());
+        }
+
+        await proxy.joinswapPoolAmountOut(
+            crpPoolAddr,
+            yyAVAXonAAVE,
+            hre.ethers.utils.parseEther('1.0'),
+            balanceA.div(2),
+            hre.ethers.constants.AddressZero,
+        );
+
+        await proxy.joinswapPoolAmountOut(
+            crpPoolAddr,
+            yyPNGonPangolin,
+            hre.ethers.utils.parseEther('1.0'),
+            balanceP.div(2),
+            hre.ethers.constants.AddressZero,
+        );
+
+        await proxy.joinswapPoolAmountOut(
+            crpPoolAddr,
+            yyUSDCEonPlatypus,
+            hre.ethers.utils.parseEther('1.0'),
+            balanceU.div(2),
+            hre.ethers.constants.AddressZero,
+        );
+
+        await proxy.joinswapPoolAmountOut(
+            crpPoolAddr,
+            KACYtoken,
+            hre.ethers.utils.parseEther('1.0'),
+            balanceK.div(2),
+            hre.ethers.constants.AddressZero,
+        );
+
+        const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
+        const feesToManager = totalAmountSendTriCrypto.mul(
+            feesManager,
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        const balanceTriCrypton = await triCrypto.balanceOf(multisig);
+        const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
+        const balanceAn = await yyAVAX.balanceOf(multisig);
+        const balancePn = await yyPNG.balanceOf(multisig);
+        const balanceUn = await yyUSDCe.balanceOf(multisig);
+        const balanceKn = await KACY.balanceOf(multisig);
+
+        if (verbose) {
+            console.log(balanceAn.toString());
+            console.log(balancePn.toString());
+            console.log(balanceUn.toString());
+            console.log(balanceKn.toString());
+        }
+
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
         assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
