@@ -67,7 +67,7 @@ contract ConfigurableRightsPool is IConfigurableRightsPoolDef, SPToken, Ownable,
      * @notice This is for adding a new (currently unbound) token to the pool
      *         It's a two-step process: commitAddToken(), then applyAddToken()
      */
-    SmartPoolManager.NewTokenParams public newToken;
+    SmartPoolManager.NewTokenParams public override newToken;
 
     /// Hold the parameters used in updateWeightsGradually
     SmartPoolManager.GradualUpdateParams public gradualUpdate;

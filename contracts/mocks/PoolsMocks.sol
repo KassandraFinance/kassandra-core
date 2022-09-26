@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import "../libraries/KassandraConstants.sol";
 import "../libraries/KassandraSafeMath.sol";
+import "../libraries/SmartPoolManager.sol";
+import "../libraries/SafeERC20.sol";
 
 import "../interfaces/IConfigurableRightsPool.sol";
 import "../interfaces/IFactory.sol";
@@ -16,6 +18,9 @@ import "../interfaces/IPool.sol";
 contract PoolMock is IPoolDef {
     // @dev Current tokens in the pool mocked
     address[] private _currentTokens;
+    mapping(address => uint) private _denormWeights;
+    mapping(address => uint) private _balances;
+    uint private _totalWeight;
 
     /**
      * @dev This is for fast setting token addresses for mocking purposes
@@ -90,10 +95,10 @@ contract PoolMock is IPoolDef {
         return (0, 0);
     }
 
-    function bind(address token, uint balance, uint denorm) external override pure {
-        token;
-        balance;
-        denorm;
+    function bind(address token, uint balance, uint denorm) external override {
+        _balances[token] = balance;
+        _denormWeights[token] = denorm;
+        _totalWeight += denorm;
         return;
     }
 
@@ -102,10 +107,11 @@ contract PoolMock is IPoolDef {
         return;
     }
 
-    function rebind(address token, uint balance, uint denorm) external override pure {
-        token;
-        balance;
-        denorm;
+    function rebind(address token, uint balance, uint denorm) external override {
+        _balances[token] = balance;
+        _totalWeight += denorm;
+        _totalWeight -= _denormWeights[token];
+        _denormWeights[token] = denorm;
         return;
     }
 
@@ -128,18 +134,16 @@ contract PoolMock is IPoolDef {
         return KassandraConstants.MIN_WEIGHT;
     }
 
-    function getTotalDenormalizedWeight() external override pure returns (uint) {
-        return 0;
+    function getTotalDenormalizedWeight() external override view returns (uint) {
+        return _totalWeight;
     }
 
-    function getNormalizedWeight(address token) external override pure returns (uint) {
-        token;
-        return 0;
+    function getNormalizedWeight(address token) external override view returns (uint) {
+        return KassandraSafeMath.bdiv(_denormWeights[token], _totalWeight);
     }
 
-    function getBalance(address token) external override pure returns (uint) {
-        token;
-        return 0;
+    function getBalance(address token) external override view returns (uint) {
+        return _balances[token];
     }
 
     function getSwapFee() external override pure returns (uint) {
@@ -173,6 +177,7 @@ contract CRPMock is IConfigurableRightsPoolDef {
     // @dev Current tokens in the pool mocked
     IPool private _corePool;
     IFactory private _coreFactory;
+    SmartPoolManager.NewTokenParams public override newToken;
 
     /**
      * @dev Set a pool that will be returned by corePool()
@@ -226,18 +231,20 @@ contract CRPMock is IConfigurableRightsPoolDef {
         return;
     }
 
-    function commitAddToken(address token, uint balance, uint denormalizedWeight) external override pure {
-        token;
-        balance;
-        denormalizedWeight;
+    function commitAddToken(address token, uint balance, uint denormalizedWeight) external override {
+        newToken.isCommitted = true;
+        newToken.addr = token;
+        newToken.commitBlock = 0;
+        newToken.denorm = denormalizedWeight;
+        newToken.balance = balance;
     }
 
-    function applyAddToken() external override pure {
-        return;
+    function applyAddToken() external override {
+        IERC20(newToken.addr).transferFrom(msg.sender, address(this), newToken.balance);
     }
 
-    function removeToken(address token) external override pure {
-        token;
+    function removeToken(address token) external override {
+        SafeERC20.safeTransfer(IERC20(token), msg.sender, _corePool.getBalance(token));
     }
 
     function mintPoolShareFromLib(uint amount) external override pure {

@@ -59,6 +59,14 @@ interface IConfigurableRightsPoolDef {
     function pullPoolShareFromLib(address from, uint amount) external;
     function burnPoolShareFromLib(uint amount) external;
 
+    function newToken() external view returns(
+        bool isCommitted,
+        address addr,
+        uint256 commitBlock,
+        uint256 denorm,
+        uint256 balance
+    );
+
     function corePool() external view returns(IPool);
 }
 
