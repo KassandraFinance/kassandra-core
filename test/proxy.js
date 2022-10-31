@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 const { assert, expect } = require('chai');
 const { parseEther } = require('ethers/lib/utils');
 const hre = require('hardhat');
@@ -15,6 +16,7 @@ describe('HermesProxy', () => {
     let corePool;
     let wizard;
     let refferal;
+    const oneLinchRouterV4 = '0x1111111254fb6c44bAC0beD2854e76F90643097d';
     const multisig = '0xFF56b00bDaEEf52C3EBb81B0efA6e28497305175';
     const yyAVAXonAAVE = '0xaAc0F2d0630d1D09ab2B5A400412a4840B866d95';
     const yyUSDCEonPlatypus = '0xb126FfC190D0fEBcFD7ca73e0dCB60405caabc90';
@@ -42,7 +44,7 @@ describe('HermesProxy', () => {
         communityStore = await CommunityStore.deploy();
         await communityStore.deployed();
         const HermesProxy = await hre.ethers.getContractFactory('HermesProxy', signer);
-        proxy = await HermesProxy.deploy(wAVAXtoken, communityStore.address);
+        proxy = await HermesProxy.deploy(wAVAXtoken, communityStore.address, oneLinchRouterV4);
         await proxy.deployed();
 
         const CRPFactory = await hre.ethers.getContractFactory('CRPFactory', {
@@ -584,7 +586,7 @@ describe('HermesProxy', () => {
             console.log(balanceK.toString());
         }
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             yyAVAXonAAVE,
             balanceA.div(100),
@@ -592,7 +594,7 @@ describe('HermesProxy', () => {
             hre.ethers.constants.AddressZero,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             yyPNGonPangolin,
             balanceP.div(100),
@@ -600,7 +602,7 @@ describe('HermesProxy', () => {
             hre.ethers.constants.AddressZero,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             yyUSDCEonPlatypus,
             balanceU.div(100),
@@ -608,7 +610,7 @@ describe('HermesProxy', () => {
             hre.ethers.constants.AddressZero,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             KACYtoken,
             balanceK.div(100),
@@ -675,7 +677,7 @@ describe('HermesProxy', () => {
             console.log(balanceK.toString());
         }
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             yyAVAXonAAVE,
             balanceA.div(100),
@@ -683,7 +685,7 @@ describe('HermesProxy', () => {
             refferal.address,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             yyPNGonPangolin,
             balanceP.div(100),
@@ -691,7 +693,7 @@ describe('HermesProxy', () => {
             refferal.address,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             yyUSDCEonPlatypus,
             balanceU.div(100),
@@ -699,7 +701,7 @@ describe('HermesProxy', () => {
             refferal.address,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             KACYtoken,
             balanceK.div(100),
@@ -739,8 +741,8 @@ describe('HermesProxy', () => {
             console.log(balanceK.div(100).toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
-        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
+        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).eq(balanceA.div(100)), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.sub(balancePn).eq(balanceP.div(100)), 'Amount of yyPNG is less than expected');
@@ -770,7 +772,7 @@ describe('HermesProxy', () => {
             console.log(balanceU.toString());
         }
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             wAVAXtoken,
             hre.ethers.utils.parseEther('0.02'),
@@ -779,15 +781,17 @@ describe('HermesProxy', () => {
             { value: hre.ethers.utils.parseEther('0.02') },
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,address,uint256,address,bytes)'](
             crpPoolAddr,
             wAVAXtoken,
             balanceWA.div(100),
+            wAVAXtoken,
             0,
             hre.ethers.constants.AddressZero,
+            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c7000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c0000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f000000000000000000000000000000000000000000000000000bb27994bcb8000000000000000000000000000000000000000000000000000005d93cca5e5c0000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100800000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000242e1a7d4d000000000000000000000000000000000000000000000000000bb27994bcb800000000000000000000000000000000000000000000000000000000000000000000000000000000001111111254fb6c44bac0bed2854e76f90643097d000000000000000000000000000000000000000000000000000bb27994bcb80000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000cfee7c08')
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             PNGtoken,
             balanceP.div(100),
@@ -795,13 +799,14 @@ describe('HermesProxy', () => {
             hre.ethers.constants.AddressZero,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             USDCeToken,
             balanceU.div(100),
             0,
             hre.ethers.constants.AddressZero,
         );
+
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
@@ -838,6 +843,46 @@ describe('HermesProxy', () => {
         assert.isTrue(balanceWA.sub(balanceWAn).eq(balanceWA.div(100)), 'Amount of wAVAX is less than expected');
     });
 
+    it('Can join with swap oneinch', async () => {
+        const Token = await hre.ethers.getContractFactory('TToken', signer);
+        const wAVAX = await Token.attach(wAVAXtoken);
+        const triCrypto = await Token.attach(crpPoolAddr);
+
+        const balanceWA = await wAVAX.balanceOf(multisig);
+        const balanceTriCrypto = await triCrypto.balanceOf(multisig);
+        const balanceTriCryptoWizard = await triCrypto.balanceOf(wizard.address);
+        const supplyTriCrypto = await triCrypto.totalSupply();
+
+        await proxy['joinswapExternAmountIn(address,address,uint256,address,uint256,address,bytes)'](
+            crpPoolAddr,
+            wAVAXtoken,
+            balanceWA.div(1000),
+            PNGtoken,
+            0,
+            hre.ethers.constants.AddressZero,
+            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c700000000000000000000000060781c2586d68229fde47564546784ab3faca982000000000000000000000000d7538cabbf8605bde1f4901b47b8d42c61de03670000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f00000000000000000000000000000000000000000000000000012873f8f7090000000000000000000000000000000000000000000000000000781bdd2de6a9a100000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a4b757fed6000000000000000000000000d7538cabbf8605bde1f4901b47b8d42c61de0367000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c700000000000000000000000060781c2586d68229fde47564546784ab3faca9820000000000000000002dc6c01111111254fb6c44bac0bed2854e76f90643097d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000cfee7c08'),
+        );
+
+        const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
+        const feesToManager = totalAmountSendTriCrypto.mul(
+            feesManager,
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        const balanceTriCrypton = await triCrypto.balanceOf(multisig);
+        const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
+        const balanceWAn = await wAVAX.balanceOf(multisig);
+
+        if (verbose) {
+            console.log(balanceWAn.toString());
+            console.log(hre.ethers.utils.parseEther('0.02').toString());
+            console.log(balanceWA.sub(balanceWAn).toString());
+            console.log(balanceWA.div(100).toString());
+        }
+
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
+        assert.isTrue(balanceWA.sub(balanceWAn).eq(balanceWA.div(1000)), 'Amount of wAVAX is less than expected');
+    });
+
     it('Can join with unwrapped tokens and send invest fees to refferal and manager', async () => {
         const Token = await hre.ethers.getContractFactory('TToken', signer);
         const wAVAX = await Token.attach(wAVAXtoken);
@@ -861,7 +906,7 @@ describe('HermesProxy', () => {
             console.log(balanceU.toString());
         }
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             wAVAXtoken,
             hre.ethers.utils.parseEther('0.02'),
@@ -870,15 +915,17 @@ describe('HermesProxy', () => {
             { value: hre.ethers.utils.parseEther('0.02') },
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,address,uint256,address,bytes)'](
             crpPoolAddr,
             wAVAXtoken,
             balanceWA.div(100),
+            wAVAXtoken,
             0,
             refferal.address,
+            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c7000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c0000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f00000000000000000000000000000000000000000000000000001da5327f1a8000000000000000000000000000000000000000000000000000000ed2993f8d4000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100800000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000242e1a7d4d00000000000000000000000000000000000000000000000000001da5327f1a80000000000000000000000000000000000000000000000000000000000000000000000000000000001111111254fb6c44bac0bed2854e76f90643097d00000000000000000000000000000000000000000000000000001da5327f1a8000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000cfee7c08')
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             PNGtoken,
             balanceP.div(100),
@@ -886,7 +933,7 @@ describe('HermesProxy', () => {
             refferal.address,
         );
 
-        await proxy.joinswapExternAmountIn(
+        await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
             crpPoolAddr,
             USDCeToken,
             balanceU.div(100),
@@ -1110,9 +1157,9 @@ describe('HermesProxy', () => {
             crpPoolAddr,
             yyAVAXonAAVE,
             hre.ethers.utils.parseEther('1.0'),
-            "1000000000000000000",
+            '1000000000000000000',
             hre.ethers.constants.AddressZero,
-        )).revertedWith("ERR_INVESTOR_NOT_ALLOWED");
+        )).revertedWith('ERR_INVESTOR_NOT_ALLOWED');
     });
 
     it('Can join private pool with underlying tokens and investor is allowed', async () => {

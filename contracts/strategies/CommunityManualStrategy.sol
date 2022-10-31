@@ -27,7 +27,7 @@ contract KassandraManualStrategy is Ownable {
      * @param crpPoolAddress - pool that will be manipulated
      */
     modifier onlyPoolManager(address crpPoolAddress) {
-        require(dataStore.poolToManager(crpPoolAddress) == msg.sender, "ERR_NOT_POOL_MANAGER");
+        require(dataStore.getPoolInfo(crpPoolAddress).manager == msg.sender, "ERR_NOT_POOL_MANAGER");
         _;
     }
 
