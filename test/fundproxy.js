@@ -138,20 +138,20 @@ describe('FundProxy', () => {
     it('should be able to create a fund if manager and token is allowed', async () => {
         const supply = parseEther('111');
         const feesToManager = parseEther('3');
-        const feesToRefferal = parseEther('1');
+        const feesToReferral = parseEther('1');
         await communityStore.whitelistToken(KACYtoken, true);
 
         const addressCrp = await fundProxy.connect(manager).callStatic
-            .newFund(poolParams, supply, feesToManager, feesToRefferal, false);
+            .newFund(poolParams, supply, feesToManager, feesToReferral, false);
         await fundProxy.connect(manager)
-            .newFund(poolParams, supply, feesToManager, feesToRefferal, false);
+            .newFund(poolParams, supply, feesToManager, feesToReferral, false);
 
         const crp = await hre.ethers.getContractAt(IConfigurableRightsPoolDef, addressCrp);
         const core = await hre.ethers.getContractAt(COREPOOL, await crp.corePool());
         assert.strictEqual(await crp.totalSupply(), supply);
         assert.strictEqual((await communityStore.getPoolInfo(addressCrp))[0], manager.address);
         assert.strictEqual((await communityStore.getPoolInfo(addressCrp))[1], feesToManager);
-        assert.strictEqual((await communityStore.getPoolInfo(addressCrp))[2], feesToRefferal);
+        assert.strictEqual((await communityStore.getPoolInfo(addressCrp))[2], feesToReferral);
         assert.strictEqual(await crp.balanceOf(manager.address), supply);
         for (let index = 0; index < poolParams.constituentTokens.length; index++) {
             const token = poolParams.constituentTokens[index];
@@ -163,16 +163,16 @@ describe('FundProxy', () => {
     it('should be able to create a fund if manager and token is allowed', async () => {
         const supply = parseEther('111');
         const feesToManager = parseEther('3');
-        const feesToRefferal = parseEther('1');
+        const feesToReferral = parseEther('1');
         const qtAllowedToCreateFunds = await fundProxy.managers(manager.address);
 
         for (let index = 0; index < qtAllowedToCreateFunds; index++) {
             await fundProxy.connect(manager)
-                .newFund(poolParams, supply, feesToManager, feesToRefferal, false);
+                .newFund(poolParams, supply, feesToManager, feesToReferral, false);
         }
 
         expect(fundProxy.connect(manager)
-            .newFund(poolParams, supply, feesToManager, feesToRefferal, false))
+            .newFund(poolParams, supply, feesToManager, feesToReferral, false))
             .revertedWith('ERR_NOT_ALLOWED_TO_CREATE_FUND');
     });
 });

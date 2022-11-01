@@ -43,7 +43,7 @@ contract KassandraCommunityStore is IKassandraCommunityStore, Ownable {
         address poolAddress,
         address poolCreator,
         uint256 feesToManager,
-        uint256 feesToRefferal,
+        uint256 feesToReferral,
         bool isPrivate
     ) external override {
         require(poolAddress != address(0), "ERR_POOL_ADDRESS_ZERO");
@@ -51,7 +51,7 @@ contract KassandraCommunityStore is IKassandraCommunityStore, Ownable {
         require(_writers[msg.sender], "ERR_NOT_ALLOWED_WRITER");
         _poolInfo[poolAddress].manager = poolCreator;
         _poolInfo[poolAddress].feesToManager = feesToManager;
-        _poolInfo[poolAddress].feesToRefferal = feesToRefferal;
+        _poolInfo[poolAddress].feesToReferral = feesToReferral;
         _poolInfo[poolAddress].isPrivate = isPrivate;
     }
 

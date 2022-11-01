@@ -23,7 +23,6 @@ module.exports = {
     },
     networks: {
         hardhat: {
-            allowUnlimitedContractSize: true,
             forking: {
                 url: 'https://api.avax.network/ext/bc/C/rpc',
                 blockNumber: 21490777,

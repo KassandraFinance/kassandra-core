@@ -67,7 +67,7 @@ contract FundProxy is Ownable {
         ConfigurableRightsPool.PoolParams calldata poolParams,
         uint256 initialSupply,
         uint256 feesToManager,
-        uint256 feesToRefferal,
+        uint256 feesToReferral,
         bool isPrivate
     ) external returns (ConfigurableRightsPool) {
         require(managers[msg.sender] > 0, "ERR_NOT_ALLOWED_TO_CREATE_FUND");
@@ -91,7 +91,7 @@ contract FundProxy is Ownable {
             address(crpPool),
             msg.sender,
             feesToManager,
-            feesToRefferal,
+            feesToReferral,
             isPrivate
         );
         managers[msg.sender] -= 1;

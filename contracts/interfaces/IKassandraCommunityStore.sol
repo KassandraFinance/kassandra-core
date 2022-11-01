@@ -5,7 +5,7 @@ interface IKassandraCommunityStore {
     struct PoolInfo {
         address manager;
         uint256 feesToManager;
-        uint256 feesToRefferal;
+        uint256 feesToReferral;
         bool isPrivate;
     }
 
@@ -35,7 +35,7 @@ interface IKassandraCommunityStore {
         address poolAddress,
         address poolCreator,
         uint256 feesToManager,
-        uint256 feesToRefferal,
+        uint256 feesToReferral,
         bool isPrivate
     ) external;
 }

@@ -37,10 +37,10 @@ contract HermesProxy is Ownable {
         address indexed crpPool,
         address indexed corePool,
         address indexed tokenIn,
-        address wrappedToken,
-        string depositSignature,
-        string withdrawSignature,
-        string exchangeSignature
+        address         wrappedToken,
+        string          depositSignature,
+        string          withdrawSignature,
+        string          exchangeSignature
     );
 
     /**
@@ -135,7 +135,7 @@ contract HermesProxy is Ownable {
         uint256 poolAmountOut,
         address[] calldata tokensIn,
         uint256[] calldata maxAmountsIn,
-        address refferal
+        address referral
     ) external payable {
         uint256[] memory underlyingMaxAmountsIn = new uint256[](maxAmountsIn.length);
         address[] memory underlyingTokens = new address[](maxAmountsIn.length);
@@ -156,20 +156,20 @@ contract HermesProxy is Ownable {
             );
             uint256 _poolAmountOut = KassandraSafeMath.bdiv(
                 poolAmountOut,
-                KassandraConstants.ONE - poolInfo.feesToManager - poolInfo.feesToRefferal
+                KassandraConstants.ONE - poolInfo.feesToManager - poolInfo.feesToReferral
             );
             uint256 _feesToManager = KassandraSafeMath.bmul(_poolAmountOut, poolInfo.feesToManager);
-            uint256 _feesToRefferal = KassandraSafeMath.bmul(_poolAmountOut, poolInfo.feesToRefferal);
+            uint256 _feesToReferral = KassandraSafeMath.bmul(_poolAmountOut, poolInfo.feesToReferral);
             IConfigurableRightsPool(crpPool).joinPool(_poolAmountOut, underlyingMaxAmountsIn);
 
-            if (refferal == address(0)) {
-                refferal = poolInfo.manager;
+            if (referral == address(0)) {
+                referral = poolInfo.manager;
             }
 
             IERC20 crpPoolToken = IERC20(crpPool);
             crpPoolToken.safeTransfer(msg.sender, poolAmountOut);
             crpPoolToken.safeTransfer(poolInfo.manager, _feesToManager);
-            crpPoolToken.safeTransfer(refferal, _feesToRefferal);
+            crpPoolToken.safeTransfer(referral, _feesToReferral);
         }
 
         for (uint256 i = 0; i < tokensIn.length; i++) {
@@ -240,41 +240,42 @@ contract HermesProxy is Ownable {
         address tokenIn,
         uint256 tokenAmountIn,
         uint256 minPoolAmountOut,
-        address refferal
+        address referral
     ) external payable returns (uint256 poolAmountOut) {
         if(msg.value == 0) {
             IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), tokenAmountIn);
+        } else {
+            tokenAmountIn = 0;
         }
         
-        return _joinswapExternAmountIn(crpPool, tokenIn, tokenAmountIn, minPoolAmountOut, refferal);
+        return _joinswapExternAmountIn(crpPool, tokenIn, tokenAmountIn, minPoolAmountOut, referral);
     }
 
-    function joinswapExternAmountIn(        
+    function joinswapExternAmountIn(
         address crpPool,
         address tokenIn,
         uint256 amoutTokenIn,
         address tokenExchange,
         uint256 minPoolAmountOut,
-        address refferal,
+        address referral,
         bytes calldata data
     ) external payable returns (uint256 poolAmountOut) {
         uint balanceTokenExchange = IERC20(tokenExchange).balanceOf(address(this));
 
         if(msg.value == 0) {
             IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amoutTokenIn);
-        }
-
-        if (IERC20(tokenIn).allowance(address(this), swapProvider) < amoutTokenIn) {
-            IERC20(tokenIn).safeApprove(swapProvider, type(uint256).max);
+            if (IERC20(tokenIn).allowance(address(this), swapProvider) < amoutTokenIn) {
+                IERC20(tokenIn).safeApprove(swapProvider, type(uint256).max);
+            }
         }
 
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory response) = swapProvider.call{value: msg.value}(data);
+        (bool success, bytes memory response) = swapProvider.call{ value: msg.value }(data);
         require(success, string(response));
 
         balanceTokenExchange = IERC20(tokenExchange).balanceOf(address(this)) - balanceTokenExchange;
 
-        poolAmountOut = _joinswapExternAmountIn(crpPool, tokenExchange, balanceTokenExchange, minPoolAmountOut, refferal);
+        poolAmountOut = _joinswapExternAmountIn(crpPool, tokenExchange, balanceTokenExchange, minPoolAmountOut, referral);
     }
 
     /**
@@ -295,12 +296,13 @@ contract HermesProxy is Ownable {
         address tokenIn,
         uint256 poolAmountOut,
         uint256 maxAmountIn,
-        address refferal
+        address referral
     ) external payable returns (uint256 tokenAmountIn) {
-        // uint256 underlyingTokenAmountIn;
         // get tokens from user and wrap it if necessary
         if(msg.value == 0) {
             IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), maxAmountIn);
+        } else {
+            maxAmountIn = 0;
         }
 
         (address underlyingTokenIn, uint256 underlyingMaxAmountIn) = _wrapTokenIn(crpPool, tokenIn, maxAmountIn);
@@ -312,15 +314,15 @@ contract HermesProxy is Ownable {
         );
         uint256 _poolAmountOut = KassandraSafeMath.bdiv(
             poolAmountOut,
-            KassandraConstants.ONE - poolInfo.feesToManager - poolInfo.feesToRefferal
+            KassandraConstants.ONE - poolInfo.feesToManager - poolInfo.feesToReferral
         );
         uint256 _feesToManager = KassandraSafeMath.bmul(
             _poolAmountOut,
             poolInfo.feesToManager
         );
-        uint256 _feesToRefferal = KassandraSafeMath.bmul(
+        uint256 _feesToReferral = KassandraSafeMath.bmul(
             _poolAmountOut,
-            poolInfo.feesToRefferal
+            poolInfo.feesToReferral
         );
 
         // execute join and get amount of underlying tokens used
@@ -331,13 +333,13 @@ contract HermesProxy is Ownable {
                 underlyingMaxAmountIn
             );
 
-        if (refferal == address(0)) {
-            refferal = poolInfo.manager;
+        if (referral == address(0)) {
+            referral = poolInfo.manager;
         }
 
         IERC20(crpPool).safeTransfer(msg.sender, poolAmountOut);
         IERC20(crpPool).safeTransfer(poolInfo.manager, _feesToManager);
-        IERC20(crpPool).safeTransfer(refferal, _feesToRefferal);
+        IERC20(crpPool).safeTransfer(referral, _feesToReferral);
 
         uint256 excessTokens = _unwrapTokenOut(
             crpPool,
@@ -484,12 +486,12 @@ contract HermesProxy is Ownable {
         minAmountOut = KassandraSafeMath.bmul(minAmountOut, tokenOutExchange);
         // do the swap and get the output
         (uint256 underlyingTokenAmountOut, uint256 underlyingSpotPriceAfter) = IPool(corePool).swapExactAmountIn(
-                underlyingTokenIn,
-                tokenAmountIn,
-                underlyingTokenOut,
-                minAmountOut,
-                maxPrice
-            );
+            underlyingTokenIn,
+            tokenAmountIn,
+            underlyingTokenOut,
+            minAmountOut,
+            maxPrice
+        );
         tokenAmountOut = _unwrapTokenOut(corePool, tokenOut, underlyingTokenOut, underlyingTokenAmountOut);
         spotPriceAfter = KassandraSafeMath.bdiv(
             KassandraSafeMath.bmul(underlyingSpotPriceAfter, tokenInExchange),
@@ -655,7 +657,9 @@ contract HermesProxy is Ownable {
         uint256 avaxIn;
 
         if (tokenIn == wNativeToken) {
-            avaxIn = msg.value;
+            if (tokenAmountIn == 0) {
+                avaxIn = msg.value;
+            }
 
             if (address(this).balance > 0) { 
                 avaxIn = address(this).balance; 
@@ -670,7 +674,7 @@ contract HermesProxy is Ownable {
 
             bytes memory callData = abi.encodePacked(wrappers[pool][tokenIn].deposit, tokenAmountIn);
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success, bytes memory response) = wrappedTokenIn.call{value: avaxIn}(callData);
+            (bool success, bytes memory response) = wrappedTokenIn.call{ value: avaxIn }(callData);
             require(success, string(response));
             wrappedTokenAmountIn = IERC20(wrappedTokenIn).balanceOf(address(this));
         }
@@ -718,7 +722,7 @@ contract HermesProxy is Ownable {
         address tokenIn,
         uint256 tokenAmountIn,
         uint256 minPoolAmountOut,
-        address refferal
+        address referral
         ) private returns (uint256 poolAmountOut) {
 
         // get tokens from user and wrap it if necessary
@@ -737,16 +741,16 @@ contract HermesProxy is Ownable {
             "ERR_INVESTOR_NOT_ALLOWED"
         );
         uint256 _feesToManager = KassandraSafeMath.bmul(poolAmountOut, poolInfo.feesToManager);
-        uint256 _feesToRefferal = KassandraSafeMath.bmul(poolAmountOut, poolInfo.feesToRefferal);
-        uint256 _poolAmountOut = poolAmountOut - (_feesToRefferal + _feesToManager);
+        uint256 _feesToReferral = KassandraSafeMath.bmul(poolAmountOut, poolInfo.feesToReferral);
+        uint256 _poolAmountOut = poolAmountOut - (_feesToReferral + _feesToManager);
 
-        if (refferal == address(0)) {
-            refferal = poolInfo.manager;
+        if (referral == address(0)) {
+            referral = poolInfo.manager;
         }
 
         IERC20(crpPool).safeTransfer(msg.sender, _poolAmountOut);
         IERC20(crpPool).safeTransfer(poolInfo.manager, _feesToManager);
-        IERC20(crpPool).safeTransfer(refferal, _feesToRefferal);
+        IERC20(crpPool).safeTransfer(referral, _feesToReferral);
     }
 
     receive() external payable {}

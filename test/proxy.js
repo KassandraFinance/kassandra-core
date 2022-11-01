@@ -8,14 +8,14 @@ const verbose = process.env.VERBOSE;
 
 describe('HermesProxy', () => {
     const feesManager = hre.ethers.BigNumber.from('20000000000000000');
-    const feesRefferal = hre.ethers.BigNumber.from('10000000000000000');
+    const feesReferral = hre.ethers.BigNumber.from('10000000000000000');
     let proxy;
     let communityStore;
     let signer;
     let crpPoolAddr = 0;
     let corePool;
     let wizard;
-    let refferal;
+    let referral;
     const oneLinchRouterV4 = '0x1111111254fb6c44bAC0beD2854e76F90643097d';
     const multisig = '0xFF56b00bDaEEf52C3EBb81B0efA6e28497305175';
     const yyAVAXonAAVE = '0xaAc0F2d0630d1D09ab2B5A400412a4840B866d95';
@@ -27,9 +27,9 @@ describe('HermesProxy', () => {
     const wAVAXtoken = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7';
 
     before(async () => {
-        const [owner, _wizard, _refferal] = await hre.ethers.getSigners();
+        const [owner, _wizard, _referral] = await hre.ethers.getSigners();
         wizard = _wizard;
-        refferal = _refferal;
+        referral = _referral;
         await owner.sendTransaction({
             to: multisig,
             value: hre.ethers.utils.parseEther('50.0'),
@@ -150,7 +150,7 @@ describe('HermesProxy', () => {
             crpPoolAddr,
             wizard.address,
             feesManager,
-            feesRefferal,
+            feesReferral,
             fundIsPrivate,
         );
 
@@ -621,7 +621,7 @@ describe('HermesProxy', () => {
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
-        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesReferral).div(parseEther('1')));
 
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = await triCrypto.balanceOf(wizard.address);
@@ -646,7 +646,7 @@ describe('HermesProxy', () => {
             console.log(balanceK.div(100).toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).eq(balanceA.div(100)), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.sub(balancePn).eq(balanceP.div(100)), 'Amount of yyPNG is less than expected');
@@ -682,7 +682,7 @@ describe('HermesProxy', () => {
             yyAVAXonAAVE,
             balanceA.div(100),
             0,
-            refferal.address,
+            referral.address,
         );
 
         await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
@@ -690,7 +690,7 @@ describe('HermesProxy', () => {
             yyPNGonPangolin,
             balanceP.div(100),
             0,
-            refferal.address,
+            referral.address,
         );
 
         await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
@@ -698,7 +698,7 @@ describe('HermesProxy', () => {
             yyUSDCEonPlatypus,
             balanceU.div(100),
             0,
-            refferal.address,
+            referral.address,
         );
 
         await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
@@ -706,20 +706,20 @@ describe('HermesProxy', () => {
             KACYtoken,
             balanceK.div(100),
             0,
-            refferal.address,
+            referral.address,
         );
 
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
         ).div(parseEther('1'));
-        const feesToRefferal = totalAmountSendTriCrypto.mul(
-            feesRefferal,
+        const feesToReferral = totalAmountSendTriCrypto.mul(
+            feesReferral,
         ).div(parseEther('1'));
 
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoManager);
-        const balanceTriCryptor = await triCrypto.balanceOf(refferal.address);
+        const balanceTriCryptor = await triCrypto.balanceOf(referral.address);
         const balanceAn = await yyAVAX.balanceOf(multisig);
         const balancePn = await yyPNG.balanceOf(multisig);
         const balanceUn = await yyUSDCe.balanceOf(multisig);
@@ -742,7 +742,7 @@ describe('HermesProxy', () => {
         }
 
         assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
-        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 1);
+        assert.isAtMost(feesToReferral.sub(balanceTriCryptor).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).eq(balanceA.div(100)), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.sub(balancePn).eq(balanceP.div(100)), 'Amount of yyPNG is less than expected');
@@ -788,7 +788,7 @@ describe('HermesProxy', () => {
             wAVAXtoken,
             0,
             hre.ethers.constants.AddressZero,
-            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c7000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c0000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f000000000000000000000000000000000000000000000000000bb27994bcb8000000000000000000000000000000000000000000000000000005d93cca5e5c0000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100800000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000242e1a7d4d000000000000000000000000000000000000000000000000000bb27994bcb800000000000000000000000000000000000000000000000000000000000000000000000000000000001111111254fb6c44bac0bed2854e76f90643097d000000000000000000000000000000000000000000000000000bb27994bcb80000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000cfee7c08')
+            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c7000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c0000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f000000000000000000000000000000000000000000000000000bb27994bcb8000000000000000000000000000000000000000000000000000005d93cca5e5c0000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100800000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000242e1a7d4d000000000000000000000000000000000000000000000000000bb27994bcb800000000000000000000000000000000000000000000000000000000000000000000000000000000001111111254fb6c44bac0bed2854e76f90643097d000000000000000000000000000000000000000000000000000bb27994bcb80000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000cfee7c08'),
         );
 
         await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
@@ -810,7 +810,7 @@ describe('HermesProxy', () => {
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
-        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesReferral).div(parseEther('1')));
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
         const balanceAn = await signer.getBalance();
@@ -834,7 +834,7 @@ describe('HermesProxy', () => {
             console.log(balanceWA.div(100).toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).gt(hre.ethers.utils.parseEther('0.02')), 'AVAX is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).lt(hre.ethers.utils.parseEther('0.04')), 'AVAX is less than expected');
@@ -866,7 +866,7 @@ describe('HermesProxy', () => {
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
-        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesReferral).div(parseEther('1')));
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
         const balanceWAn = await wAVAX.balanceOf(multisig);
@@ -878,12 +878,12 @@ describe('HermesProxy', () => {
             console.log(balanceWA.div(100).toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceWA.sub(balanceWAn).eq(balanceWA.div(1000)), 'Amount of wAVAX is less than expected');
     });
 
-    it('Can join with unwrapped tokens and send invest fees to refferal and manager', async () => {
+    it('Can join with unwrapped tokens and send invest fees to referral and manager', async () => {
         const Token = await hre.ethers.getContractFactory('TToken', signer);
         const wAVAX = await Token.attach(wAVAXtoken);
         const PNG = await Token.attach(PNGtoken);
@@ -896,7 +896,7 @@ describe('HermesProxy', () => {
         const balanceU = await USDCe.balanceOf(multisig);
         const balanceTriCrypto = await triCrypto.balanceOf(multisig);
         const balanceTriCryptoWizard = await triCrypto.balanceOf(wizard.address);
-        const balanceTriCryptoRefferal = await triCrypto.balanceOf(refferal.address);
+        const balanceTriCryptoReferral = await triCrypto.balanceOf(referral.address);
         const supplyTriCrypto = await triCrypto.totalSupply();
 
         if (verbose) {
@@ -911,7 +911,7 @@ describe('HermesProxy', () => {
             wAVAXtoken,
             hre.ethers.utils.parseEther('0.02'),
             0,
-            refferal.address,
+            referral.address,
             { value: hre.ethers.utils.parseEther('0.02') },
         );
 
@@ -921,8 +921,8 @@ describe('HermesProxy', () => {
             balanceWA.div(100),
             wAVAXtoken,
             0,
-            refferal.address,
-            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c7000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c0000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f00000000000000000000000000000000000000000000000000001da5327f1a8000000000000000000000000000000000000000000000000000000ed2993f8d4000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100800000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000242e1a7d4d00000000000000000000000000000000000000000000000000001da5327f1a80000000000000000000000000000000000000000000000000000000000000000000000000000000001111111254fb6c44bac0bed2854e76f90643097d00000000000000000000000000000000000000000000000000001da5327f1a8000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000cfee7c08')
+            referral.address,
+            hre.ethers.utils.arrayify('0x7c0252000000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c00000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000180000000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c7000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000004e66794586cc9c53a8c604d77b4ce3d39b1cff7c0000000000000000000000004fddf1b84b173d21ce200d4d942a915a64e72d9f00000000000000000000000000000000000000000000000000001da5327f1a8000000000000000000000000000000000000000000000000000000ed2993f8d4000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100800000000000000000000000b31f66aa3c1e785363f0875a1b74e27b85fd66c70000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000242e1a7d4d00000000000000000000000000000000000000000000000000001da5327f1a80000000000000000000000000000000000000000000000000000000000000000000000000000000001111111254fb6c44bac0bed2854e76f90643097d00000000000000000000000000000000000000000000000000001da5327f1a8000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000cfee7c08'),
         );
 
         await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
@@ -930,7 +930,7 @@ describe('HermesProxy', () => {
             PNGtoken,
             balanceP.div(100),
             0,
-            refferal.address,
+            referral.address,
         );
 
         await proxy['joinswapExternAmountIn(address,address,uint256,uint256,address)'](
@@ -938,19 +938,19 @@ describe('HermesProxy', () => {
             USDCeToken,
             balanceU.div(100),
             0,
-            refferal.address,
+            referral.address,
         );
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
         ).div(parseEther('1'));
-        const feesToRefferal = totalAmountSendTriCrypto.mul(
-            feesRefferal,
+        const feesToReferral = totalAmountSendTriCrypto.mul(
+            feesReferral,
         ).div(parseEther('1'));
 
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
-        const balanceTriCryptor = (await triCrypto.balanceOf(refferal.address)).sub(balanceTriCryptoRefferal);
+        const balanceTriCryptor = (await triCrypto.balanceOf(referral.address)).sub(balanceTriCryptoReferral);
         const balanceAn = await signer.getBalance();
         const balanceWAn = await wAVAX.balanceOf(multisig);
         const balancePn = await PNG.balanceOf(multisig);
@@ -972,8 +972,8 @@ describe('HermesProxy', () => {
             console.log(balanceWA.div(100).toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
-        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
+        assert.isAtMost(feesToReferral.sub(balanceTriCryptor).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.gt(balanceTriCrypto), 'Amount of Tri Crypto is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).gt(hre.ethers.utils.parseEther('0.02')), 'AVAX is less than expected');
         assert.isTrue(balanceA.sub(balanceAn).lt(hre.ethers.utils.parseEther('0.04')), 'AVAX is less than expected');
@@ -1040,7 +1040,7 @@ describe('HermesProxy', () => {
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
-        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesReferral).div(parseEther('1')));
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
         const balanceAn = await yyAVAX.balanceOf(multisig);
@@ -1055,7 +1055,7 @@ describe('HermesProxy', () => {
             console.log(balanceKn.toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
         assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
@@ -1063,7 +1063,7 @@ describe('HermesProxy', () => {
         assert.isTrue(balanceK.gt(balanceKn), 'Amount of KACY is less than expected');
     });
 
-    it('Can join with underlying tokens and send invest fees to refferal and manager', async () => {
+    it('Can join with underlying tokens and send invest fees to referral and manager', async () => {
         const Token = await hre.ethers.getContractFactory('TToken', signer);
         const yyAVAX = await Token.attach(yyAVAXonAAVE);
         const yyPNG = await Token.attach(yyPNGonPangolin);
@@ -1077,7 +1077,7 @@ describe('HermesProxy', () => {
         const balanceK = await KACY.balanceOf(multisig);
         const balanceTriCrypto = await triCrypto.balanceOf(multisig);
         const balanceTriCryptoWizard = await triCrypto.balanceOf(wizard.address);
-        const balanceTriCryptoRefferal = await triCrypto.balanceOf(refferal.address);
+        const balanceTriCryptoReferral = await triCrypto.balanceOf(referral.address);
         const supplyTriCrypto = await triCrypto.totalSupply();
 
         if (verbose) {
@@ -1092,7 +1092,7 @@ describe('HermesProxy', () => {
             yyAVAXonAAVE,
             hre.ethers.utils.parseEther('1.0'),
             balanceA.div(2),
-            refferal.address,
+            referral.address,
         );
 
         await proxy.joinswapPoolAmountOut(
@@ -1100,7 +1100,7 @@ describe('HermesProxy', () => {
             yyPNGonPangolin,
             hre.ethers.utils.parseEther('1.0'),
             balanceP.div(2),
-            refferal.address,
+            referral.address,
         );
 
         await proxy.joinswapPoolAmountOut(
@@ -1108,7 +1108,7 @@ describe('HermesProxy', () => {
             yyUSDCEonPlatypus,
             hre.ethers.utils.parseEther('1.0'),
             balanceU.div(2),
-            refferal.address,
+            referral.address,
         );
 
         await proxy.joinswapPoolAmountOut(
@@ -1116,20 +1116,20 @@ describe('HermesProxy', () => {
             KACYtoken,
             hre.ethers.utils.parseEther('1.0'),
             balanceK.div(2),
-            refferal.address,
+            referral.address,
         );
 
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
         ).div(parseEther('1'));
-        const feesToRefferal = totalAmountSendTriCrypto.mul(
-            feesRefferal,
+        const feesToReferral = totalAmountSendTriCrypto.mul(
+            feesReferral,
         ).div(parseEther('1'));
 
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
-        const balanceTriCryptor = (await triCrypto.balanceOf(refferal.address)).sub(balanceTriCryptoRefferal);
+        const balanceTriCryptor = (await triCrypto.balanceOf(referral.address)).sub(balanceTriCryptoReferral);
         const balanceAn = await yyAVAX.balanceOf(multisig);
         const balancePn = await yyPNG.balanceOf(multisig);
         const balanceUn = await yyUSDCe.balanceOf(multisig);
@@ -1142,8 +1142,8 @@ describe('HermesProxy', () => {
             console.log(balanceKn.toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
-        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
+        assert.isAtMost(feesToReferral.sub(balanceTriCryptor).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
         assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
@@ -1221,7 +1221,7 @@ describe('HermesProxy', () => {
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
-        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesReferral).div(parseEther('1')));
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
         const balanceAn = await yyAVAX.balanceOf(multisig);
@@ -1236,7 +1236,7 @@ describe('HermesProxy', () => {
             console.log(balanceKn.toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('4.0')), 'Wrong amount');
         assert.isTrue(balanceA.gt(balanceAn), 'Amount of yyAVAX is less than expected');
         assert.isTrue(balanceP.gt(balancePn), 'Amount of yyPNG is less than expected');
@@ -1299,7 +1299,7 @@ describe('HermesProxy', () => {
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
-        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesRefferal).div(parseEther('1')));
+        ).div(parseEther('1')).add(totalAmountSendTriCrypto.mul(feesReferral).div(parseEther('1')));
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
         const balanceAn = await signer.getBalance();
@@ -1314,7 +1314,7 @@ describe('HermesProxy', () => {
             console.log(balanceUn.toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('2.0')), 'Wrong amount');
         // assert.isTrue(balanceA.lt(hre.ethers.utils.parseEther('1.0')), 'Amount of AVAX is more than expected');
         // assert.isTrue(balanceA.gt(balanceAn), 'Amount of AVAX is less than expected');
@@ -1336,7 +1336,7 @@ describe('HermesProxy', () => {
         const balanceWA = await wAVAX.balanceOf(multisig);
         const balanceTriCrypto = await triCrypto.balanceOf(multisig);
         const balanceTriCryptoWizard = await triCrypto.balanceOf(wizard.address);
-        const balanceTriCryptoRefferal = await triCrypto.balanceOf(refferal.address);
+        const balanceTriCryptoReferral = await triCrypto.balanceOf(referral.address);
         const supplyTriCrypto = await triCrypto.totalSupply();
 
         if (verbose) {
@@ -1366,7 +1366,7 @@ describe('HermesProxy', () => {
             PNGtoken,
             hre.ethers.utils.parseEther('1.0'),
             balanceP.div(2),
-            refferal.address,
+            referral.address,
         );
 
         await proxy.joinswapPoolAmountOut(
@@ -1374,19 +1374,19 @@ describe('HermesProxy', () => {
             USDCeToken,
             hre.ethers.utils.parseEther('1.0'),
             balanceU.div(2),
-            refferal.address,
+            referral.address,
         );
         const totalAmountSendTriCrypto = (await triCrypto.totalSupply()).sub(supplyTriCrypto);
         const feesToManager = totalAmountSendTriCrypto.mul(
             feesManager,
         ).div(parseEther('1'));
-        const feesToRefferal = totalAmountSendTriCrypto.mul(
-            feesRefferal,
+        const feesToReferral = totalAmountSendTriCrypto.mul(
+            feesReferral,
         ).div(parseEther('1'));
 
         const balanceTriCrypton = await triCrypto.balanceOf(multisig);
         const balanceTriCryptow = (await triCrypto.balanceOf(wizard.address)).sub(balanceTriCryptoWizard);
-        const balanceTriCryptor = (await triCrypto.balanceOf(refferal.address)).sub(balanceTriCryptoRefferal);
+        const balanceTriCryptor = (await triCrypto.balanceOf(referral.address)).sub(balanceTriCryptoReferral);
         const balanceAn = await signer.getBalance();
         const balanceWAn = await wAVAX.balanceOf(multisig);
         const balancePn = await PNG.balanceOf(multisig);
@@ -1399,8 +1399,8 @@ describe('HermesProxy', () => {
             console.log(balanceUn.toString());
         }
 
-        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 10 ** -16);
-        assert.isAtMost(feesToRefferal.sub(balanceTriCryptor).toNumber(), 10 ** -16);
+        assert.isAtMost(feesToManager.sub(balanceTriCryptow).toNumber(), 1);
+        assert.isAtMost(feesToReferral.sub(balanceTriCryptor).toNumber(), 1);
         assert.isTrue(balanceTriCrypton.sub(balanceTriCrypto).eq(hre.ethers.utils.parseEther('2.0')), 'Wrong amount');
         // assert.isTrue(balanceA.lt(hre.ethers.utils.parseEther('1.0')), 'Amount of AVAX is more than expected');
         // assert.isTrue(balanceA.gt(balanceAn), 'Amount of AVAX is less than expected');
