@@ -33,6 +33,19 @@ contract HermesProxy is Ownable {
 
     mapping(address => mapping(address => Wrappers)) public wrappers;
 
+    /**
+     * @notice Emitted when a token has been set to be wrapped before entering the pool.
+     *         This allows the pool to use some uncommon wrapped token, like an autocompounding
+     *         protocol, while allowing the user to spend the common token being wrapped.
+     *
+     * @param crpPool - CRP address that uses this token
+     * @param corePool - Core pool of the above CRP
+     * @param tokenIn - Token that is not part of the pool but that will be made available for wrapping
+     * @param wrappedToken - Underlying token the above token will be wrapped into, this is the token in the pool
+     * @param depositSignature - Function signature for the wrapping function
+     * @param withdrawSignature - Function signature for the unwrapping function
+     * @param exchangeSignature - Function signature for the exchange rate function
+     */
     event NewWrapper(
         address indexed crpPool,
         address indexed corePool,
@@ -47,8 +60,8 @@ contract HermesProxy is Ownable {
      * @notice Set the native token address on creation as it can't be changed
      *
      * @param wNative - The wrapped native blockchain token contract
-     * @param communityStore_ - Address where contains the whitelist
-     * @param swapProvider_ - Address where contains aggregation router
+     * @param communityStore_ - Address of contract that holds the list of whitelisted tokens
+     * @param swapProvider_ - Address of a DEX contract that allows swapping tokens
      */
     constructor(
         address wNative,
@@ -106,14 +119,19 @@ contract HermesProxy is Ownable {
         );
     }
 
+    /**
+     * @dev Change Swap Provider contract
+     *
+     * @param newSwapProvider - Address of a DEX contract that allows swapping tokens
+     */
     function setSwapProvider(address newSwapProvider) external onlyOwner {
         swapProvider = newSwapProvider;
     }
 
     /**
-     * @dev Update Community Store where contains the whitelist
+     * @dev Change Community Store contract
      *
-     * @param newCommunityStore - Community store address where contains the whitelist
+     * @param newCommunityStore - Address of contract that holds the list of whitelisted tokens
      */
     function updateCommunityStore(address newCommunityStore) external onlyOwner {
         require(newCommunityStore != address(0), "ERR_ZERO_ADDRESS");
@@ -255,7 +273,8 @@ contract HermesProxy is Ownable {
     }
 
     /**
-     * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
+     * @notice Join by swapping a fixed amount of an external token in using a DEX provider to swap the token
+     *         (the token does not need to be present in the pool)
      *         System calculates the pool token amount
      *
      * @dev emits a LogJoin event
@@ -667,6 +686,16 @@ contract HermesProxy is Ownable {
         }
     }
 
+    /**
+     * @dev Wraps the token sent if necessary, it won't do anything if there's no wrapping to be done.
+     *
+     * @param pool - CRP or Core pool address
+     * @param tokenIn - Address of the token sent by the user
+     * @param tokenAmountIn - The amount of tokenIn
+     *
+     * @return wrappedTokenIn - Address of the wrapped token
+     * @return wrappedTokenAmountIn - The amount of wrappedTokenIn
+     */
     function _wrapTokenIn(
         address pool,
         address tokenIn,
@@ -704,6 +733,17 @@ contract HermesProxy is Ownable {
         }
     }
 
+    /**
+     * @dev Unwraps the token received if necessary, it won't do anything if there's no unwrapping to be done.
+     *      The user may request to receive the wrapped token, in this case we won't unwrap too.
+     *
+     * @param pool - CRP or Core pool address
+     * @param tokenOut - Address of the token requested by the user
+     * @param wrappedTokenOut - Address of the token received from the pool
+     * @param tokenAmountOut - The amount of tokenOut
+     *
+     * @return unwrappedTokenAmountOut - The amount of tokens to be sent to the user
+     */
     function _unwrapTokenOut(
         address pool,
         address tokenOut,
@@ -735,6 +775,21 @@ contract HermesProxy is Ownable {
         return unwrappedTokenAmountOut;
     }
 
+    /**
+     * @dev Join by swapping a fixed amount of an external token in (must be present in the pool)
+     *      System calculates the pool token amount
+     *      This does the actual investment in the pool
+     *
+     *      emits a LogJoin event
+     *
+     * @param crpPool - CRP the user want to interact with
+     * @param tokenIn - Which token we're transferring in
+     * @param tokenAmountIn - Amount of the deposit
+     * @param minPoolAmountOut - Minimum of pool tokens to receive
+     * @param referral - Broker Address to receive fees
+     *
+     * @return poolAmountOut - Amount of pool tokens minted and transferred
+     */
     function _joinswapExternAmountIn(
         address crpPool,
         address tokenIn,
