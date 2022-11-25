@@ -48,6 +48,7 @@ contract HermesProxy is Ownable {
      *
      * @param wNative - The wrapped native blockchain token contract
      * @param communityStore_ - Address where contains the whitelist
+     * @param swapProvider_ - Address where contains aggregation router
      */
     constructor(
         address wNative,
@@ -129,6 +130,7 @@ contract HermesProxy is Ownable {
      * @param poolAmountOut - Number of pool tokens to receive
      * @param tokensIn - Address of the tokens the user is sending
      * @param maxAmountsIn - Max amount of asset tokens to spend; will follow the pool order
+     * @param referral - Broker address to receive fees
      */
     function joinPool(
         address crpPool,
@@ -191,9 +193,9 @@ contract HermesProxy is Ownable {
      *      corePool is a contract interface; function calls on it are external
      *
      * @param crpPool - CRP the user want to interact with
-     * @param poolAmountIn - amount of pool tokens to redeem
+     * @param poolAmountIn - Amount of pool tokens to redeem
      * @param tokensOut - Address of the tokens the user wants to receive
-     * @param minAmountsOut - minimum amount of asset tokens to receive
+     * @param minAmountsOut - Minimum amount of asset tokens to receive
      */
     function exitPool(
         address crpPool,
@@ -232,6 +234,7 @@ contract HermesProxy is Ownable {
      * @param tokenIn - Which token we're transferring in
      * @param tokenAmountIn - Amount of the deposit
      * @param minPoolAmountOut - Minimum of pool tokens to receive
+     * @param referral - Broker Address to receive fees
      *
      * @return poolAmountOut - Amount of pool tokens minted and transferred
      */
@@ -251,10 +254,25 @@ contract HermesProxy is Ownable {
         return _joinswapExternAmountIn(crpPool, tokenIn, tokenAmountIn, minPoolAmountOut, referral);
     }
 
+    /**
+     * @notice Join by swapping a fixed amount of an external token in (must be present in the pool)
+     *         System calculates the pool token amount
+     *
+     * @dev emits a LogJoin event
+     *
+     * @param crpPool - CRP the user want to interact with
+     * @param tokenIn - Which token we're transferring in
+     * @param tokenAmountIn - Amount of the deposit
+     * @param minPoolAmountOut - Minimum of pool tokens to receive
+     * @param referral - Broker Address to receive fees
+     * @param data - Params encoded for send to swap provider
+     *
+     * @return poolAmountOut - Amount of pool tokens minted and transferred
+     */
     function joinswapExternAmountIn(
         address crpPool,
         address tokenIn,
-        uint256 amoutTokenIn,
+        uint256 tokenAmountIn,
         address tokenExchange,
         uint256 minPoolAmountOut,
         address referral,
@@ -263,8 +281,8 @@ contract HermesProxy is Ownable {
         uint balanceTokenExchange = IERC20(tokenExchange).balanceOf(address(this));
 
         if(msg.value == 0) {
-            IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amoutTokenIn);
-            if (IERC20(tokenIn).allowance(address(this), swapProvider) < amoutTokenIn) {
+            IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), tokenAmountIn);
+            if (IERC20(tokenIn).allowance(address(this), swapProvider) < tokenAmountIn) {
                 IERC20(tokenIn).safeApprove(swapProvider, type(uint256).max);
             }
         }
@@ -288,6 +306,7 @@ contract HermesProxy is Ownable {
      * @param tokenIn - Which token we're transferring in (system calculates amount required)
      * @param poolAmountOut - Amount of pool tokens to be received
      * @param maxAmountIn - Maximum asset tokens that can be pulled to pay for the pool tokens
+     * @param referral - Broker Address to receive fees
      *
      * @return tokenAmountIn - Amount of asset tokens transferred in to purchase the pool tokens
      */
@@ -715,7 +734,6 @@ contract HermesProxy is Ownable {
 
         return unwrappedTokenAmountOut;
     }
-
 
     function _joinswapExternAmountIn(
         address crpPool,
