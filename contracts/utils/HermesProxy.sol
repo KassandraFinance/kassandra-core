@@ -288,7 +288,7 @@ contract HermesProxy is Ownable {
      *
      * @return poolAmountOut - Amount of pool tokens minted and transferred
      */
-    function joinswapExternAmountIn(
+    function joinswapExternAmountInWithSwap(
         address crpPool,
         address tokenIn,
         uint256 tokenAmountIn,
