@@ -11,8 +11,6 @@ import "../interfaces/IWrappedNative.sol";
 import "../interfaces/IConfigurableRightsPool.sol";
 import "../interfaces/IKassandraCommunityStore.sol";
 
-import "hardhat/console.sol";
-
 import "../utils/Ownable.sol";
 
 contract HermesProxy is Ownable {
@@ -104,9 +102,9 @@ contract HermesProxy is Ownable {
         wrappers[crpPool][tokenIn] = wrappers[corePool][tokenIn];
 
         IERC20 wToken = IERC20(wrappedToken);
-        IERC20(tokenIn).safeApprove(wrappedToken, type(uint256).max);
-        wToken.safeApprove(corePool, type(uint256).max);
-        wToken.safeApprove(crpPool, type(uint256).max);
+        IERC20(tokenIn).approve(wrappedToken, type(uint256).max);
+        wToken.approve(corePool, type(uint256).max);
+        wToken.approve(crpPool, type(uint256).max);
 
         emit NewWrapper(
             crpPool,
